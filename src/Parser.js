@@ -497,7 +497,8 @@ function getOuterHTML(el) {
 
     if (el.hasOwnProperty && el.hasOwnProperty('outerHTML')) {
         ret = el.outerHTML;
-    } else {
+    }
+    else {
         wrapper = document.createElement('div');
         wrapper.appendChild(el.cloneNode(true));
         ret = wrapper.innerHTML;

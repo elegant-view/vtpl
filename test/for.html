@@ -2,11 +2,20 @@
 <html>
 <head>
     <title></title>
+    <style type="text/css">
+    .hide {
+        display: none;
+    }
+    </style>
 </head>
 <body>
 <div id="root">
     <!-- for: ${list} as ${item} -->
-    ${item.name}<br />
+        ${item.name}.
+        <!-- if: ${item.name} === 2 -->
+            yes, it is 2.
+        <!-- /if -->
+        <br />
     <!-- /for -->
 </div>
 <script type="text/javascript" src="../src/Parser.js"></script>
