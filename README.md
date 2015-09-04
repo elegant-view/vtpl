@@ -1,6 +1,6 @@
 ## What's this?
 
-This is a template library. Unlike those traditional templates (such as [Jade](http://jade-lang.com/), It is based on DOM.
+This is a template library. Unlike those traditional templates (such as [Jade](http://jade-lang.com/)), It is based on DOM.
 
 ## Sample codes
 
