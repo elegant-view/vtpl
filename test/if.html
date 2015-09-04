@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+</head>
+<body>
+<div id="root">
+    <!-- if: ${name} === 'zero' -->
+    -----
+    <!-- /if -->
+</div>
+<script type="text/javascript" src="../src/Parser.js"></script>
+<script type="text/javascript">
+    var parser = new Parser(document.getElementById('root'));
+    parser.collectExpressions();
+    parser.setData({name: 'zero'});
+</script>
+</body>
+</html>
