@@ -211,18 +211,15 @@ function enterIf(parser, curNode) {
     function toggleChildNodes(isShow, ifStartNode, ifEndNode) {
         var nextNode = curNode;
         while ((nextNode = nextNode.nextSibling) && nextNode !== ifEndNode) {
-            if (nextNode.nodeType === 3) {
-                var span = document.createElement('span');
-                span.innerHTML = nextNode.nodeValue;
-                var parentNode = nextNode.parentNode;
-                parentNode.replaceChild(span, nextNode);
-                nextNode = span;
-            }
             if (!isShow) {
-                addClass(nextNode, ['hide']);
+                var cmt = nodeGoDark(nextNode);
+                nextNode.cmt = cmt;
             }
             else {
-                removeClass(nextNode, ['hide']);
+                if (nextNode.cmt) {
+                    nextNode.cmt.parentNode.replaceChild(nextNode, nextNode.cmt);
+                    nextNode.cmt = null;
+                }
             }
         }
     }
