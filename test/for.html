@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+</head>
+<body>
+<div id="root">
+    <!-- for: ${list} as ${item} -->
+    ${item.name}<br />
+    <!-- /for -->
+</div>
+<script type="text/javascript" src="../src/Parser.js"></script>
+<script type="text/javascript">
+    var parser = new Parser(document.getElementById('root'));
+    parser.collectExpressions();
+    parser.setData({list: [{name: 1}, {name: 2}, {name: 3}]});
+    parser.setData({list: [{name: 1}, {name: 4}]});
+    parser.setData({list: [{name: 1}, {name: 2}, {name: 3}]});
+</script>
+</body>
+</html>

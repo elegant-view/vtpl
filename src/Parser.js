@@ -1,11 +1,18 @@
+// 每一条指令（ if 、 for ）都会创建一个 scope 。
+// TODO: 保证每个 scope 的表达式执行顺序
+
 function Parser(rootNode) {
+    // 注意此处的 rootNode 并不一定是当前显示的 DOM 树上的根节点。
+    // 因为 for 中对于每一条，都是使用的一个不存在于 DOM 树上的节点来作为 rootNode ，
+    // 虽然从语义上讲不通，但是为了避免添加额外的包裹元素，这是一种行之有效的方案。
     this.rootNode = rootNode;
-    this.stack = [
-        {
-            directive: undefined,
-            curNode: this.rootNode
-        }
-    ];
+
+    var rootScope = {
+        directive: undefined,
+        curNode: this.rootNode
+    };
+    this.stack = [rootScope];
+    this.updateArr = [rootScope];
 }
 
 /**
@@ -15,9 +22,9 @@ function Parser(rootNode) {
  * @param {Object} data 数据
  */
 Parser.prototype.setData = function (data) {
-    checkExpressions(this.stack[0], data);
-    for (var i = 1, il = this.stack.length; i < il; i++) {
-        checkExpressions(this.stack[i], this.stack[i - 1].curData);
+    checkExpressions(this.updateArr[0], data);
+    for (var i = 1, il = this.updateArr.length; i < il; i++) {
+        checkExpressions(this.updateArr[i], this.updateArr[i - 1].curData);
     }
 
     function checkExpressions(scope, previousScopeData) {
@@ -49,14 +56,37 @@ Parser.prototype.collectExpressions = function () {
             return;
         }
 
-        var children = curNode.childNodes;
+        // 此处对于 for 做特殊处理：
+        // 如果进入了 for 循环，那么在 for 循环终止之前的所有节点，
+        // 都不再归当前 parser 管了，因为 for 指令中会把这部分节点当成
+        // 原始模板， for 循环出来的每一条都会是动态创建的，每一条都会新建
+        // 一个小的 parser 。
+        var isInFor = false;
+        var children = slice(curNode.childNodes);
         for (var i = 0, il = children.length; i < il; i++) {
             var child = children[i];
-            if (isIf(child)) {
-                enterIf(me, child);
+            if (!child.parentNode) {
+                continue;
             }
-            else {
-                enterExpression(me, child);
+
+            if (!isInFor) {
+                if (isIf(child)) {
+                    enterIf(me, child);
+                }
+                else if (isIfEnd(child)) {
+                    enterIfEnd(me, child);
+                }
+                else if (isFor(child)) {
+                    isInFor = true;
+                    enterFor(me, child);
+                }
+                else {
+                    enterExpression(me, child);
+                }
+            }
+            else if (isForEnd(child)) {
+                isInFor = false;
+                enterForEnd(me, child);
             }
         }
     }
@@ -68,12 +98,17 @@ Parser.prototype.collectExpressions = function () {
  * 就是一些脱离于指令的一些表达式。这种表达式不会新建 scope
  *
  * @inner
+ * @param  {Parser} parser  解析器
+ * @param  {Node} curNode 当前节点
  */
 function enterExpression(parser, curNode) {
     var scope = parser.stack[parser.stack.length - 1];
 
     scope.expressionFns = scope.expressionFns || {};
     scope.updateFns = scope.updateFns || {};
+    scope.nodes = scope.nodes || [];
+
+    scope.nodes.push(curNode);
 
     // 文本节点
     if (curNode.nodeType === 3) {
@@ -125,6 +160,13 @@ function enterExpression(parser, curNode) {
     }
 }
 
+/**
+ * if 指令开始节点
+ *
+ * @inner
+ * @param  {Parser} parser  解析器
+ * @param  {Node} curNode 当前节点
+ */
 function enterIf(parser, curNode) {
     var ifEndNode = findIfEnd(curNode);
     if (!ifEndNode) {
@@ -151,6 +193,7 @@ function enterIf(parser, curNode) {
     })(curNode, ifEndNode)];
 
     parser.stack.push(scope);
+    parser.updateArr.push(scope);
 
     function findIfEnd(ifStartNode) {
         var next = ifStartNode;
@@ -183,6 +226,158 @@ function enterIf(parser, curNode) {
             }
         }
     }
+}
+
+/**
+ * if 指令结束节点
+ *
+ * @inner
+ * @param  {Parser} parser  解析器
+ * @param  {Node} curNode 当前节点
+ */
+function enterIfEnd(parser, curNode) {
+    var lastScope = parser.stack[parser.stack.length - 1];
+    if (lastScope.directive !== 'if') {
+        throw new Error('wrong `if end` directive');
+    }
+    parser.stack.pop();
+}
+
+/**
+ * for 指令开始节点。
+ * for 的语法为：
+ * <!-- for: ${list} as ${item} -->
+ * <!-- /for -->
+ *
+ * @inner
+ * @param  {Parser} parser  解析器
+ * @param  {Node} curNode 当前节点
+ */
+function enterFor(parser, curNode) {
+    var forEndNode = findForEnd(curNode);
+    if (!forEndNode) {
+        throw new Error('the directive `for` is not correctlly closed!');
+    }
+
+    var scope = {
+        directive: 'for',
+        curNode: curNode
+    };
+
+    var expression = curNode.nodeValue.replace(/^\s*for:/, '');
+    var listExpr = expression.match(/\$\{[^{}]+\}/)[0];
+    scope.forTpl = getForTpl(curNode, forEndNode);
+    scope.expressionFns = {};
+    scope.expressionFns[expression] = (function (scope, expression, listExpr) {
+        return function () {
+            return calculateExpression(listExpr, scope.curData);
+        };
+    })(scope, expression, listExpr);
+    scope.updateFns = {};
+    scope.updateFns[expression] = [(function (scope, expression, listExpr, forTpl, forEndNode) {
+        var itemParsers = [];
+        var itemValueName = expression.match(/as\s+\$\{([^{}]+)\}/)[1];
+        return function (expressionResult) {
+            var index = 0;
+            for (var key in expressionResult) {
+                if (!itemParsers[index]) {
+                    itemParsers[index] = createItemParser(forTpl);
+                }
+                else {
+                    restoreParserNodes(itemParsers[index]);
+                }
+
+                var local = {index: index, key: key};
+                local[itemValueName] = expressionResult[key];
+                itemParsers[index].setData(extend({}, scope.curData, local));
+
+                index++;
+            }
+
+            for (var i = index, il = itemParsers.length; i < il; i++) {
+                hideParserNodes(itemParsers[i]);
+            }
+        };
+
+        function createItemParser(forTpl) {
+            var wrapper = document.createElement('div');
+            wrapper.innerHTML = forTpl;
+            var parser = new Parser(wrapper);
+            parser.collectExpressions();
+
+            var childNodes = wrapper.childNodes;
+            while (childNodes.length) {
+                var node = childNodes[0];
+                forEndNode.parentNode.insertBefore(node, forEndNode);
+            }
+
+            return parser;
+        }
+
+        function hideParserNodes(parser) {
+            for (var i = 0, il = parser.updateArr.length; i < il; i++) {
+                var nodes = parser.updateArr[i].nodes;
+                for (var j = 0, jl = nodes.length; j < jl; j++) {
+                    var node = nodes[j];
+                    var cmt = nodeGoDark(node);
+                    node.cmt = cmt;
+                }
+            }
+        }
+
+        function restoreParserNodes(parser) {
+            for (var i = 0, il = parser.updateArr.length; i < il; i++) {
+                var nodes = parser.updateArr[i].nodes;
+                for (var j = 0, jl = nodes.length; j < jl; j++) {
+                    var node = nodes[j];
+                    if (node.cmt) {
+                        node.cmt.parentNode.replaceChild(node, node.cmt);
+                        node.cmt = null;
+                    }
+                }
+            }
+        }
+    })(scope, expression, listExpr, scope.forTpl, forEndNode)];
+
+    parser.stack.push(scope);
+    parser.updateArr.push(scope);
+
+    function findForEnd(forStartNode) {
+        var next = forStartNode;
+        while ((next = next.nextSibling)) {
+            if (isFor(next)) {
+                return;
+            }
+
+            if (isForEnd(next)) {
+                return next;
+            }
+        }
+    }
+
+    function getForTpl(forStartNode, forEndNode) {
+        var next = forStartNode;
+        var tpls = [];
+        var waitForRemove = [];
+        while ((next = next.nextSibling) && next !== forEndNode) {
+            tpls.push(getOuterHTML(next));
+            waitForRemove.push(next);
+        }
+
+        for (var i = 0, il = waitForRemove.length; i < il; i++) {
+            next.parentNode.removeChild(waitForRemove[i]);
+        }
+
+        return tpls.join('');
+    }
+}
+
+function enterForEnd(parser, curNode) {
+    var lastScope = parser.stack[parser.stack.length - 1];
+    if (lastScope.directive !== 'for') {
+        throw new Error('wrong `for end` directive');
+    }
+    parser.stack.pop();
 }
 
 /**
@@ -223,6 +418,14 @@ function isEqual(a, b) {
  */
 function isComment(node) {
     return node.nodeType === 8;
+}
+
+function isFor(node) {
+    return isComment(node) && /^\s*for:/.test(node.nodeValue);
+}
+
+function isForEnd(node) {
+    return isComment(node) && /^\s*\/for\s*/.test(node.nodeValue);
 }
 
 /**
@@ -288,19 +491,50 @@ function classesManage(element, klasses, newKlassesValue) {
     element.className = curKlassArr.join(' ');
 }
 
+function getOuterHTML(el) {
+    var ret;
+    var wrapper;
+
+    if (el.hasOwnProperty && el.hasOwnProperty('outerHTML')) {
+        ret = el.outerHTML;
+    } else {
+        wrapper = document.createElement('div');
+        wrapper.appendChild(el.cloneNode(true));
+        ret = wrapper.innerHTML;
+    }
+
+    return ret;
+}
+
+function nodeGoDark(node) {
+    if (!node.parentNode) {
+        return;
+    }
+
+    var cmt = document.createComment('');
+    node.parentNode.replaceChild(cmt, node);
+    return cmt;
+}
+
 /**
  * 超级简单的 extend ，因为本库对 extend 没那高的要求，
  * 等到有要求的时候再完善。
  *
  * @inner
  * @param  {Object} target 目标对象
- * @param  {Object} src    源对象
  * @return {Object}        最终合并后的对象
  */
-function extend(target, src) {
-    for (var key in src) {
-        target[key] = src[key];
+function extend(target) {
+    var srcs = slice(arguments, 1);
+    for (var i = 0, il = srcs.length; i < il; i++) {
+        for (var key in srcs[i]) {
+            target[key] = srcs[i][key];
+        }
     }
     return target;
+}
+
+function slice(arr, start, end) {
+    return Array.prototype.slice.call(arr, start, end);
 }
 
