@@ -8,6 +8,12 @@ function Parser(rootNode) {
     ];
 }
 
+/**
+ * 单向改变数据，整个 DOM 要更新
+ *
+ * @public
+ * @param {Object} data 数据
+ */
 Parser.prototype.setData = function (data) {
     checkExpressions(this.stack[0], data);
     for (var i = 1, il = this.stack.length; i < il; i++) {
@@ -29,6 +35,11 @@ Parser.prototype.setData = function (data) {
     }
 };
 
+/**
+ * 搜集 DOM 中的表达式
+ *
+ * @public
+ */
 Parser.prototype.collectExpressions = function () {
     var me = this;
     walk(this.rootNode);
@@ -55,6 +66,8 @@ Parser.prototype.collectExpressions = function () {
  * 当前的节点中有 `${name}` 、 `${9 - 1}` 这种表达式，
  * 注意这些表达式不是 if 、 for 这种指令里面的表达式，
  * 就是一些脱离于指令的一些表达式。这种表达式不会新建 scope
+ *
+ * @inner
  */
 function enterExpression(parser, curNode) {
     var scope = parser.stack[parser.stack.length - 1];
@@ -172,6 +185,14 @@ function enterIf(parser, curNode) {
     }
 }
 
+/**
+ * 计算表达式的值
+ *
+ * @inner
+ * @param  {string} expression 表达式字符串，类似于 `${name}`
+ * @param  {Object} curData    当前表达式对应的数据
+ * @return {string}            计算结果
+ */
 function calculateExpression(expression, curData) {
     expression = expression.replace(/\$\{([^{}]+)\}/g, function () {
         if (arguments.length < 2) {
@@ -193,20 +214,57 @@ function isEqual(a, b) {
     return a === b;
 }
 
+/**
+ * 是否是注释节点
+ *
+ * @inner
+ * @param  {Node}  node 节点
+ * @return {boolean}     true 表明是注释节点
+ */
 function isComment(node) {
     return node.nodeType === 8;
 }
+
+/**
+ * 是否是 if 指令起始节点
+ *
+ * @inner
+ * @param  {Node}  node 节点
+ * @return {boolean}     true 表明是起始节点
+ */
 function isIf(node) {
     return isComment(node) && /^\s*if:/.test(node.nodeValue);
 }
+
+/**
+ * 是否是 if 指令的结束节点
+ *
+ * @inner
+ * @param  {Node}  node 节点
+ * @return {boolean}     true 表明是结束节点
+ */
 function isIfEnd(node) {
     return isComment(node) && /^\s*\/if\s*$/.test(node.nodeValue);
 }
 
+/**
+ * 给元素添加类
+ *
+ * @inner
+ * @param {Element} element 元素
+ * @param {Array.<string>} klasses 类的数组
+ */
 function addClass(element, klasses) {
     classesManage(element, klasses, true);
 }
 
+/**
+ * 移除指定的类
+ *
+ * @inner
+ * @param {Element} element 元素
+ * @param {Array.<string>} klasses 类的数组
+ */
 function removeClass(element, klasses) {
     classesManage(element, klasses, false);
 }
@@ -230,6 +288,15 @@ function classesManage(element, klasses, newKlassesValue) {
     element.className = curKlassArr.join(' ');
 }
 
+/**
+ * 超级简单的 extend ，因为本库对 extend 没那高的要求，
+ * 等到有要求的时候再完善。
+ *
+ * @inner
+ * @param  {Object} target 目标对象
+ * @param  {Object} src    源对象
+ * @return {Object}        最终合并后的对象
+ */
 function extend(target, src) {
     for (var key in src) {
         target[key] = src[key];
