@@ -7,6 +7,9 @@
 <div id="root">
     <!-- if: ${name} === 'zero' -->
     'zero'
+        <!-- if: ${name2} === 'zero2' -->
+            'zero2'
+        <!-- /if -->
     <!-- elif: ${name1} === 'zero1' -->
     'zero1'
     <!-- /if -->
@@ -15,7 +18,7 @@
 <script type="text/javascript">
     var parser = new Parser(document.getElementById('root'));
     parser.collectExpressions();
-    parser.setData({name: 'zero', name1: 'zero1'});
+    parser.setData({name: 'zero1', name1: 'zero1', name2: ''});
 </script>
 </body>
 </html>

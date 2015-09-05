@@ -1,6 +1,4 @@
 // 每一条指令（ if 、 for ）都会创建一个 scope 。
-// 每个 scope 的第一个表达式都是指令表达式。
-// TODO: 保证每个 scope 的表达式执行顺序
 
 function Parser(rootNode) {
     // 注意此处的 rootNode 并不一定是当前显示的 DOM 树上的根节点。
@@ -46,10 +44,18 @@ Parser.prototype.setData = function (data) {
 
         scope.expressionOldValues = scope.expressionOldValues || {};
 
-        var directiveObj = {directive: scope.directive};
-        var expression = scope.expressions[0];
-        var exprValue = scope.expressionFns[expression]();
-        var isPreviousEqual = isEqual(scope.expressionOldValues[expression], exprValue);
+        var directiveObj;
+        var expression;
+        var exprValue;
+        var isPreviousEqual;
+        if (scope.directive !== '/if' && scope.directive !== '/for') {
+            directiveObj = {directive: scope.directive};
+            expression = scope.expressions[0];
+            exprValue = scope.expressionFns[expression]();
+            isPreviousEqual = isEqual(scope.expressionOldValues[expression], exprValue);
+        }
+
+        var previous;
         if (scope.directive === 'if') {
             if (!isPreviousEqual) {
                 scope.directiveUpdateFn(exprValue);
@@ -59,7 +65,7 @@ Parser.prototype.setData = function (data) {
         }
         else if (scope.directive === 'elif') {
             // 检查之前的 if 、 elif 分支的表达式执行结果是否都为 falsy
-            var previous;
+            previous = null;
             var index = directiveStack.length;
             var isAllFalsy = true;
             while ((index--, previous = directiveStack[index])) {
@@ -82,18 +88,34 @@ Parser.prototype.setData = function (data) {
                 scope.directiveUpdateFn(false);
             }
         }
+        else if (scope.directive === '/if') {
+            previous = null;
+            while ((previous = lastOfArr(directiveStack))) {
+                directiveStack.pop();
+                if (previous.directive === 'if') {
+                    break;
+                }
+            }
+        }
+        else if (scope.directive === '/for') {
+            directiveStack.pop();
+        }
         else if (scope.directive === 'for') {
             if (!isPreviousEqual) {
                 scope.directiveUpdateFn(exprValue);
             }
         }
 
-        directiveStack.push(directiveObj);
+        directiveObj && directiveStack.push(directiveObj);
 
         return ret;
     }
 
     function updateNormalExpressions(scope) {
+        if (scope.directive === '/if' || scope.directive === '/for') {
+            return;
+        }
+
         scope.expressionOldValues = scope.expressionOldValues || {};
         for (var i = scope.directive ? 1 : 0, il = scope.expressions.length; i < il; i++) {
             var expression = scope.expressions[i];
@@ -308,13 +330,24 @@ function enterIf(parser, curNode) {
 
     function findIfEnd(ifStartNode) {
         var next = ifStartNode;
+        var stack = ['if'];
         while ((next = next.nextSibling)) {
             if (isIf(next)) {
-                return;
+                stack.push('if');
+                continue;
             }
 
-            if (isIfEnd(next) || isElif(next)) {
-                return next;
+            if (isIfEnd(next)) {
+                var previous;
+                while ((previous = lastOfArr(stack))) {
+                    stack.pop();
+                    if (previous === 'if') {
+                        break;
+                    }
+                }
+                if (stack.length === 0) {
+                    return next;
+                }
             }
         }
     }
@@ -333,15 +366,26 @@ function enterElif(parser, curNode) {
 
     enterCondition(parser, curNode, elifEndNode, 'elif');
 
-    function findElifEnd(elIfStartNode) {
-        var next = elIfStartNode;
+    function findElifEnd(elifStartNode) {
+        var next = elifStartNode;
+        var stack = ['elif'];
         while ((next = next.nextSibling)) {
             if (isIf(next)) {
-                return;
+                stack.push('if');
+                continue;
             }
 
-            if (isIfEnd(next) || isElif(next)) {
-                return next;
+            if (isIfEnd(next)) {
+                var previous;
+                while ((previous = lastOfArr(stack))) {
+                    stack.pop();
+                    if (previous === 'if') {
+                        break;
+                    }
+                }
+                if (stack.length === 0) {
+                    return next;
+                }
             }
         }
     }
@@ -362,10 +406,17 @@ function enterIfEnd(parser, curNode) {
 
     do {
         parser.stack.pop();
+        if (lastScope.directive === 'if') {
+            break;
+        }
     } while (
-        (lastScope = parser.stack[parser.stack.length - 1])
+        (lastScope = lastOfArr(parser.stack))
         && (lastScope.directive === 'if' || lastScope.directive === 'elif')
     );
+
+    parser.updateArr.push({
+        directive: '/if'
+    });
 }
 
 /**
@@ -504,6 +555,10 @@ function enterForEnd(parser, curNode) {
         throw new Error('wrong `for end` directive');
     }
     parser.stack.pop();
+
+    parser.updateArr.push({
+        directive: '/for'
+    });
 }
 
 /**
