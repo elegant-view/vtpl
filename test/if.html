@@ -6,14 +6,16 @@
 <body>
 <div id="root">
     <!-- if: ${name} === 'zero' -->
-    -----
+    'zero'
+    <!-- elif: ${name1} === 'zero1' -->
+    'zero1'
     <!-- /if -->
 </div>
 <script type="text/javascript" src="../src/Parser.js"></script>
 <script type="text/javascript">
     var parser = new Parser(document.getElementById('root'));
     parser.collectExpressions();
-    parser.setData({name: 'zero1'});
+    parser.setData({name: 'zero', name1: 'zero1'});
 </script>
 </body>
 </html>

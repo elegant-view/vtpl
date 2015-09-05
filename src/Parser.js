@@ -1,4 +1,5 @@
 // 每一条指令（ if 、 for ）都会创建一个 scope 。
+// 每个 scope 的第一个表达式都是指令表达式。
 // TODO: 保证每个 scope 的表达式执行顺序
 
 function Parser(rootNode) {
@@ -9,7 +10,8 @@ function Parser(rootNode) {
 
     var rootScope = {
         directive: undefined,
-        curNode: this.rootNode
+        curNode: this.rootNode,
+        expressions: []
     };
     this.stack = [rootScope];
     this.updateArr = [rootScope];
@@ -22,6 +24,90 @@ function Parser(rootNode) {
  * @param {Object} data 数据
  */
 Parser.prototype.setData = function (data) {
+    var rootScope = this.updateArr[0];
+    rootScope.curData = extend({}, rootScope.curData, data);
+    updateNormalExpressions(rootScope);
+
+    var directiveStack = [];
+    for (var i = 1, il = this.updateArr.length; i < il; i++) {
+        var scope = this.updateArr[i];
+        scope.curData = extend({}, this.updateArr[i - 1].curData);
+        if (updateDirectiveExpression(scope)) {
+            updateNormalExpressions(scope);
+        }
+    }
+
+    function updateDirectiveExpression(scope) {
+        if (!scope.directive) {
+            return true;
+        }
+
+        var ret = false;
+
+        scope.expressionOldValues = scope.expressionOldValues || {};
+
+        var directiveObj = {directive: scope.directive};
+        var expression = scope.expressions[0];
+        var exprValue = scope.expressionFns[expression]();
+        var isPreviousEqual = isEqual(scope.expressionOldValues[expression], exprValue);
+        if (scope.directive === 'if') {
+            if (!isPreviousEqual) {
+                scope.directiveUpdateFn(exprValue);
+            }
+            directiveObj.expressionValue = exprValue;
+            ret = !!exprValue;
+        }
+        else if (scope.directive === 'elif') {
+            // 检查之前的 if 、 elif 分支的表达式执行结果是否都为 falsy
+            var previous;
+            var index = directiveStack.length;
+            var isAllFalsy = true;
+            while ((index--, previous = directiveStack[index])) {
+                if (previous.expressionValue) {
+                    isAllFalsy = false;
+                }
+
+                if (previous.directive === 'if') {
+                    break;
+                }
+            }
+
+            if (isAllFalsy) {
+                if (!isPreviousEqual) {
+                    scope.directiveUpdateFn(exprValue);
+                }
+                ret = true;
+            }
+            else {
+                scope.directiveUpdateFn(false);
+            }
+        }
+        else if (scope.directive === 'for') {
+            if (!isPreviousEqual) {
+                scope.directiveUpdateFn(exprValue);
+            }
+        }
+
+        directiveStack.push(directiveObj);
+
+        return ret;
+    }
+
+    function updateNormalExpressions(scope) {
+        scope.expressionOldValues = scope.expressionOldValues || {};
+        for (var i = scope.directive ? 1 : 0, il = scope.expressions.length; i < il; i++) {
+            var expression = scope.expressions[i];
+            var expressionValue = scope.expressionFns[expression]();
+            if (isEqual(expressionValue, scope.expressionOldValues[expression])) {
+                continue;
+            }
+            for (var j = 0, jl = scope.updateFns[expression].length; j < jl; j++) {
+                scope.updateFns[expression][j](expressionValue);
+            }
+        }
+    }
+
+
     checkExpressions(this.updateArr[0], data);
     for (var i = 1, il = this.updateArr.length; i < il; i++) {
         checkExpressions(this.updateArr[i], this.updateArr[i - 1].curData);
@@ -72,6 +158,9 @@ Parser.prototype.collectExpressions = function () {
             if (!isInFor) {
                 if (isIf(child)) {
                     enterIf(me, child);
+                }
+                else if (isElif(child)) {
+                    enterElif(me, child);
                 }
                 else if (isIfEnd(child)) {
                     enterIfEnd(me, child);
@@ -140,6 +229,7 @@ function enterExpression(parser, curNode) {
     }
 
     function addExpression(expression, scope, updateFn) {
+        scope.expressions.push(expression);
         if (!scope.expressionFns[expression]) {
             scope.expressionFns[expression] = createExpressionFunction(expression, scope);
         }
@@ -160,53 +250,29 @@ function enterExpression(parser, curNode) {
     }
 }
 
-/**
- * if 指令开始节点
- *
- * @inner
- * @param  {Parser} parser  解析器
- * @param  {Node} curNode 当前节点
- */
-function enterIf(parser, curNode) {
-    var ifEndNode = findIfEnd(curNode);
-    if (!ifEndNode) {
-        throw new Error('the directive `if` is not correctlly closed!');
-    }
+function enterCondition(parser, curNode, ifEndNode, directiveName) {
+    var expression = curNode.nodeValue.replace(/^\s*(el)?if:/, '');
 
     var scope = {
-        directive: 'if',
-        curNode: curNode
+        directive: directiveName,
+        curNode: curNode,
+        expressions: [expression]
     };
 
-    var expression = curNode.nodeValue.replace(/^\s*if:/, '');
     scope.expressionFns = {};
     scope.expressionFns[expression] = (function (scope, expression) {
         return function () {
             return calculateExpression(expression, scope.curData);
         };
     })(scope, expression);
-    scope.updateFns = {};
-    scope.updateFns[expression] = [(function (ifStartNode, ifEndNode) {
+    scope.directiveUpdateFn = (function (ifStartNode, ifEndNode) {
         return function (expressionResult) {
             toggleChildNodes(expressionResult, ifStartNode, ifEndNode);
         };
-    })(curNode, ifEndNode)];
+    })(curNode, ifEndNode);
 
     parser.stack.push(scope);
     parser.updateArr.push(scope);
-
-    function findIfEnd(ifStartNode) {
-        var next = ifStartNode;
-        while ((next = next.nextSibling)) {
-            if (isIf(next)) {
-                return;
-            }
-
-            if (isIfEnd(next)) {
-                return next;
-            }
-        }
-    }
 
     function toggleChildNodes(isShow, ifStartNode, ifEndNode) {
         var nextNode = curNode;
@@ -226,6 +292,62 @@ function enterIf(parser, curNode) {
 }
 
 /**
+ * if 指令开始节点
+ *
+ * @inner
+ * @param  {Parser} parser  解析器
+ * @param  {Node} curNode 当前节点
+ */
+function enterIf(parser, curNode) {
+    var ifEndNode = findIfEnd(curNode);
+    if (!ifEndNode) {
+        throw new Error('the directive `if` is not correctlly closed!');
+    }
+
+    enterCondition(parser, curNode, ifEndNode, 'if');
+
+    function findIfEnd(ifStartNode) {
+        var next = ifStartNode;
+        while ((next = next.nextSibling)) {
+            if (isIf(next)) {
+                return;
+            }
+
+            if (isIfEnd(next) || isElif(next)) {
+                return next;
+            }
+        }
+    }
+}
+
+function enterElif(parser, curNode) {
+    var elifEndNode = findElifEnd(curNode);
+    if (!elifEndNode) {
+        throw new Error('the directive `elif` is not correctlly closed!');
+    }
+
+    var lastScope = parser.stack[parser.stack.length - 1];
+    if (lastScope.directive !== 'if' && lastScope.directive !== 'elif') {
+        throw new Error('unexpected `elif`');
+    }
+
+    enterCondition(parser, curNode, elifEndNode, 'elif');
+
+    function findElifEnd(elIfStartNode) {
+        var next = elIfStartNode;
+        while ((next = next.nextSibling)) {
+            if (isIf(next)) {
+                return;
+            }
+
+            if (isIfEnd(next) || isElif(next)) {
+                return next;
+            }
+        }
+    }
+}
+
+/**
  * if 指令结束节点
  *
  * @inner
@@ -234,10 +356,16 @@ function enterIf(parser, curNode) {
  */
 function enterIfEnd(parser, curNode) {
     var lastScope = parser.stack[parser.stack.length - 1];
-    if (lastScope.directive !== 'if') {
+    if (lastScope.directive !== 'if' && lastScope.directive !== 'elif') {
         throw new Error('wrong `if end` directive');
     }
-    parser.stack.pop();
+
+    do {
+        parser.stack.pop();
+    } while (
+        (lastScope = parser.stack[parser.stack.length - 1])
+        && (lastScope.directive === 'if' || lastScope.directive === 'elif')
+    );
 }
 
 /**
@@ -256,12 +384,14 @@ function enterFor(parser, curNode) {
         throw new Error('the directive `for` is not correctlly closed!');
     }
 
+    var expression = curNode.nodeValue.replace(/^\s*for:/, '');
+
     var scope = {
         directive: 'for',
-        curNode: curNode
+        curNode: curNode,
+        expressions: [expression]
     };
 
-    var expression = curNode.nodeValue.replace(/^\s*for:/, '');
     var listExpr = expression.match(/\$\{[^{}]+\}/)[0];
     scope.forTpl = getForTpl(curNode, forEndNode);
     scope.expressionFns = {};
@@ -270,8 +400,7 @@ function enterFor(parser, curNode) {
             return calculateExpression(listExpr, scope.curData);
         };
     })(scope, expression, listExpr);
-    scope.updateFns = {};
-    scope.updateFns[expression] = [(function (scope, expression, listExpr, forTpl, forEndNode) {
+    scope.directiveUpdateFn = (function (scope, expression, listExpr, forTpl, forEndNode) {
         var itemParsers = [];
         var itemValueName = expression.match(/as\s+\$\{([^{}]+)\}/)[1];
         return function (expressionResult) {
@@ -295,49 +424,49 @@ function enterFor(parser, curNode) {
                 hideParserNodes(itemParsers[i]);
             }
         };
-
-        function createItemParser(forTpl) {
-            var wrapper = document.createElement('div');
-            wrapper.innerHTML = forTpl;
-            var parser = new Parser(wrapper);
-            parser.collectExpressions();
-
-            var childNodes = wrapper.childNodes;
-            while (childNodes.length) {
-                var node = childNodes[0];
-                forEndNode.parentNode.insertBefore(node, forEndNode);
-            }
-
-            return parser;
-        }
-
-        function hideParserNodes(parser) {
-            for (var i = 0, il = parser.updateArr.length; i < il; i++) {
-                var nodes = parser.updateArr[i].nodes;
-                for (var j = 0, jl = nodes.length; j < jl; j++) {
-                    var node = nodes[j];
-                    var cmt = nodeGoDark(node);
-                    node.cmt = cmt;
-                }
-            }
-        }
-
-        function restoreParserNodes(parser) {
-            for (var i = 0, il = parser.updateArr.length; i < il; i++) {
-                var nodes = parser.updateArr[i].nodes;
-                for (var j = 0, jl = nodes.length; j < jl; j++) {
-                    var node = nodes[j];
-                    if (node.cmt) {
-                        node.cmt.parentNode.replaceChild(node, node.cmt);
-                        node.cmt = null;
-                    }
-                }
-            }
-        }
-    })(scope, expression, listExpr, scope.forTpl, forEndNode)];
+    })(scope, expression, listExpr, scope.forTpl, forEndNode);
 
     parser.stack.push(scope);
     parser.updateArr.push(scope);
+
+    function createItemParser(forTpl) {
+        var wrapper = document.createElement('div');
+        wrapper.innerHTML = forTpl;
+        var parser = new Parser(wrapper);
+        parser.collectExpressions();
+
+        var childNodes = wrapper.childNodes;
+        while (childNodes.length) {
+            var node = childNodes[0];
+            forEndNode.parentNode.insertBefore(node, forEndNode);
+        }
+
+        return parser;
+    }
+
+    function hideParserNodes(parser) {
+        for (var i = 0, il = parser.updateArr.length; i < il; i++) {
+            var nodes = parser.updateArr[i].nodes;
+            for (var j = 0, jl = nodes.length; j < jl; j++) {
+                var node = nodes[j];
+                var cmt = nodeGoDark(node);
+                node.cmt = cmt;
+            }
+        }
+    }
+
+    function restoreParserNodes(parser) {
+        for (var i = 0, il = parser.updateArr.length; i < il; i++) {
+            var nodes = parser.updateArr[i].nodes;
+            for (var j = 0, jl = nodes.length; j < jl; j++) {
+                var node = nodes[j];
+                if (node.cmt) {
+                    node.cmt.parentNode.replaceChild(node, node.cmt);
+                    node.cmt = null;
+                }
+            }
+        }
+    }
 
     function findForEnd(forStartNode) {
         var next = forStartNode;
@@ -415,6 +544,10 @@ function isEqual(a, b) {
  */
 function isComment(node) {
     return node.nodeType === 8;
+}
+
+function isElif(node) {
+    return isComment(node) && /^\s*elif:/.test(node.nodeValue);
 }
 
 function isFor(node) {
@@ -534,5 +667,9 @@ function extend(target) {
 
 function slice(arr, start, end) {
     return Array.prototype.slice.call(arr, start, end);
+}
+
+function lastOfArr(arr) {
+    return arr[arr.length - 1];
 }
 
