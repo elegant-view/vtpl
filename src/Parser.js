@@ -498,6 +498,9 @@ function enterFor(parser, curNode) {
     function hideParserNodes(parser) {
         for (var i = 0, il = parser.updateArr.length; i < il; i++) {
             var nodes = parser.updateArr[i].nodes;
+            if (!nodes) {
+                continue;
+            }
             for (var j = 0, jl = nodes.length; j < jl; j++) {
                 var node = nodes[j];
                 var cmt = nodeGoDark(node);
@@ -509,6 +512,9 @@ function enterFor(parser, curNode) {
     function restoreParserNodes(parser) {
         for (var i = 0, il = parser.updateArr.length; i < il; i++) {
             var nodes = parser.updateArr[i].nodes;
+            if (!nodes) {
+                continue;
+            }
             for (var j = 0, jl = nodes.length; j < jl; j++) {
                 var node = nodes[j];
                 if (node.cmt) {
