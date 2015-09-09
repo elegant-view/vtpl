@@ -1,0 +1,26 @@
+{
+  "name": "dom-data-bind",
+  "version": "1.0.0",
+  "description": "This is a template library. Unlike those traditional templates (such as [Jade](http://jade-lang.com/)), It is based on DOM.",
+  "main": "dist/index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yibuyisheng/dom-data-bind.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yibuyisheng/dom-data-bind/issues"
+  },
+  "homepage": "https://github.com/yibuyisheng/dom-data-bind#readme",
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-browserify": "^0.5.1"
+  }
+}
