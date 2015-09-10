@@ -21,6 +21,7 @@ IfDirectiveParser.prototype.initialize = function (options) {
 };
 
 IfDirectiveParser.prototype.collectExprs = function () {
+    debugger
     var curNode = this.startNode;
     var branches = [];
     var branchIndex = -1;
@@ -28,16 +29,14 @@ IfDirectiveParser.prototype.collectExprs = function () {
         var nodeType = getIfNodeType(curNode);
 
         if (nodeType) {
-            if (branches[branchIndex].startNode) {
-                branches[branchIndex].endNode = curNode.previousSibling;
-            }
+            setEndNode(curNode, branches, branchIndex);
 
             branchIndex++;
             branches[branchIndex] = branches[branchIndex] || {};
 
             // 是 if 节点或者 elif 节点，搜集表达式
             if (nodeType < 3) {
-                var expr = curNode.nodeValue.replace(/\s*(if)|(elif)|(else)|(\/if):\s*/g, '');
+                var expr = curNode.nodeValue.replace(/\s*(if|elif|else|\/if):\s*/g, '');
                 this.exprs.push(expr);
 
                 if (!this.exprFns[expr]) {
@@ -50,9 +49,21 @@ IfDirectiveParser.prototype.collectExprs = function () {
                 branches[branchIndex].startNode = curNode;
             }
         }
-    } while ((curNode = curNode.nextSibling) && curNode !== this.endNode);
+
+        curNode = curNode.nextSibling;
+        if (!curNode || curNode === this.endNode) {
+            setEndNode(curNode, branches, branchIndex);
+            break;
+        }
+    } while (true);
 
     return branches;
+
+    function setEndNode(curNode, branches, branchIndex) {
+        if (branchIndex + 1 && branches[branchIndex].startNode) {
+            branches[branchIndex].endNode = curNode.previousSibling;
+        }
+    }
 };
 
 IfDirectiveParser.prototype.setData = function (data) {
@@ -83,9 +94,9 @@ IfDirectiveParser.isIfEndNode = function (node) {
 };
 
 IfDirectiveParser.findIfEnd = function (ifStartNode) {
-    var curNode;
-    while ((curNode = ifStartNode.nextSibling)) {
-        if (this.isIfEndNode(curNode)) {
+    var curNode = ifStartNode;
+    while ((curNode = curNode.nextSibling)) {
+        if (IfDirectiveParser.isIfEndNode(curNode)) {
             return curNode;
         }
     }
@@ -110,7 +121,7 @@ function getIfNodeType(node) {
         return 3;
     }
 
-    if (/^\s*\/if:\s*/.test(node.nodeValue)) {
+    if (/^\s*\/if\s*/.test(node.nodeValue)) {
         return 4;
     }
 }

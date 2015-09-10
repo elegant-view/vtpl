@@ -6,7 +6,7 @@
 var inherit = require('./inherit');
 var Parser = require('./Parser');
 var utils = require('./utils');
-var Tree = require('./Tree');
+var Tree = require('./Tree').Tree;
 
 function ForDirectiveParser(options) {
     Parser.call(this, options);
@@ -51,13 +51,13 @@ ForDirectiveParser.isForNode = function (node) {
 };
 
 ForDirectiveParser.isForEndNode = function (node) {
-    return node.nodeType === 8 && /^\s*\/for:\s*/.test(node.nodeValue);
+    return node.nodeType === 8 && /^\s*\/for\s*/.test(node.nodeValue);
 };
 
 ForDirectiveParser.findForEnd = function (forStartNode) {
-    var curNode;
-    while ((curNode = forStartNode.nextSibling)) {
-        if (this.isForEndNode(curNode)) {
+    var curNode = forStartNode;
+    while ((curNode = curNode.nextSibling)) {
+        if (ForDirectiveParser.isForEndNode(curNode)) {
             return curNode;
         }
     }

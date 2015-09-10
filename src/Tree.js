@@ -5,7 +5,7 @@
 
 var IfDirectiveParser = require('./IfDirectiveParser');
 var ExprParser = require('./ExprParser');
-var ForDirectiveParser = require('./ForDirectiveParser');
+// var ForDirectiveParser = require('./ForDirectiveParser');
 var utils = require('./utils');
 
 function Tree(options) {
@@ -42,7 +42,7 @@ Tree.prototype.restoreFromDark = function () {
     } while ((curNode = curNode.nextSibling) && curNode !== this.endNode);
 };
 
-module.exports = Tree;
+exports.Tree = Tree;
 
 function walkParsers(parsers, data) {
     for (var i = 0, il = parsers.length; i < il; i++) {
@@ -67,6 +67,9 @@ function walkParsers(parsers, data) {
         }
         else {
             parserObj.parser.setData(parserObj.data);
+            if (parserObj.children) {
+                walkParsers(parserObj.children, parserObj.data);
+            }
         }
     }
 }
@@ -74,6 +77,10 @@ function walkParsers(parsers, data) {
 function walk(tree, startNode, endNode, container) {
     var curNode = startNode;
     do {
+        if (!curNode) {
+            break;
+        }
+
         if (IfDirectiveParser.isIfNode(curNode)) {
             var ifEndNode = IfDirectiveParser.findIfEnd(curNode);
             if (!ifEndNode) {
@@ -128,10 +135,114 @@ function walk(tree, startNode, endNode, container) {
 
             var con = [];
             container.push({parser: exprParser, children: con});
-            walk(tree, curNode.firstChild, curNode.lastChild, con);
+            if (curNode.nodeType === 1) {
+                walk(tree, curNode.firstChild, curNode.lastChild, con);
+            }
         }
 
         curNode = curNode.nextSibling;
-    } while (curNode && curNode !== endNode);
+    } while (curNode !== endNode);
 }
 
+
+
+
+
+
+var Parser = require('./Parser');
+var utils = require('./utils');
+
+function ForDirectiveParser(options) {
+    Parser.call(this, options);
+}
+
+ForDirectiveParser.prototype.initialize = function (options) {
+    this.startNode = options.startNode;
+    this.endNode = options.endNode;
+    this.config = options.config;
+};
+
+ForDirectiveParser.prototype.collectExprs = function () {
+    if (this.startNode.nextSibling === this.endNode) {
+        return;
+    }
+
+    this.expr = this.startNode.nodeValue.match(/\s*for:\s*(\$\{[^{}]+\})/)[1];
+    this.exprFn = utils.createExprFn(this.config.exprRegExp, this.expr);
+    this.updateFn = createUpdateFn(
+        this.startNode.nextSibling,
+        this.endNode.previousSibling,
+        this.config,
+        this.startNode.nodeValue
+    );
+};
+
+ForDirectiveParser.prototype.setData = function (data) {
+    if (!this.expr) {
+        return;
+    }
+
+    var exprValue = this.exprFn(data);
+    if (exprValue !== this.exprOldValue) {
+        this.updateFn(exprValue, data);
+    }
+
+    this.exprOldValue = exprValue;
+};
+
+ForDirectiveParser.isForNode = function (node) {
+    return node.nodeType === 8 && /^\s*for:\s*/.test(node.nodeValue);
+};
+
+ForDirectiveParser.isForEndNode = function (node) {
+    return node.nodeType === 8 && /^\s*\/for\s*/.test(node.nodeValue);
+};
+
+ForDirectiveParser.findForEnd = function (forStartNode) {
+    var curNode = forStartNode;
+    while ((curNode = curNode.nextSibling)) {
+        if (ForDirectiveParser.isForEndNode(curNode)) {
+            return curNode;
+        }
+    }
+};
+
+// module.exports = inherit(ForDirectiveParser, Parser);
+
+function createUpdateFn(startNode, endNode, config, fullExpr) {
+    var trees = [];
+    var itemVariableName = fullExpr.match(/as\s*\$\{([^{}]+)\}/)[1];
+    return function (exprValue, data) {
+        var index = 0;
+        for (var k in exprValue) {
+            if (!trees[index]) {
+                trees[index] = createTree(startNode, endNode, config);
+            }
+
+            trees[index].restoreFromDark();
+
+            var local = {
+                key: k,
+                index: index
+            };
+            local[itemVariableName] = exprValue[k];
+            trees[index].setData(utils.extend({}, data, local));
+
+            index++;
+        }
+
+        for (var i = index, il = trees.length; i < il; i++) {
+            trees[i].goDark();
+        }
+    };
+}
+
+function createTree(startNode, endNode, config) {
+    var tree = new Tree({
+        startNode: startNode,
+        endNode: endNode,
+        config: config
+    });
+    tree.traverse();
+    return tree;
+}

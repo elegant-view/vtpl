@@ -16,11 +16,11 @@ exports.calculateExpression = function (expression, curData) {
     var fnArgs = [];
     for (var i = 0, il = params.length; i < il; i++) {
         var param = params[i];
-        var value = curData[param[i]];
+        var value = curData[params[i]];
         fnArgs.push(value === undefined ? '' : value);
     }
 
-    return (new Function(fnArgs, 'return ' + expression)).apply(null, params);
+    return (new Function(params, 'return ' + expression)).apply(null, fnArgs);
 };
 
 exports.goDark = function (node) {
@@ -62,7 +62,7 @@ exports.createExprFn = function (exprRegExp, expr) {
  * @return {Object}        最终合并后的对象
  */
 exports.extend = function (target) {
-    var srcs = slice(arguments, 1);
+    var srcs = exports.slice(arguments, 1);
     for (var i = 0, il = srcs.length; i < il; i++) {
         for (var key in srcs[i]) {
             target[key] = srcs[i][key];

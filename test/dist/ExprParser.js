@@ -203,12 +203,16 @@ exports.slice = function (arr, start, end) {
  * @return {string}            计算结果
  */
 exports.calculateExpression = function (expression, curData) {
-    var fnArgs = [];
-    for (var key in curData) {
-        fnArgs.push(key);
-    }
     var params = getVariableNamesFromExpr(expression);
-    return (new Function(fnArgs, 'return ' + expression)).apply(null, params);
+
+    var fnArgs = [];
+    for (var i = 0, il = params.length; i < il; i++) {
+        var param = params[i];
+        var value = curData[params[i]];
+        fnArgs.push(value === undefined ? '' : value);
+    }
+
+    return (new Function(params, 'return ' + expression)).apply(null, fnArgs);
 };
 
 exports.goDark = function (node) {
@@ -216,10 +220,8 @@ exports.goDark = function (node) {
         node.style.display = 'none';
     }
     else if (node.nodeType === 3) {
-        if (!node.__text__) {
-            node.__text__ = document.createComment('');
-        }
-        node.parentNode.replaceChild(node.__cmt__, node);
+        node.__text__ = node.nodeValue;
+        node.nodeValue = '';
     }
 };
 
@@ -228,7 +230,8 @@ exports.restoreFromDark = function (node) {
         node.style.display = null;
     }
     else if (node.nodeType === 3) {
-        node.__cmt__.parentNode.replaceChild(node, node.__cmt__);
+        node.nodeValue = node.__text__;
+        node.__text__ = null;
     }
 };
 
@@ -251,7 +254,7 @@ exports.createExprFn = function (exprRegExp, expr) {
  * @return {Object}        最终合并后的对象
  */
 exports.extend = function (target) {
-    var srcs = slice(arguments, 1);
+    var srcs = exports.slice(arguments, 1);
     for (var i = 0, il = srcs.length; i < il; i++) {
         for (var key in srcs[i]) {
             target[key] = srcs[i][key];
