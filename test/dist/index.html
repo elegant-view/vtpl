@@ -10,19 +10,7 @@
 <body>
     <div id="rootNode">
   <!-- for: ${list} as ${item} -->
-  <p>${item.name}</p>
-  <p>
-    <!-- if: ${index + 1} !== ${list.length} -->
-    ,
-    <!-- elif: ${index + 1} === ${list.length} -->
-    -
-    <!-- else -->
-    |
-    <!-- /if -->
-  </p>
-  <!-- if: ${item.name} -->
-    Hello, ${item.name}.
-  <!-- /if -->
+  ${item.name}
   <!-- /for -->
 </div>
     <script type="text/javascript" src="./index.js"></script>

@@ -17,3 +17,16 @@ tree.setData({
         }
     ]
 });
+
+tree.setData({
+    list: [
+        {
+            name: 'lisi'
+        },
+        {
+            name: 'zhangsan'
+        }
+    ]
+});
+
+window.tree = tree;

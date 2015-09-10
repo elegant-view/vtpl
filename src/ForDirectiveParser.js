@@ -23,9 +23,20 @@ ForDirectiveParser.prototype.collectExprs = function () {
         return;
     }
 
+    var tplSeg = document.createElement('div');
+    utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
+        if (curNode === this.startNode || curNode === this.endNode) {
+            return;
+        }
+
+        tplSeg.appendChild(curNode);
+    }, this);
+    this.tplSeg = tplSeg;
+
     this.expr = this.startNode.nodeValue.match(/\s*for:\s*(\$\{[^{}]+\})/)[1];
     this.exprFn = utils.createExprFn(this.config.exprRegExp, this.expr);
     this.updateFn = createUpdateFn(
+        this,
         this.Tree,
         this.startNode.nextSibling,
         this.endNode.previousSibling,
@@ -66,14 +77,14 @@ ForDirectiveParser.findForEnd = function (forStartNode) {
 
 module.exports = inherit(ForDirectiveParser, Parser);
 
-function createUpdateFn(Tree, startNode, endNode, config, fullExpr) {
+function createUpdateFn(parser, Tree, startNode, endNode, config, fullExpr) {
     var trees = [];
     var itemVariableName = fullExpr.match(/as\s*\$\{([^{}]+)\}/)[1];
     return function (exprValue, data) {
         var index = 0;
         for (var k in exprValue) {
             if (!trees[index]) {
-                trees[index] = createTree(Tree, startNode, endNode, config);
+                trees[index] = createTree(parser, Tree, config);
             }
 
             trees[index].restoreFromDark();
@@ -94,7 +105,14 @@ function createUpdateFn(Tree, startNode, endNode, config, fullExpr) {
     };
 }
 
-function createTree(Tree, startNode, endNode, config) {
+function createTree(parser, Tree, config) {
+    var copySeg = parser.tplSeg.cloneNode(true);
+    var startNode = copySeg.firstChild;
+    var endNode = copySeg.lastChild;
+    utils.traverseNodes(startNode, endNode, function (curNode) {
+        parser.endNode.parentNode.insertBefore(curNode, parser.endNode);
+    });
+
     var tree = new Tree({
         startNode: startNode,
         endNode: endNode,

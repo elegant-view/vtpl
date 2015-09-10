@@ -263,6 +263,41 @@ exports.extend = function (target) {
     return target;
 };
 
+exports.traverseNodes = function (startNode, endNode, nodeFn, context) {
+    var nodes = [];
+    for (var curNode = startNode;
+        curNode && curNode !== endNode;
+        curNode = curNode.nextSibling
+    ) {
+        nodes.push(curNode);
+    }
+
+    nodes.push(endNode);
+
+    exports.each(nodes, nodeFn, context);
+};
+
+exports.each = function (arr, fn, context) {
+    if (exports.isArray(arr)) {
+        for (var i = 0, il = arr.length; i < il; i++) {
+            if (fn.call(context, arr[i], i, arr)) {
+                break;
+            }
+        }
+    }
+    else if (typeof arr === 'object') {
+        for (var k in arr) {
+            if (fn.call(context, arr[k], k, arr)) {
+                break;
+            }
+        }
+    }
+};
+
+exports.isArray = function (arr) {
+    return Object.prototype.toString.call(arr) === 'object Array';
+};
+
 /**
  * 从表达式中抽离出变量名
  *
