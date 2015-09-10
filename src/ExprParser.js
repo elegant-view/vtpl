@@ -77,7 +77,7 @@ module.exports = inherit(ExprParser, Parser);
 function addExpr(parser, expr, updateFn) {
     parser.exprs.push(expr);
     if (!parser.exprFns[expr]) {
-        parser.exprFns[expr] = createExprFn(parser.config.exprRegExp, expr);
+        parser.exprFns[expr] = createExprFn(parser.config.getExprRegExp(), expr);
     }
     parser.updateFns[expr] = parser.updateFns[expr] || [];
     parser.updateFns[expr].push(updateFn);

@@ -80,7 +80,7 @@ module.exports = inherit(ExprParser, Parser);
 function addExpr(parser, expr, updateFn) {
     parser.exprs.push(expr);
     if (!parser.exprFns[expr]) {
-        parser.exprFns[expr] = createExprFn(parser.config.exprRegExp, expr);
+        parser.exprFns[expr] = createExprFn(parser.config.getExprRegExp(), expr);
     }
     parser.updateFns[expr] = parser.updateFns[expr] || [];
     parser.updateFns[expr].push(updateFn);
@@ -130,8 +130,8 @@ ForDirectiveParser.prototype.collectExprs = function () {
     }, this);
     this.tplSeg = tplSeg;
 
-    this.expr = this.startNode.nodeValue.match(/\s*for:\s*(\$\{[^{}]+\})/)[1];
-    this.exprFn = utils.createExprFn(this.config.exprRegExp, this.expr);
+    this.expr = this.startNode.nodeValue.match(this.config.getForExprsRegExp())[1];
+    this.exprFn = utils.createExprFn(this.config.getExprRegExp(), this.expr);
     this.updateFn = createUpdateFn(
         this,
         this.Tree,
@@ -155,18 +155,18 @@ ForDirectiveParser.prototype.setData = function (data) {
     this.exprOldValue = exprValue;
 };
 
-ForDirectiveParser.isForNode = function (node) {
-    return node.nodeType === 8 && /^\s*for:\s*/.test(node.nodeValue);
+ForDirectiveParser.isForNode = function (node, config) {
+    return node.nodeType === 8 && config.forPrefixRegExp.test(node.nodeValue);
 };
 
-ForDirectiveParser.isForEndNode = function (node) {
-    return node.nodeType === 8 && /^\s*\/for\s*/.test(node.nodeValue);
+ForDirectiveParser.isForEndNode = function (node, config) {
+    return node.nodeType === 8 && config.forEndPrefixRegExp.test(node.nodeValue);
 };
 
-ForDirectiveParser.findForEnd = function (forStartNode) {
+ForDirectiveParser.findForEnd = function (forStartNode, config) {
     var curNode = forStartNode;
     while ((curNode = curNode.nextSibling)) {
-        if (ForDirectiveParser.isForEndNode(curNode)) {
+        if (ForDirectiveParser.isForEndNode(curNode, config)) {
             return curNode;
         }
     }
@@ -247,7 +247,7 @@ IfDirectiveParser.prototype.collectExprs = function () {
     var branches = [];
     var branchIndex = -1;
     do {
-        var nodeType = getIfNodeType(curNode);
+        var nodeType = getIfNodeType(curNode, this.config);
 
         if (nodeType) {
             setEndNode(curNode, branches, branchIndex);
@@ -257,11 +257,11 @@ IfDirectiveParser.prototype.collectExprs = function () {
 
             // 是 if 节点或者 elif 节点，搜集表达式
             if (nodeType < 3) {
-                var expr = curNode.nodeValue.replace(/\s*(if|elif|else|\/if):\s*/g, '');
+                var expr = curNode.nodeValue.replace(this.config.getAllIfRegExp(), '');
                 this.exprs.push(expr);
 
                 if (!this.exprFns[expr]) {
-                    this.exprFns[expr] = utils.createExprFn(this.config.exprRegExp, expr);
+                    this.exprFns[expr] = utils.createExprFn(this.config.getExprRegExp(), expr);
                 }
             }
         }
@@ -298,26 +298,26 @@ IfDirectiveParser.prototype.setData = function (data) {
     }
 };
 
-IfDirectiveParser.isIfNode = function (node) {
-    return getIfNodeType(node) === 1;
+IfDirectiveParser.isIfNode = function (node, config) {
+    return getIfNodeType(node, config) === 1;
 };
 
-IfDirectiveParser.isElifNode = function (node) {
-    return getIfNodeType(node) === 2;
+IfDirectiveParser.isElifNode = function (node, config) {
+    return getIfNodeType(node, config) === 2;
 };
 
-IfDirectiveParser.isElseNode = function (node) {
-    return getIfNodeType(node) === 3;
+IfDirectiveParser.isElseNode = function (node, config) {
+    return getIfNodeType(node, config) === 3;
 };
 
-IfDirectiveParser.isIfEndNode = function (node) {
-    return getIfNodeType(node) === 4;
+IfDirectiveParser.isIfEndNode = function (node, config) {
+    return getIfNodeType(node, config) === 4;
 };
 
-IfDirectiveParser.findIfEnd = function (ifStartNode) {
+IfDirectiveParser.findIfEnd = function (ifStartNode, config) {
     var curNode = ifStartNode;
     while ((curNode = curNode.nextSibling)) {
-        if (IfDirectiveParser.isIfEndNode(curNode)) {
+        if (IfDirectiveParser.isIfEndNode(curNode, config)) {
             return curNode;
         }
     }
@@ -325,24 +325,24 @@ IfDirectiveParser.findIfEnd = function (ifStartNode) {
 
 module.exports = inherit(IfDirectiveParser, Parser);
 
-function getIfNodeType(node) {
+function getIfNodeType(node, config) {
     if (node.nodeType !== 8) {
         return;
     }
 
-    if (/^\s*if:\s*/.test(node.nodeValue)) {
+    if (config.ifPrefixRegExp.test(node.nodeValue)) {
         return 1;
     }
 
-    if (/^\s*elif:\s*/.test(node.nodeValue)) {
+    if (config.elifPrefixRegExp.test(node.nodeValue)) {
         return 2;
     }
 
-    if (/^\s*else:\s*/.test(node.nodeValue)) {
+    if (config.elsePrefixRegExp.test(node.nodeValue)) {
         return 3;
     }
 
-    if (/^\s*\/if\s*/.test(node.nodeValue)) {
+    if (config.ifEndPrefixRegExp.test(node.nodeValue)) {
         return 4;
     }
 }
@@ -504,8 +504,8 @@ function walk(tree, startNode, endNode, container) {
             break;
         }
 
-        if (IfDirectiveParser.isIfNode(curNode)) {
-            var ifEndNode = IfDirectiveParser.findIfEnd(curNode);
+        if (IfDirectiveParser.isIfNode(curNode, tree.config)) {
+            var ifEndNode = IfDirectiveParser.findIfEnd(curNode, tree.config);
             if (!ifEndNode) {
                 throw new Error('the if directive is not properly ended!');
             }
@@ -531,8 +531,8 @@ function walk(tree, startNode, endNode, container) {
             curNode = ifEndNode.nextSibling;
             continue;
         }
-        else if (ForDirectiveParser.isForNode(curNode)) {
-            var forEndNode = ForDirectiveParser.findForEnd(curNode);
+        else if (ForDirectiveParser.isForNode(curNode, tree.config)) {
+            var forEndNode = ForDirectiveParser.findForEnd(curNode, tree.config);
             if (!forEndNode) {
                 throw new Error('the for directive is not properly ended!');
             }
@@ -572,15 +572,102 @@ function walk(tree, startNode, endNode, container) {
 
 
 },{"./ExprParser":2,"./ForDirectiveParser":3,"./IfDirectiveParser":4,"./utils":9}],7:[function(require,module,exports){
+/**
+ * @file 配置
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
 function Config() {
-    this.exprRegExp = /\$\{([^{}]+)\}/g;
+    this.exprPrefix = '${';
+    this.exprSuffix = '}';
+
+    this.ifName = 'if';
+    this.elifName = 'elif';
+    this.elseName = 'else';
+    this.ifEndName = '/if';
+
+    this.ifPrefixRegExp = /^\s*if:\s*/;
+    this.elifPrefixRegExp = /^\s*elif:\s*/;
+    this.elsePrefixRegExp = /^\s*else\s*/;
+    this.ifEndPrefixRegExp = /^\s*\/if\s*/;
+
+    this.forName = 'for';
+    this.forEndName = '/for';
+
+    this.forPrefixRegExp = /^\s*for:\s*/;
+    this.forEndPrefixRegExp = /^\s*\/for\s*/;
 }
 
-Config.prototype.setExpressionRegExp = function (regexp) {
-    this.exprRegExp = regexp;
+Config.prototype.setExprPrefix = function (prefix) {
+    this.exprPrefix = prefix;
+};
+
+Config.prototype.setExprSuffix = function (suffix) {
+    this.exprSuffix = suffix;
+};
+
+Config.prototype.getExprRegExp = function () {
+    if (!this.exprRegExp) {
+        this.exprRegExp = new RegExp(regExpEncode(this.exprPrefix) + '(.+)' + regExpEncode(this.exprSuffix), 'g');
+    }
+    return this.exprRegExp;
+};
+
+Config.prototype.getAllIfRegExp = function () {
+    if (!this.allIfRegExp) {
+        this.allIfRegExp = new RegExp('\\s*('
+            + this.ifName + '|'
+            + this.elifName + '|'
+            + this.elseName + '|'
+            + this.ifEndName + '):\\s*', 'g');
+    }
+    return this.allIfRegExp;
+};
+
+Config.prototype.setIfName = function (ifName) {
+    this.ifName = ifName;
+    this.ifPrefixRegExp = new RegExp('^\\s*' + ifName + ':\\s*');
+};
+
+Config.prototype.setElifName = function (elifName) {
+    this.elifName = elifName;
+    this.elifPrefixRegExp = new RegExp('^\\s*' + elifName + ':\\s*');
+};
+
+Config.prototype.setElseName = function (elseName) {
+    this.elseName = elseName;
+    this.elsePrefixRegExp = new RegExp('^\\s*' + elseName + '\\s*');
+};
+
+Config.prototype.setIfEndName = function (ifEndName) {
+    this.ifEndName = ifEndName;
+    this.ifEndPrefixRegExp = new RegExp('^\\s*' + ifEndName + '\\s*');
+};
+
+Config.prototype.setForName = function (forName) {
+    this.forName = forName;
+    this.forPrefixRegExp = new RegExp('^\\s*' + forName + ':\\s*');
+};
+
+Config.prototype.setForEndName = function (forEndName) {
+    this.forEndName = forEndName;
+    this.forEndPrefixRegExp = new RegExp('^\\s*' + forEndName + '\\s*');
+};
+
+Config.prototype.getForExprsRegExp = function () {
+    if (!this.forExprsRegExp) {
+        this.forExprsRegExp = new RegExp('\\s*'
+            + this.forName
+            + ':\\s*' + regExpEncode(this.exprPrefix) + '([^' + regExpEncode(this.exprSuffix) + ']+)' + regExpEncode(this.exprSuffix));
+    }
+    return this.forExprsRegExp;
 };
 
 module.exports = Config;
+
+function regExpEncode(str) {
+    return '\\' + str.split('').join('\\');
+}
 
 },{}],8:[function(require,module,exports){
 function inherit(ChildClass, ParentClass) {

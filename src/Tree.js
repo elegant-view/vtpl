@@ -81,8 +81,8 @@ function walk(tree, startNode, endNode, container) {
             break;
         }
 
-        if (IfDirectiveParser.isIfNode(curNode)) {
-            var ifEndNode = IfDirectiveParser.findIfEnd(curNode);
+        if (IfDirectiveParser.isIfNode(curNode, tree.config)) {
+            var ifEndNode = IfDirectiveParser.findIfEnd(curNode, tree.config);
             if (!ifEndNode) {
                 throw new Error('the if directive is not properly ended!');
             }
@@ -108,8 +108,8 @@ function walk(tree, startNode, endNode, container) {
             curNode = ifEndNode.nextSibling;
             continue;
         }
-        else if (ForDirectiveParser.isForNode(curNode)) {
-            var forEndNode = ForDirectiveParser.findForEnd(curNode);
+        else if (ForDirectiveParser.isForNode(curNode, tree.config)) {
+            var forEndNode = ForDirectiveParser.findForEnd(curNode, tree.config);
             if (!forEndNode) {
                 throw new Error('the for directive is not properly ended!');
             }

@@ -33,8 +33,8 @@ ForDirectiveParser.prototype.collectExprs = function () {
     }, this);
     this.tplSeg = tplSeg;
 
-    this.expr = this.startNode.nodeValue.match(/\s*for:\s*(\$\{[^{}]+\})/)[1];
-    this.exprFn = utils.createExprFn(this.config.exprRegExp, this.expr);
+    this.expr = this.startNode.nodeValue.match(this.config.getForExprsRegExp())[1];
+    this.exprFn = utils.createExprFn(this.config.getExprRegExp(), this.expr);
     this.updateFn = createUpdateFn(
         this,
         this.Tree,
@@ -58,18 +58,18 @@ ForDirectiveParser.prototype.setData = function (data) {
     this.exprOldValue = exprValue;
 };
 
-ForDirectiveParser.isForNode = function (node) {
-    return node.nodeType === 8 && /^\s*for:\s*/.test(node.nodeValue);
+ForDirectiveParser.isForNode = function (node, config) {
+    return node.nodeType === 8 && config.forPrefixRegExp.test(node.nodeValue);
 };
 
-ForDirectiveParser.isForEndNode = function (node) {
-    return node.nodeType === 8 && /^\s*\/for\s*/.test(node.nodeValue);
+ForDirectiveParser.isForEndNode = function (node, config) {
+    return node.nodeType === 8 && config.forEndPrefixRegExp.test(node.nodeValue);
 };
 
-ForDirectiveParser.findForEnd = function (forStartNode) {
+ForDirectiveParser.findForEnd = function (forStartNode, config) {
     var curNode = forStartNode;
     while ((curNode = curNode.nextSibling)) {
-        if (ForDirectiveParser.isForEndNode(curNode)) {
+        if (ForDirectiveParser.isForEndNode(curNode, config)) {
             return curNode;
         }
     }

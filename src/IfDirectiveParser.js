@@ -25,7 +25,7 @@ IfDirectiveParser.prototype.collectExprs = function () {
     var branches = [];
     var branchIndex = -1;
     do {
-        var nodeType = getIfNodeType(curNode);
+        var nodeType = getIfNodeType(curNode, this.config);
 
         if (nodeType) {
             setEndNode(curNode, branches, branchIndex);
@@ -35,11 +35,11 @@ IfDirectiveParser.prototype.collectExprs = function () {
 
             // 是 if 节点或者 elif 节点，搜集表达式
             if (nodeType < 3) {
-                var expr = curNode.nodeValue.replace(/\s*(if|elif|else|\/if):\s*/g, '');
+                var expr = curNode.nodeValue.replace(this.config.getAllIfRegExp(), '');
                 this.exprs.push(expr);
 
                 if (!this.exprFns[expr]) {
-                    this.exprFns[expr] = utils.createExprFn(this.config.exprRegExp, expr);
+                    this.exprFns[expr] = utils.createExprFn(this.config.getExprRegExp(), expr);
                 }
             }
         }
@@ -76,26 +76,26 @@ IfDirectiveParser.prototype.setData = function (data) {
     }
 };
 
-IfDirectiveParser.isIfNode = function (node) {
-    return getIfNodeType(node) === 1;
+IfDirectiveParser.isIfNode = function (node, config) {
+    return getIfNodeType(node, config) === 1;
 };
 
-IfDirectiveParser.isElifNode = function (node) {
-    return getIfNodeType(node) === 2;
+IfDirectiveParser.isElifNode = function (node, config) {
+    return getIfNodeType(node, config) === 2;
 };
 
-IfDirectiveParser.isElseNode = function (node) {
-    return getIfNodeType(node) === 3;
+IfDirectiveParser.isElseNode = function (node, config) {
+    return getIfNodeType(node, config) === 3;
 };
 
-IfDirectiveParser.isIfEndNode = function (node) {
-    return getIfNodeType(node) === 4;
+IfDirectiveParser.isIfEndNode = function (node, config) {
+    return getIfNodeType(node, config) === 4;
 };
 
-IfDirectiveParser.findIfEnd = function (ifStartNode) {
+IfDirectiveParser.findIfEnd = function (ifStartNode, config) {
     var curNode = ifStartNode;
     while ((curNode = curNode.nextSibling)) {
-        if (IfDirectiveParser.isIfEndNode(curNode)) {
+        if (IfDirectiveParser.isIfEndNode(curNode, config)) {
             return curNode;
         }
     }
@@ -103,24 +103,24 @@ IfDirectiveParser.findIfEnd = function (ifStartNode) {
 
 module.exports = inherit(IfDirectiveParser, Parser);
 
-function getIfNodeType(node) {
+function getIfNodeType(node, config) {
     if (node.nodeType !== 8) {
         return;
     }
 
-    if (/^\s*if:\s*/.test(node.nodeValue)) {
+    if (config.ifPrefixRegExp.test(node.nodeValue)) {
         return 1;
     }
 
-    if (/^\s*elif:\s*/.test(node.nodeValue)) {
+    if (config.elifPrefixRegExp.test(node.nodeValue)) {
         return 2;
     }
 
-    if (/^\s*else:\s*/.test(node.nodeValue)) {
+    if (config.elsePrefixRegExp.test(node.nodeValue)) {
         return 3;
     }
 
-    if (/^\s*\/if\s*/.test(node.nodeValue)) {
+    if (config.ifEndPrefixRegExp.test(node.nodeValue)) {
         return 4;
     }
 }
