@@ -103,7 +103,6 @@ function createExprFn(exprRegExp, expr) {
 var inherit = require('./inherit');
 var Parser = require('./Parser');
 var utils = require('./utils');
-var Tree = require('./Tree');
 
 function ForDirectiveParser(options) {
     Parser.call(this, options);
@@ -113,6 +112,7 @@ ForDirectiveParser.prototype.initialize = function (options) {
     this.startNode = options.startNode;
     this.endNode = options.endNode;
     this.config = options.config;
+    this.Tree = options.Tree;
 };
 
 ForDirectiveParser.prototype.collectExprs = function () {
@@ -120,9 +120,21 @@ ForDirectiveParser.prototype.collectExprs = function () {
         return;
     }
 
+    var tplSeg = document.createElement('div');
+    utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
+        if (curNode === this.startNode || curNode === this.endNode) {
+            return;
+        }
+
+        tplSeg.appendChild(curNode);
+    }, this);
+    this.tplSeg = tplSeg;
+
     this.expr = this.startNode.nodeValue.match(/\s*for:\s*(\$\{[^{}]+\})/)[1];
     this.exprFn = utils.createExprFn(this.config.exprRegExp, this.expr);
     this.updateFn = createUpdateFn(
+        this,
+        this.Tree,
         this.startNode.nextSibling,
         this.endNode.previousSibling,
         this.config,
@@ -148,13 +160,13 @@ ForDirectiveParser.isForNode = function (node) {
 };
 
 ForDirectiveParser.isForEndNode = function (node) {
-    return node.nodeType === 8 && /^\s*\/for:\s*/.test(node.nodeValue);
+    return node.nodeType === 8 && /^\s*\/for\s*/.test(node.nodeValue);
 };
 
 ForDirectiveParser.findForEnd = function (forStartNode) {
-    var curNode;
-    while ((curNode = forStartNode.nextSibling)) {
-        if (this.isForEndNode(curNode)) {
+    var curNode = forStartNode;
+    while ((curNode = curNode.nextSibling)) {
+        if (ForDirectiveParser.isForEndNode(curNode)) {
             return curNode;
         }
     }
@@ -162,14 +174,14 @@ ForDirectiveParser.findForEnd = function (forStartNode) {
 
 module.exports = inherit(ForDirectiveParser, Parser);
 
-function createUpdateFn(startNode, endNode, config, fullExpr) {
+function createUpdateFn(parser, Tree, startNode, endNode, config, fullExpr) {
     var trees = [];
     var itemVariableName = fullExpr.match(/as\s*\$\{([^{}]+)\}/)[1];
     return function (exprValue, data) {
         var index = 0;
         for (var k in exprValue) {
             if (!trees[index]) {
-                trees[index] = createTree(startNode, endNode, config);
+                trees[index] = createTree(parser, Tree, config);
             }
 
             trees[index].restoreFromDark();
@@ -190,7 +202,14 @@ function createUpdateFn(startNode, endNode, config, fullExpr) {
     };
 }
 
-function createTree(startNode, endNode, config) {
+function createTree(parser, Tree, config) {
+    var copySeg = parser.tplSeg.cloneNode(true);
+    var startNode = copySeg.firstChild;
+    var endNode = copySeg.lastChild;
+    utils.traverseNodes(startNode, endNode, function (curNode) {
+        parser.endNode.parentNode.insertBefore(curNode, parser.endNode);
+    });
+
     var tree = new Tree({
         startNode: startNode,
         endNode: endNode,
@@ -200,7 +219,7 @@ function createTree(startNode, endNode, config) {
     return tree;
 }
 
-},{"./Parser":5,"./Tree":6,"./inherit":7,"./utils":8}],4:[function(require,module,exports){
+},{"./Parser":5,"./inherit":7,"./utils":8}],4:[function(require,module,exports){
 /**
  * @file if 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -231,16 +250,14 @@ IfDirectiveParser.prototype.collectExprs = function () {
         var nodeType = getIfNodeType(curNode);
 
         if (nodeType) {
-            if (branches[branchIndex].startNode) {
-                branches[branchIndex].endNode = curNode.previousSibling;
-            }
+            setEndNode(curNode, branches, branchIndex);
 
             branchIndex++;
             branches[branchIndex] = branches[branchIndex] || {};
 
             // 是 if 节点或者 elif 节点，搜集表达式
             if (nodeType < 3) {
-                var expr = curNode.nodeValue.replace(/\s*(if)|(elif)|(else)|(\/if):\s*/g, '');
+                var expr = curNode.nodeValue.replace(/\s*(if|elif|else|\/if):\s*/g, '');
                 this.exprs.push(expr);
 
                 if (!this.exprFns[expr]) {
@@ -253,9 +270,21 @@ IfDirectiveParser.prototype.collectExprs = function () {
                 branches[branchIndex].startNode = curNode;
             }
         }
-    } while ((curNode = curNode.nextSibling) && curNode !== this.endNode);
+
+        curNode = curNode.nextSibling;
+        if (!curNode || curNode === this.endNode) {
+            setEndNode(curNode, branches, branchIndex);
+            break;
+        }
+    } while (true);
 
     return branches;
+
+    function setEndNode(curNode, branches, branchIndex) {
+        if (branchIndex + 1 && branches[branchIndex].startNode) {
+            branches[branchIndex].endNode = curNode.previousSibling;
+        }
+    }
 };
 
 IfDirectiveParser.prototype.setData = function (data) {
@@ -286,9 +315,9 @@ IfDirectiveParser.isIfEndNode = function (node) {
 };
 
 IfDirectiveParser.findIfEnd = function (ifStartNode) {
-    var curNode;
-    while ((curNode = ifStartNode.nextSibling)) {
-        if (this.isIfEndNode(curNode)) {
+    var curNode = ifStartNode;
+    while ((curNode = curNode.nextSibling)) {
+        if (IfDirectiveParser.isIfEndNode(curNode)) {
             return curNode;
         }
     }
@@ -313,7 +342,7 @@ function getIfNodeType(node) {
         return 3;
     }
 
-    if (/^\s*\/if:\s*/.test(node.nodeValue)) {
+    if (/^\s*\/if\s*/.test(node.nodeValue)) {
         return 4;
     }
 }
@@ -400,6 +429,7 @@ module.exports = Parser;
 var IfDirectiveParser = require('./IfDirectiveParser');
 var ExprParser = require('./ExprParser');
 var ForDirectiveParser = require('./ForDirectiveParser');
+var utils = require('./utils');
 
 function Tree(options) {
     this.startNode = options.startNode;
@@ -413,9 +443,67 @@ Tree.prototype.traverse = function () {
     walk(this, this.startNode, this.endNode, this.tree);
 };
 
+Tree.prototype.setData = function (data) {
+    walkParsers(this.tree, data);
+};
+
+Tree.prototype.goDark = function () {
+    var curNode = this.startNode;
+    do {
+        if (curNode.nodeType === 1 || curNode.nodeType === 3) {
+            utils.goDark(curNode);
+        }
+    } while ((curNode = curNode.nextSibling) && curNode !== this.endNode);
+};
+
+Tree.prototype.restoreFromDark = function () {
+    var curNode = this.startNode;
+    do {
+        if (curNode.nodeType === 1 || curNode.nodeType === 3) {
+            utils.restoreFromDark(curNode);
+        }
+    } while ((curNode = curNode.nextSibling) && curNode !== this.endNode);
+};
+
+module.exports = Tree;
+
+function walkParsers(parsers, data) {
+    for (var i = 0, il = parsers.length; i < il; i++) {
+        var parserObj = parsers[i];
+        parserObj.data = utils.extend({}, parserObj.data || {}, data);
+
+        if (parserObj.parser instanceof IfDirectiveParser) {
+            var branchIndex = parserObj.parser.setData(parserObj.data);
+            var branches = parserObj.children;
+            for (var j = 0, jl = branches.length; j < jl; j++) {
+                if (j === branchIndex) {
+                    walkParsers(branches[j], parserObj.data);
+                    continue;
+                }
+
+                for (var z = 0, zl = branches[j].length; z < zl; z++) {
+                    if (branches[j][z].parser instanceof ExprParser) {
+                        branches[j][z].parser.goDark();
+                    }
+                }
+            }
+        }
+        else {
+            parserObj.parser.setData(parserObj.data);
+            if (parserObj.children) {
+                walkParsers(parserObj.children, parserObj.data);
+            }
+        }
+    }
+}
+
 function walk(tree, startNode, endNode, container) {
     var curNode = startNode;
     do {
+        if (!curNode) {
+            break;
+        }
+
         if (IfDirectiveParser.isIfNode(curNode)) {
             var ifEndNode = IfDirectiveParser.findIfEnd(curNode);
             if (!ifEndNode) {
@@ -427,9 +515,9 @@ function walk(tree, startNode, endNode, container) {
                 endNode: ifEndNode,
                 config: tree.config
             });
-            container.push(ifDirectiveParser);
 
             var branches = ifDirectiveParser.collectExprs();
+            container.push({parser: ifDirectiveParser, children: branches});
             for (var i = 0, il = branches.length; i < il; i++) {
                 if (!branches[i].startNode || !branches[i].endNode) {
                     continue;
@@ -452,10 +540,12 @@ function walk(tree, startNode, endNode, container) {
             var forDirectiveParser = new ForDirectiveParser({
                 startNode: curNode,
                 endNode: forEndNode,
-                config: tree.config
+                config: tree.config,
+                Tree: Tree
             });
 
             forDirectiveParser.collectExprs();
+            container.push({parser: forDirectiveParser});
 
             curNode = forEndNode.nextSibling;
             continue;
@@ -469,15 +559,19 @@ function walk(tree, startNode, endNode, container) {
 
             var con = [];
             container.push({parser: exprParser, children: con});
-            walk(tree, curNode.firstChild, curNode.lastChild, con);
+            if (curNode.nodeType === 1) {
+                walk(tree, curNode.firstChild, curNode.lastChild, con);
+            }
         }
 
         curNode = curNode.nextSibling;
-    } while (curNode && curNode !== endNode);
+    } while (curNode !== endNode);
 }
 
 
-},{"./ExprParser":2,"./ForDirectiveParser":3,"./IfDirectiveParser":4}],7:[function(require,module,exports){
+
+
+},{"./ExprParser":2,"./ForDirectiveParser":3,"./IfDirectiveParser":4,"./utils":8}],7:[function(require,module,exports){
 function inherit(ChildClass, ParentClass) {
     var childProto = ChildClass.prototype;
     ChildClass.prototype = new ParentClass();
@@ -504,20 +598,36 @@ exports.slice = function (arr, start, end) {
  * @return {string}            计算结果
  */
 exports.calculateExpression = function (expression, curData) {
-    var fnArgs = [];
-    for (var key in curData) {
-        fnArgs.push(key);
-    }
     var params = getVariableNamesFromExpr(expression);
-    return (new Function(fnArgs, 'return ' + expression)).apply(null, params);
+
+    var fnArgs = [];
+    for (var i = 0, il = params.length; i < il; i++) {
+        var param = params[i];
+        var value = curData[params[i]];
+        fnArgs.push(value === undefined ? '' : value);
+    }
+
+    return (new Function(params, 'return ' + expression)).apply(null, fnArgs);
 };
 
 exports.goDark = function (node) {
-    node.style.display = 'none';
+    if (node.nodeType === 1) {
+        node.style.display = 'none';
+    }
+    else if (node.nodeType === 3) {
+        node.__text__ = node.nodeValue;
+        node.nodeValue = '';
+    }
 };
 
 exports.restoreFromDark = function (node) {
-    node.style.display = null;
+    if (node.nodeType === 1) {
+        node.style.display = null;
+    }
+    else if (node.nodeType === 3) {
+        node.nodeValue = node.__text__;
+        node.__text__ = null;
+    }
 };
 
 exports.createExprFn = function (exprRegExp, expr) {
@@ -539,13 +649,48 @@ exports.createExprFn = function (exprRegExp, expr) {
  * @return {Object}        最终合并后的对象
  */
 exports.extend = function (target) {
-    var srcs = slice(arguments, 1);
+    var srcs = exports.slice(arguments, 1);
     for (var i = 0, il = srcs.length; i < il; i++) {
         for (var key in srcs[i]) {
             target[key] = srcs[i][key];
         }
     }
     return target;
+};
+
+exports.traverseNodes = function (startNode, endNode, nodeFn, context) {
+    var nodes = [];
+    for (var curNode = startNode;
+        curNode && curNode !== endNode;
+        curNode = curNode.nextSibling
+    ) {
+        nodes.push(curNode);
+    }
+
+    nodes.push(endNode);
+
+    exports.each(nodes, nodeFn, context);
+};
+
+exports.each = function (arr, fn, context) {
+    if (exports.isArray(arr)) {
+        for (var i = 0, il = arr.length; i < il; i++) {
+            if (fn.call(context, arr[i], i, arr)) {
+                break;
+            }
+        }
+    }
+    else if (typeof arr === 'object') {
+        for (var k in arr) {
+            if (fn.call(context, arr[k], k, arr)) {
+                break;
+            }
+        }
+    }
+};
+
+exports.isArray = function (arr) {
+    return Object.prototype.toString.call(arr) === 'object Array';
 };
 
 /**
