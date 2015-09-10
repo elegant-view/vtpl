@@ -1,1 +1,1 @@
-module.exports = require('./src/Tree').Tree;
+module.exports = require('./src/Tree');

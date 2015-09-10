@@ -21,7 +21,6 @@ IfDirectiveParser.prototype.initialize = function (options) {
 };
 
 IfDirectiveParser.prototype.collectExprs = function () {
-    debugger
     var curNode = this.startNode;
     var branches = [];
     var branchIndex = -1;

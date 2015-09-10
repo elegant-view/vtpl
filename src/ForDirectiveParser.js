@@ -6,7 +6,6 @@
 var inherit = require('./inherit');
 var Parser = require('./Parser');
 var utils = require('./utils');
-var Tree = require('./Tree').Tree;
 
 function ForDirectiveParser(options) {
     Parser.call(this, options);
@@ -16,6 +15,7 @@ ForDirectiveParser.prototype.initialize = function (options) {
     this.startNode = options.startNode;
     this.endNode = options.endNode;
     this.config = options.config;
+    this.Tree = options.Tree;
 };
 
 ForDirectiveParser.prototype.collectExprs = function () {
@@ -26,6 +26,7 @@ ForDirectiveParser.prototype.collectExprs = function () {
     this.expr = this.startNode.nodeValue.match(/\s*for:\s*(\$\{[^{}]+\})/)[1];
     this.exprFn = utils.createExprFn(this.config.exprRegExp, this.expr);
     this.updateFn = createUpdateFn(
+        this.Tree,
         this.startNode.nextSibling,
         this.endNode.previousSibling,
         this.config,
@@ -65,14 +66,14 @@ ForDirectiveParser.findForEnd = function (forStartNode) {
 
 module.exports = inherit(ForDirectiveParser, Parser);
 
-function createUpdateFn(startNode, endNode, config, fullExpr) {
+function createUpdateFn(Tree, startNode, endNode, config, fullExpr) {
     var trees = [];
     var itemVariableName = fullExpr.match(/as\s*\$\{([^{}]+)\}/)[1];
     return function (exprValue, data) {
         var index = 0;
         for (var k in exprValue) {
             if (!trees[index]) {
-                trees[index] = createTree(startNode, endNode, config);
+                trees[index] = createTree(Tree, startNode, endNode, config);
             }
 
             trees[index].restoreFromDark();
@@ -93,7 +94,7 @@ function createUpdateFn(startNode, endNode, config, fullExpr) {
     };
 }
 
-function createTree(startNode, endNode, config) {
+function createTree(Tree, startNode, endNode, config) {
     var tree = new Tree({
         startNode: startNode,
         endNode: endNode,

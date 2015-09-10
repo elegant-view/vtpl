@@ -1,6 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-module.exports = require('./src/Tree').Tree;
-},{"./src/Tree":5}],2:[function(require,module,exports){
+module.exports = require('./src/Tree');
+},{"./src/Tree":6}],2:[function(require,module,exports){
 /**
  * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -94,7 +94,114 @@ function createExprFn(exprRegExp, expr) {
     };
 }
 
-},{"./Parser":4,"./inherit":7,"./utils":8}],3:[function(require,module,exports){
+},{"./Parser":5,"./inherit":8,"./utils":9}],3:[function(require,module,exports){
+/**
+ * @file for 指令
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+var inherit = require('./inherit');
+var Parser = require('./Parser');
+var utils = require('./utils');
+
+function ForDirectiveParser(options) {
+    Parser.call(this, options);
+}
+
+ForDirectiveParser.prototype.initialize = function (options) {
+    this.startNode = options.startNode;
+    this.endNode = options.endNode;
+    this.config = options.config;
+    this.Tree = options.Tree;
+};
+
+ForDirectiveParser.prototype.collectExprs = function () {
+    if (this.startNode.nextSibling === this.endNode) {
+        return;
+    }
+
+    this.expr = this.startNode.nodeValue.match(/\s*for:\s*(\$\{[^{}]+\})/)[1];
+    this.exprFn = utils.createExprFn(this.config.exprRegExp, this.expr);
+    this.updateFn = createUpdateFn(
+        this.Tree,
+        this.startNode.nextSibling,
+        this.endNode.previousSibling,
+        this.config,
+        this.startNode.nodeValue
+    );
+};
+
+ForDirectiveParser.prototype.setData = function (data) {
+    if (!this.expr) {
+        return;
+    }
+
+    var exprValue = this.exprFn(data);
+    if (exprValue !== this.exprOldValue) {
+        this.updateFn(exprValue, data);
+    }
+
+    this.exprOldValue = exprValue;
+};
+
+ForDirectiveParser.isForNode = function (node) {
+    return node.nodeType === 8 && /^\s*for:\s*/.test(node.nodeValue);
+};
+
+ForDirectiveParser.isForEndNode = function (node) {
+    return node.nodeType === 8 && /^\s*\/for\s*/.test(node.nodeValue);
+};
+
+ForDirectiveParser.findForEnd = function (forStartNode) {
+    var curNode = forStartNode;
+    while ((curNode = curNode.nextSibling)) {
+        if (ForDirectiveParser.isForEndNode(curNode)) {
+            return curNode;
+        }
+    }
+};
+
+module.exports = inherit(ForDirectiveParser, Parser);
+
+function createUpdateFn(Tree, startNode, endNode, config, fullExpr) {
+    var trees = [];
+    var itemVariableName = fullExpr.match(/as\s*\$\{([^{}]+)\}/)[1];
+    return function (exprValue, data) {
+        var index = 0;
+        for (var k in exprValue) {
+            if (!trees[index]) {
+                trees[index] = createTree(Tree, startNode, endNode, config);
+            }
+
+            trees[index].restoreFromDark();
+
+            var local = {
+                key: k,
+                index: index
+            };
+            local[itemVariableName] = exprValue[k];
+            trees[index].setData(utils.extend({}, data, local));
+
+            index++;
+        }
+
+        for (var i = index, il = trees.length; i < il; i++) {
+            trees[i].goDark();
+        }
+    };
+}
+
+function createTree(Tree, startNode, endNode, config) {
+    var tree = new Tree({
+        startNode: startNode,
+        endNode: endNode,
+        config: config
+    });
+    tree.traverse();
+    return tree;
+}
+
+},{"./Parser":5,"./inherit":8,"./utils":9}],4:[function(require,module,exports){
 /**
  * @file if 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -118,7 +225,6 @@ IfDirectiveParser.prototype.initialize = function (options) {
 };
 
 IfDirectiveParser.prototype.collectExprs = function () {
-    debugger
     var curNode = this.startNode;
     var branches = [];
     var branchIndex = -1;
@@ -223,7 +329,7 @@ function getIfNodeType(node) {
     }
 }
 
-},{"./Parser":4,"./inherit":7,"./utils":8}],4:[function(require,module,exports){
+},{"./Parser":5,"./inherit":8,"./utils":9}],5:[function(require,module,exports){
 /**
  * @file 解析器的抽象基类
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -296,7 +402,7 @@ Parser.prototype.collectExprs = function () {};
 
 module.exports = Parser;
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 /**
  * @file 最终的树
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -304,7 +410,7 @@ module.exports = Parser;
 
 var IfDirectiveParser = require('./IfDirectiveParser');
 var ExprParser = require('./ExprParser');
-// var ForDirectiveParser = require('./ForDirectiveParser');
+var ForDirectiveParser = require('./ForDirectiveParser');
 var utils = require('./utils');
 
 function Tree(options) {
@@ -341,7 +447,7 @@ Tree.prototype.restoreFromDark = function () {
     } while ((curNode = curNode.nextSibling) && curNode !== this.endNode);
 };
 
-exports.Tree = Tree;
+module.exports = Tree;
 
 function walkParsers(parsers, data) {
     for (var i = 0, il = parsers.length; i < il; i++) {
@@ -416,7 +522,8 @@ function walk(tree, startNode, endNode, container) {
             var forDirectiveParser = new ForDirectiveParser({
                 startNode: curNode,
                 endNode: forEndNode,
-                config: tree.config
+                config: tree.config,
+                Tree: Tree
             });
 
             forDirectiveParser.collectExprs();
@@ -446,107 +553,7 @@ function walk(tree, startNode, endNode, container) {
 
 
 
-
-
-var Parser = require('./Parser');
-var utils = require('./utils');
-
-function ForDirectiveParser(options) {
-    Parser.call(this, options);
-}
-
-ForDirectiveParser.prototype.initialize = function (options) {
-    this.startNode = options.startNode;
-    this.endNode = options.endNode;
-    this.config = options.config;
-};
-
-ForDirectiveParser.prototype.collectExprs = function () {
-    if (this.startNode.nextSibling === this.endNode) {
-        return;
-    }
-
-    this.expr = this.startNode.nodeValue.match(/\s*for:\s*(\$\{[^{}]+\})/)[1];
-    this.exprFn = utils.createExprFn(this.config.exprRegExp, this.expr);
-    this.updateFn = createUpdateFn(
-        this.startNode.nextSibling,
-        this.endNode.previousSibling,
-        this.config,
-        this.startNode.nodeValue
-    );
-};
-
-ForDirectiveParser.prototype.setData = function (data) {
-    if (!this.expr) {
-        return;
-    }
-
-    var exprValue = this.exprFn(data);
-    if (exprValue !== this.exprOldValue) {
-        this.updateFn(exprValue, data);
-    }
-
-    this.exprOldValue = exprValue;
-};
-
-ForDirectiveParser.isForNode = function (node) {
-    return node.nodeType === 8 && /^\s*for:\s*/.test(node.nodeValue);
-};
-
-ForDirectiveParser.isForEndNode = function (node) {
-    return node.nodeType === 8 && /^\s*\/for\s*/.test(node.nodeValue);
-};
-
-ForDirectiveParser.findForEnd = function (forStartNode) {
-    var curNode = forStartNode;
-    while ((curNode = curNode.nextSibling)) {
-        if (ForDirectiveParser.isForEndNode(curNode)) {
-            return curNode;
-        }
-    }
-};
-
-// module.exports = inherit(ForDirectiveParser, Parser);
-
-function createUpdateFn(startNode, endNode, config, fullExpr) {
-    var trees = [];
-    var itemVariableName = fullExpr.match(/as\s*\$\{([^{}]+)\}/)[1];
-    return function (exprValue, data) {
-        var index = 0;
-        for (var k in exprValue) {
-            if (!trees[index]) {
-                trees[index] = createTree(startNode, endNode, config);
-            }
-
-            trees[index].restoreFromDark();
-
-            var local = {
-                key: k,
-                index: index
-            };
-            local[itemVariableName] = exprValue[k];
-            trees[index].setData(utils.extend({}, data, local));
-
-            index++;
-        }
-
-        for (var i = index, il = trees.length; i < il; i++) {
-            trees[i].goDark();
-        }
-    };
-}
-
-function createTree(startNode, endNode, config) {
-    var tree = new Tree({
-        startNode: startNode,
-        endNode: endNode,
-        config: config
-    });
-    tree.traverse();
-    return tree;
-}
-
-},{"./ExprParser":2,"./IfDirectiveParser":3,"./Parser":4,"./utils":8}],6:[function(require,module,exports){
+},{"./ExprParser":2,"./ForDirectiveParser":3,"./IfDirectiveParser":4,"./utils":9}],7:[function(require,module,exports){
 function Config() {
     this.exprRegExp = /\$\{([^{}]+)\}/g;
 }
@@ -557,7 +564,7 @@ Config.prototype.setExpressionRegExp = function (regexp) {
 
 module.exports = Config;
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 function inherit(ChildClass, ParentClass) {
     var childProto = ChildClass.prototype;
     ChildClass.prototype = new ParentClass();
@@ -570,7 +577,7 @@ function inherit(ChildClass, ParentClass) {
 }
 
 module.exports = inherit;
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 exports.slice = function (arr, start, end) {
     return Array.prototype.slice.call(arr, start, end);
 };
@@ -663,7 +670,7 @@ function getVariableNamesFromExpr(expr) {
     return names;
 }
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 var Tree = require('../../index');
 var Config = require('../../src/config');
 
@@ -683,4 +690,4 @@ tree.setData({
         }
     ]
 });
-},{"../../index":1,"../../src/config":6}]},{},[9])
+},{"../../index":1,"../../src/config":7}]},{},[10])
