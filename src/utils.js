@@ -38,8 +38,10 @@ exports.restoreFromDark = function (node) {
         node.style.display = null;
     }
     else if (node.nodeType === 3) {
-        node.nodeValue = node.__text__;
-        node.__text__ = null;
+        if (node.__text__ !== undefined) {
+            node.nodeValue = node.__text__;
+            node.__text__ = undefined;
+        }
     }
 };
 

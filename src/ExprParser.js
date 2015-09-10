@@ -54,12 +54,15 @@ ExprParser.prototype.setData = function (data) {
     for (var i = 0, il = exprs.length; i < il; i++) {
         var expr = exprs[i];
         var exprValue = this.exprFns[expr](data);
-        if (exprValue !== exprOldValues[expr]) {
+
+        if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
             var updateFns = this.updateFns[expr];
             for (var j = 0, jl = updateFns.length; j < jl; j++) {
                 updateFns[j](exprValue);
             }
         }
+
+        exprOldValues[expr] = exprValue;
     }
 };
 

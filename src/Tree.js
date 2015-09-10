@@ -21,7 +21,7 @@ Tree.prototype.traverse = function () {
 };
 
 Tree.prototype.setData = function (data) {
-    walkParsers(this.tree, data);
+    walkParsers(this, this.tree, data);
 };
 
 Tree.prototype.goDark = function () {
@@ -42,11 +42,16 @@ Tree.prototype.restoreFromDark = function () {
     } while ((curNode = curNode.nextSibling) && curNode !== this.endNode);
 };
 
+Tree.prototype.setDirtyChecker = function (dirtyChecker) {
+    this.dirtyChecker = dirtyChecker;
+};
+
 module.exports = Tree;
 
-function walkParsers(parsers, data) {
+function walkParsers(tree, parsers, data) {
     for (var i = 0, il = parsers.length; i < il; i++) {
         var parserObj = parsers[i];
+        parserObj.parser.setDirtyChecker(tree.dirtyChecker);
         parserObj.data = utils.extend({}, parserObj.data || {}, data);
 
         if (parserObj.parser instanceof IfDirectiveParser) {
@@ -54,7 +59,7 @@ function walkParsers(parsers, data) {
             var branches = parserObj.children;
             for (var j = 0, jl = branches.length; j < jl; j++) {
                 if (j === branchIndex) {
-                    walkParsers(branches[j], parserObj.data);
+                    walkParsers(tree, branches[j], parserObj.data);
                     continue;
                 }
 
@@ -66,9 +71,12 @@ function walkParsers(parsers, data) {
             }
         }
         else {
+            if (parserObj.parser instanceof ExprParser) {
+                parserObj.parser.restoreFromDark();
+            }
             parserObj.parser.setData(parserObj.data);
             if (parserObj.children) {
-                walkParsers(parserObj.children, parserObj.data);
+                walkParsers(tree, parserObj.children, parserObj.data);
             }
         }
     }

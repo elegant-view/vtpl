@@ -68,4 +68,14 @@ Parser.prototype.restoreFromDark = function () {};
  */
 Parser.prototype.collectExprs = function () {};
 
+Parser.prototype.dirtyCheck = function (expr, exprValue, exprOldValue) {
+    var dirtyCheckerFn = this.dirtyChecker ? this.dirtyChecker.getChecker(expr) : null;
+    return (dirtyCheckerFn && dirtyCheckerFn(expr, exprValue, exprOldValue))
+            || (!dirtyCheckerFn && exprValue !== exprOldValue);
+};
+
+Parser.prototype.setDirtyChecker = function (dirtyChecker) {
+    this.dirtyChecker = dirtyChecker;
+};
+
 module.exports = Parser;

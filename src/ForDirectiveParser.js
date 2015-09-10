@@ -51,7 +51,7 @@ ForDirectiveParser.prototype.setData = function (data) {
     }
 
     var exprValue = this.exprFn(data);
-    if (exprValue !== this.exprOldValue) {
+    if (this.dirtyCheck(this.expr, exprValue, this.exprOldValue)) {
         this.updateFn(exprValue, data);
     }
 

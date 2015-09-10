@@ -55,12 +55,15 @@ ExprParser.prototype.setData = function (data) {
     for (var i = 0, il = exprs.length; i < il; i++) {
         var expr = exprs[i];
         var exprValue = this.exprFns[expr](data);
-        if (exprValue !== exprOldValues[expr]) {
+
+        if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
             var updateFns = this.updateFns[expr];
             for (var j = 0, jl = updateFns.length; j < jl; j++) {
                 updateFns[j](exprValue);
             }
         }
+
+        exprOldValues[expr] = exprValue;
     }
 };
 
@@ -162,6 +165,16 @@ Parser.prototype.restoreFromDark = function () {};
  * @public
  */
 Parser.prototype.collectExprs = function () {};
+
+Parser.prototype.dirtyCheck = function (expr, exprValue, exprOldValue) {
+    var dirtyCheckerFn = this.dirtyChecker ? this.dirtyChecker.getChecker(expr) : null;
+    return (dirtyCheckerFn && dirtyCheckerFn(expr, exprValue, exprOldValue))
+            || (!dirtyCheckerFn && exprValue !== exprOldValue);
+};
+
+Parser.prototype.setDirtyChecker = function (dirtyChecker) {
+    this.dirtyChecker = dirtyChecker;
+};
 
 module.exports = Parser;
 
@@ -317,8 +330,10 @@ exports.restoreFromDark = function (node) {
         node.style.display = null;
     }
     else if (node.nodeType === 3) {
-        node.nodeValue = node.__text__;
-        node.__text__ = null;
+        if (node.__text__ !== undefined) {
+            node.nodeValue = node.__text__;
+            node.__text__ = undefined;
+        }
     }
 };
 
