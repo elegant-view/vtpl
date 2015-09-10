@@ -11,11 +11,15 @@ exports.slice = function (arr, start, end) {
  * @return {string}            计算结果
  */
 exports.calculateExpression = function (expression, curData) {
-    var fnArgs = [];
-    for (var key in curData) {
-        fnArgs.push(key);
-    }
     var params = getVariableNamesFromExpr(expression);
+
+    var fnArgs = [];
+    for (var i = 0, il = params.length; i < il; i++) {
+        var param = params[i];
+        var value = curData[param[i]];
+        fnArgs.push(value === undefined ? '' : value);
+    }
+
     return (new Function(fnArgs, 'return ' + expression)).apply(null, params);
 };
 
