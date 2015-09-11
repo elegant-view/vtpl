@@ -2,6 +2,7 @@ var gulp = require('gulp');
 var browserify = require('gulp-browserify');
 var fs = require('fs');
 var gutil = require('gulp-util');
+var webserver = require('gulp-webserver');
 
 gulp.task('createTestHtml', function () {
     var jsFiles = fs.readdirSync('./test/src');
@@ -24,21 +25,35 @@ gulp.task('createTestHtml', function () {
 
 gulp.task('buildTestJs', function () {
     return gulp.src('./test/src/*.js')
-        .pipe(browserify({
-            debug: true
-        }))
-        .on('error', function (error) {
-            gutil.log(error.message);
-        })
         .pipe(gulp.dest('./test/dist'));
 });
 
-gulp.task('build', function () {
-    return gulp.src('./index.js')
-        .pipe(browserify())
+gulp.task('buildSrc', function () {
+    return gulp.src(['./src/*.js'])
+        .pipe(browserify({debug: true}))
+        .on('error', function (error) {
+            gutil.log(error);
+        })
         .pipe(gulp.dest('./dist'));
 });
 
-gulp.task('watch', ['buildTestJs', 'createTestHtml'], function () {
-    gulp.watch(['./src/**/*.js', './test/src/**/*.js', './test/html/**/*.html'], ['buildTestJs', 'createTestHtml']);
+gulp.task('static-server', function () {
+    return gulp.src('./')
+        .pipe(webserver({
+            directoryListing: true,
+            host: '0.0.0.0'
+        }));
+});
+
+gulp.task('build', function () {
+    return gulp.src(['./src/index.js'])
+        .pipe(browserify())
+        .on('error', function (error) {
+            gutil.log(error);
+        })
+        .pipe(gulp.dest('./dist'));
+});
+
+gulp.task('watch', ['buildTestJs', 'buildSrc', 'createTestHtml', 'static-server'], function () {
+    gulp.watch(['./src/**/*.js', './test/src/**/*.js', './test/html/**/*.html'], ['buildTestJs', 'buildSrc', 'createTestHtml']);
 });

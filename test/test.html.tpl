@@ -7,10 +7,12 @@
     <script type="text/javascript" src="../jasmine/jasmine.js"></script>
     <script type="text/javascript" src="../jasmine/jasmine.html.js"></script>
     <script type="text/javascript" src="../jasmine/boot.js"></script>
+    <script type="text/javascript" src="../jasmine/blanket_jasmine.js"></script>
 </head>
 <body>
     <p><a href="./index.html">首页</a></p>
     #html#
+    <script type="text/javascript" src="../../dist/Config.js"></script>
     <script type="text/javascript" src="./#js#"></script>
 </body>
 </html>

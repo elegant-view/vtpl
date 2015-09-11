@@ -108,7 +108,7 @@ IfDirectiveParser.findIfEnd = function (ifStartNode, config) {
     }
 };
 
-module.exports = inherit(IfDirectiveParser, Parser);
+window.IfDirectiveParser = module.exports = inherit(IfDirectiveParser, Parser);
 
 function getIfNodeType(node, config) {
     if (node.nodeType !== 8) {

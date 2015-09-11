@@ -14,3 +14,5 @@ DirtyChecker.prototype.setChecker = function (expr, checkerFn) {
 DirtyChecker.prototype.getChecker = function (expr) {
     return this.checkers[expr];
 };
+
+window.DirtyChecker = module.exports = DirtyChecker;

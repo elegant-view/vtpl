@@ -1,6 +1,3 @@
-var Config = require('../../src/Config');
-var ExprParser = require('../../src/ExprParser');
-
 describe('ExprParser', function () {
     var config;
     var testNode;
