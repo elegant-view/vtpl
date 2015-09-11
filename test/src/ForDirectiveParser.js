@@ -1,7 +1,3 @@
-var Config = require('../../src/Config');
-var ForDirectiveParser = require('../../src/ForDirectiveParser');
-var Tree = require('../../src/Tree');
-
 describe('ForDirectiveParser', function () {
     var config;
     var testNode;

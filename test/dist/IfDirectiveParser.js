@@ -1,6 +1,3 @@
-var Config = require('../../src/Config');
-var IfDirectiveParser = require('../../src/IfDirectiveParser');
-
 describe('IfDirectiveParser', function () {
     var config;
     var testNode;
