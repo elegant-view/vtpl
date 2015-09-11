@@ -34,7 +34,7 @@ Config.prototype.setExprSuffix = function (suffix) {
 
 Config.prototype.getExprRegExp = function () {
     if (!this.exprRegExp) {
-        this.exprRegExp = new RegExp(regExpEncode(this.exprPrefix) + '(.+)' + regExpEncode(this.exprSuffix), 'g');
+        this.exprRegExp = new RegExp(regExpEncode(this.exprPrefix) + '(.+?)' + regExpEncode(this.exprSuffix), 'g');
     }
     return this.exprRegExp;
 };
