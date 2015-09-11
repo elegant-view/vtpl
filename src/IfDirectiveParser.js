@@ -42,6 +42,9 @@ IfDirectiveParser.prototype.collectExprs = function () {
                     this.exprFns[expr] = utils.createExprFn(this.config.getExprRegExp(), expr);
                 }
             }
+            else if (nodeType === 3) {
+                this.hasElseBranch = true;
+            }
         }
         else {
             if (!branches[branchIndex].startNode) {
@@ -73,6 +76,10 @@ IfDirectiveParser.prototype.setData = function (data) {
         if (exprValue) {
             return i;
         }
+    }
+
+    if (this.hasElseBranch) {
+        return i;
     }
 };
 
