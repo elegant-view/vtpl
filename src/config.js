@@ -84,9 +84,23 @@ Config.prototype.getForExprsRegExp = function () {
     if (!this.forExprsRegExp) {
         this.forExprsRegExp = new RegExp('\\s*'
             + this.forName
-            + ':\\s*' + regExpEncode(this.exprPrefix) + '([^' + regExpEncode(this.exprSuffix) + ']+)' + regExpEncode(this.exprSuffix));
+            + ':\\s*'
+            + regExpEncode(this.exprPrefix)
+            + '([^' + regExpEncode(this.exprSuffix)
+            + ']+)' + regExpEncode(this.exprSuffix));
     }
     return this.forExprsRegExp;
+};
+
+Config.prototype.getForItemValueNameRegExp = function () {
+    if (!this.forItemValueNameRegExp) {
+        this.forItemValueNameRegExp = new RegExp(
+            'as\\s*' + regExpEncode(this.exprPrefix)
+            + '([^' + regExpEncode(this.exprSuffix) + ']+)'
+            + regExpEncode(this.exprSuffix)
+        );
+    }
+    return this.forItemValueNameRegExp;
 };
 
 module.exports = Config;

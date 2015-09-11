@@ -1,25 +1,35 @@
 var gulp = require('gulp');
 var browserify = require('gulp-browserify');
 var fs = require('fs');
+var gutil = require('gulp-util');
 
 gulp.task('createTestHtml', function () {
     var jsFiles = fs.readdirSync('./test/src');
     var testHtmlTpl = String(fs.readFileSync('./test/test.html.tpl'));
-    jsFiles.forEach(function (jsFile) {
+    var indexHtmlContent = jsFiles.map(function (jsFile) {
+        var rawJsFile = jsFile.slice(0, -3);
         var htmlFileContent = testHtmlTpl.replace('#js#', jsFile);
         var content = '';
         try {
-            content = String(fs.readFileSync('./test/html/' + jsFile.slice(0, -3) + '.html'));
+            content = String(fs.readFileSync('./test/html/' + rawJsFile + '.html'));
         }
         catch (e) {}
         htmlFileContent = htmlFileContent.replace('#html#', content);
-        fs.writeFileSync('./test/dist/' + jsFile.slice(0, -3) + '.html', htmlFileContent);
-    });
+        fs.writeFileSync('./test/dist/' + rawJsFile + '.html', htmlFileContent);
+
+        return '<a href="./' + rawJsFile + '.html' + '">' + rawJsFile + '</a>';
+    }).join('<br>');
+    fs.writeFileSync('./test/dist/index.html', indexHtmlContent);
 });
 
 gulp.task('buildTestJs', function () {
     return gulp.src('./test/src/*.js')
-        .pipe(browserify())
+        .pipe(browserify({
+            debug: true
+        }))
+        .on('error', function (error) {
+            gutil.log(error.message);
+        })
         .pipe(gulp.dest('./test/dist'));
 });
 
@@ -30,5 +40,5 @@ gulp.task('build', function () {
 });
 
 gulp.task('watch', ['buildTestJs', 'createTestHtml'], function () {
-    gulp.watch(['./**/*.js'], ['buildTestJs', 'createTestHtml']);
+    gulp.watch(['./src/**/*.js', './test/src/**/*.js', './test/html/**/*.html'], ['buildTestJs', 'createTestHtml']);
 });

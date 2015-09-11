@@ -11,6 +11,6 @@ DirtyChecker.prototype.setChecker = function (expr, checkerFn) {
     this.checkers[expr] = checkerFn;
 };
 
-DirtyChecker.prototype.getCheckers = function (expr) {
+DirtyChecker.prototype.getChecker = function (expr) {
     return this.checkers[expr];
 };

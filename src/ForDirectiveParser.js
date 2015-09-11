@@ -79,7 +79,7 @@ module.exports = inherit(ForDirectiveParser, Parser);
 
 function createUpdateFn(parser, Tree, startNode, endNode, config, fullExpr) {
     var trees = [];
-    var itemVariableName = fullExpr.match(/as\s*\$\{([^{}]+)\}/)[1];
+    var itemVariableName = fullExpr.match(parser.config.getForItemValueNameRegExp())[1];
     return function (exprValue, data) {
         var index = 0;
         for (var k in exprValue) {
@@ -88,6 +88,7 @@ function createUpdateFn(parser, Tree, startNode, endNode, config, fullExpr) {
             }
 
             trees[index].restoreFromDark();
+            trees[index].setDirtyChecker(parser.dirtyChecker);
 
             var local = {
                 key: k,

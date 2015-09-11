@@ -21,6 +21,7 @@ Tree.prototype.traverse = function () {
 };
 
 Tree.prototype.setData = function (data) {
+    data = data || {};
     walkParsers(this, this.tree, data);
 };
 

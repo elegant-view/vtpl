@@ -21,6 +21,7 @@
   "homepage": "https://github.com/yibuyisheng/dom-data-bind#readme",
   "devDependencies": {
     "gulp": "^3.9.0",
-    "gulp-browserify": "^0.5.1"
+    "gulp-browserify": "^0.5.1",
+    "gulp-util": "^3.0.6"
   }
 }

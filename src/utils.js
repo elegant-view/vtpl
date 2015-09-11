@@ -16,11 +16,19 @@ exports.calculateExpression = function (expression, curData) {
     var fnArgs = [];
     for (var i = 0, il = params.length; i < il; i++) {
         var param = params[i];
-        var value = curData[params[i]];
+        var value = curData[param];
         fnArgs.push(value === undefined ? '' : value);
     }
 
-    return (new Function(params, 'return ' + expression)).apply(null, fnArgs);
+    var result;
+    try {
+        result = (new Function(params, 'return ' + expression)).apply(null, fnArgs);
+    }
+    catch (e) {
+        result = '';
+    }
+
+    return result;
 };
 
 exports.goDark = function (node) {
@@ -115,14 +123,22 @@ exports.isArray = function (arr) {
  * @param  {string} expr 表达式字符串，类似于 `${name}` 中的 name
  * @return {Array.<string>}      变量名数组
  */
+var exprNameMap = {};
+var exprNameRegExp = /\.?\$?([a-z|A-Z]+|([a-z|A-Z]+[0-9]+[a-z|A-Z]*))/g;
 function getVariableNamesFromExpr(expr) {
-    var matches = expr.match(/\.?\$?([a-z|A-Z]+|([a-z|A-Z]+[0-9]+[a-z|A-Z]*))/g);
+    if (exprNameMap[expr]) {
+        return exprNameMap[expr];
+    }
+
+    var matches = expr.match(exprNameRegExp) || [];
     var names = [];
     for (var i = 0, il = matches.length; i < il; i++) {
         if (matches[i] && matches[i][0] !== '.') {
             names.push(matches[i]);
         }
     }
+
+    exprNameMap[expr] = names;
 
     return names;
 }
