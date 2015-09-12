@@ -57,8 +57,8 @@ gulp.task('static-server', function () {
 });
 
 gulp.task('build', function () {
-    return gulp.src(['./src/index.js'])
-        .pipe(browserify({debug: true}))
+    return gulp.src('./index.js')
+        .pipe(browserify())
         .on('error', function (error) {
             gutil.log(error);
         })
