@@ -21,10 +21,10 @@ IfDirectiveParser.prototype.initialize = function (options) {
 };
 
 IfDirectiveParser.prototype.collectExprs = function () {
-    var curNode = this.startNode;
     var branches = [];
     var branchIndex = -1;
-    do {
+
+    utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
         var nodeType = getIfNodeType(curNode, this.config);
 
         if (nodeType) {
@@ -55,9 +55,9 @@ IfDirectiveParser.prototype.collectExprs = function () {
         curNode = curNode.nextSibling;
         if (!curNode || curNode === this.endNode) {
             setEndNode(curNode, branches, branchIndex);
-            break;
+            return true;
         }
-    } while (true);
+    }, this);
 
     return branches;
 

@@ -1,3 +1,8 @@
+/**
+ * @file 继承
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
 function inherit(ChildClass, ParentClass) {
     var childProto = ChildClass.prototype;
     ChildClass.prototype = new ParentClass();

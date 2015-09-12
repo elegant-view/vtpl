@@ -1,3 +1,8 @@
+/**
+ * @file 一堆项目里面常用的方法
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
 exports.slice = function (arr, start, end) {
     return Array.prototype.slice.call(arr, start, end);
 };
@@ -74,11 +79,26 @@ exports.createExprFn = function (exprRegExp, expr) {
 exports.extend = function (target) {
     var srcs = exports.slice(arguments, 1);
     for (var i = 0, il = srcs.length; i < il; i++) {
+        /* eslint-disable guard-for-in */
         for (var key in srcs[i]) {
             target[key] = srcs[i][key];
         }
+        /* eslint-enable guard-for-in */
     }
     return target;
+};
+
+exports.traverseNoChangeNodes = function (startNode, endNode, nodeFn, context) {
+    for (var curNode = startNode;
+        curNode && curNode !== endNode;
+        curNode = curNode.nextSibling
+    ) {
+        if (nodeFn.call(context, curNode)) {
+            return;
+        }
+    }
+
+    nodeFn.call(context, endNode);
 };
 
 exports.traverseNodes = function (startNode, endNode, nodeFn, context) {

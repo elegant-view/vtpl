@@ -26,21 +26,19 @@ Tree.prototype.setData = function (data) {
 };
 
 Tree.prototype.goDark = function () {
-    var curNode = this.startNode;
-    do {
+    utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
         if (curNode.nodeType === 1 || curNode.nodeType === 3) {
             utils.goDark(curNode);
         }
-    } while ((curNode = curNode.nextSibling) && curNode !== this.endNode);
+    }, this);
 };
 
 Tree.prototype.restoreFromDark = function () {
-    var curNode = this.startNode;
-    do {
+    utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
         if (curNode.nodeType === 1 || curNode.nodeType === 3) {
             utils.restoreFromDark(curNode);
         }
-    } while ((curNode = curNode.nextSibling) && curNode !== this.endNode);
+    }, this);
 };
 
 Tree.prototype.setDirtyChecker = function (dirtyChecker) {
