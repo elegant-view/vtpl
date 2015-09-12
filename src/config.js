@@ -103,7 +103,7 @@ Config.prototype.getForItemValueNameRegExp = function () {
     return this.forItemValueNameRegExp;
 };
 
-window.Config = module.exports = Config;
+module.exports = Config;
 
 function regExpEncode(str) {
     return '\\' + str.split('').join('\\');

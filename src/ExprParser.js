@@ -75,7 +75,7 @@ ExprParser.prototype.restoreFromDark = function () {
 };
 
 
-window.ExprParser = module.exports = inherit(ExprParser, Parser);
+module.exports = inherit(ExprParser, Parser);
 
 function addExpr(parser, expr, updateFn) {
     parser.exprs.push(expr);

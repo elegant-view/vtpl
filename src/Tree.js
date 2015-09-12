@@ -47,7 +47,7 @@ Tree.prototype.setDirtyChecker = function (dirtyChecker) {
     this.dirtyChecker = dirtyChecker;
 };
 
-window.Tree = module.exports = Tree;
+module.exports = Tree;
 
 function walkParsers(tree, parsers, data) {
     for (var i = 0, il = parsers.length; i < il; i++) {

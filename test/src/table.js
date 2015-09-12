@@ -1,7 +1,3 @@
-var Tree = require('../../src/Tree');
-var Config = require('../../src/config');
-var utils = require('../../src/utils');
-
 var table = document.getElementsByTagName('table')[0];
 var tree = new Tree({
     startNode: table,

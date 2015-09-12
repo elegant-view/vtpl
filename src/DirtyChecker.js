@@ -15,4 +15,4 @@ DirtyChecker.prototype.getChecker = function (expr) {
     return this.checkers[expr];
 };
 
-window.DirtyChecker = module.exports = DirtyChecker;
+module.exports = DirtyChecker;

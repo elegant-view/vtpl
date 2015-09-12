@@ -75,7 +75,7 @@ ForDirectiveParser.findForEnd = function (forStartNode, config) {
     }
 };
 
-window.ForDirectiveParser = module.exports = inherit(ForDirectiveParser, Parser);
+module.exports = inherit(ForDirectiveParser, Parser);
 
 function createUpdateFn(parser, Tree, startNode, endNode, config, fullExpr) {
     var trees = [];

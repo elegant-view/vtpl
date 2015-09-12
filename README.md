@@ -4,6 +4,11 @@ This is a template library. Unlike those traditional templates (such as [Jade](h
 
 ## Sample codes
 
+use basic expressions:
+
+```
+```
+
 ```html
 <table>
     <thead>

@@ -1,1 +1,2 @@
-module.exports = require('./src/Tree');
+window.Config = require('./src/Config');
+window.Tree = require('./src/Tree');

@@ -3,6 +3,7 @@ var browserify = require('gulp-browserify');
 var fs = require('fs');
 var gutil = require('gulp-util');
 var webserver = require('gulp-webserver');
+var through = require('through2');
 
 gulp.task('createTestHtml', function () {
     var jsFiles = fs.readdirSync('./test/src');
@@ -29,7 +30,17 @@ gulp.task('buildTestJs', function () {
 });
 
 gulp.task('buildSrc', function () {
-    return gulp.src(['./src/*.js'])
+    var jsFiles = fs.readdirSync('./src');
+    jsFiles.forEach(function (jsFile) {
+        fs.writeFileSync('./tmp/' + jsFile, [
+            'window.' + jsFile.slice(0, -3),
+            ' = ',
+            'module.exports = ',
+            'require(\'../src/' + jsFile + '\');'
+        ].join(''));
+    });
+
+    return gulp.src(['./tmp/*.js'])
         .pipe(browserify({debug: true}))
         .on('error', function (error) {
             gutil.log(error);
@@ -47,7 +58,7 @@ gulp.task('static-server', function () {
 
 gulp.task('build', function () {
     return gulp.src(['./src/index.js'])
-        .pipe(browserify())
+        .pipe(browserify({debug: true}))
         .on('error', function (error) {
             gutil.log(error);
         })
