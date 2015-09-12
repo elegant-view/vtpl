@@ -31,7 +31,7 @@ This is a template library. Unlike those traditional templates (such as [Jade](h
     <p id="endNode">2</p>
     ```
 
-* use `for directive`:
+* use `if directive`:
 
     ```html
     <p id="node">
