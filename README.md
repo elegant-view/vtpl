@@ -4,7 +4,7 @@ This is a template library. Unlike those traditional templates (such as [Jade](h
 
 ## Sample codes
 
-* use basic expressions:
+* Use basic expressions:
 
     ```html
     <p id="startNode" class="${klass}">${name}</p>
@@ -31,7 +31,7 @@ This is a template library. Unlike those traditional templates (such as [Jade](h
     <p id="endNode">2</p>
     ```
 
-* use `if directive`:
+* Use `if directive`:
 
     ```html
     <p id="node">
@@ -70,7 +70,7 @@ This is a template library. Unlike those traditional templates (such as [Jade](h
     </p>
     ```
 
-* use `for directive`:
+* Use `for directive`:
 
     ```html
     <p id="node">
@@ -108,7 +108,7 @@ This is a template library. Unlike those traditional templates (such as [Jade](h
     </p>
     ```
 
-* use `event`:
+* Use `event`:
 
     ```html
     <button id="node" event-click="${onClick(event)}">click me</button>
