@@ -13,9 +13,10 @@ exports.slice = function (arr, start, end) {
  * @inner
  * @param  {string} expression 表达式字符串，类似于 `${name}` 中的 name
  * @param  {Object} curData    当前表达式对应的数据
+ * @param  {boolean} avoidReturn 是否需要返回值，true 代表不需要；false 代表需要
  * @return {string}            计算结果
  */
-exports.calculateExpression = function (expression, curData) {
+exports.calculateExpression = function (expression, curData, avoidReturn) {
     var params = getVariableNamesFromExpr(expression);
 
     var fnArgs = [];
@@ -27,7 +28,7 @@ exports.calculateExpression = function (expression, curData) {
 
     var result;
     try {
-        result = (new Function(params, 'return ' + expression)).apply(null, fnArgs);
+        result = (new Function(params, (avoidReturn ? '' : 'return ') + expression)).apply(null, fnArgs);
     }
     catch (e) {
         result = '';
@@ -151,14 +152,20 @@ function getVariableNamesFromExpr(expr) {
     }
 
     var matches = expr.match(exprNameRegExp) || [];
-    var names = [];
+    var names = {};
     for (var i = 0, il = matches.length; i < il; i++) {
         if (matches[i] && matches[i][0] !== '.') {
-            names.push(matches[i]);
+            names[matches[i]] = true;
         }
     }
 
-    exprNameMap[expr] = names;
+    var ret = [];
+    exports.each(names, function (isOk, name) {
+        if (isOk) {
+            ret.push(name);
+        }
+    });
+    exprNameMap[expr] = ret;
 
-    return names;
+    return ret;
 }

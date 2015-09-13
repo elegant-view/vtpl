@@ -6,6 +6,6 @@ var parser = new EventExprParser({
 parser.collectExprs();
 parser.setData({
     onClick: function (event) {
-        debugger
+        console.log('click');
     }
 });

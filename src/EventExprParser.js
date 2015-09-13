@@ -37,7 +37,8 @@ EventExprParser.prototype.addExpr = function (attr) {
                             return arguments[1];
                         }
                     ),
-                    utils.extend({}, me.curData, {event: event})
+                    utils.extend({}, me.curData, {event: event}),
+                    true
                 );
             };
         }
