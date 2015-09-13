@@ -12,6 +12,8 @@ function ExprParser(options) {
 }
 
 ExprParser.prototype.initialize = function (options) {
+    Parser.prototype.initialize.apply(this, arguments);
+
     this.node = options.node;
     this.config = options.config;
 
@@ -118,16 +120,17 @@ function createAttrUpdateFn(attr) {
 function addExpr(parser, expr, updateFn) {
     parser.exprs.push(expr);
     if (!parser.exprFns[expr]) {
-        parser.exprFns[expr] = createExprFn(parser.config.getExprRegExp(), expr);
+        parser.exprFns[expr] = createExprFn(parser, expr);
     }
     parser.updateFns[expr] = parser.updateFns[expr] || [];
     parser.updateFns[expr].push(updateFn);
 }
 
-function createExprFn(exprRegExp, expr) {
+function createExprFn(parser, expr) {
     return function (data) {
-        return expr.replace(exprRegExp, function () {
-            return utils.calculateExpression(arguments[1], data);
+        return expr.replace(parser.config.getExprRegExp(), function () {
+            parser.exprCalculater.createExprFn(arguments[1]);
+            return parser.exprCalculater.calculate(arguments[1], false, data);
         });
     };
 }

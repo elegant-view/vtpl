@@ -110,7 +110,8 @@ describe('ForDirectiveParser', function () {
             startNode: node.firstChild,
             endNode: node.lastChild,
             config: config,
-            Tree: Tree
+            Tree: Tree,
+            exprCalculater: new ExprCalculater()
         });
         parser.collectExprs();
         return parser;

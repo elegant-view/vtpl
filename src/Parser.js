@@ -23,11 +23,12 @@ function Parser(options) {
 /**
  * 初始化
  *
- * @protected
- * @abstract
+ * @protectedß
  * @param {Object} options 来自于构造函数
  */
-Parser.prototype.initialize = function (options) {};
+Parser.prototype.initialize = function (options) {
+    this.exprCalculater = options.exprCalculater;
+};
 
 /**
  * 销毁解析器

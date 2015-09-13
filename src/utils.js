@@ -7,36 +7,6 @@ exports.slice = function (arr, start, end) {
     return Array.prototype.slice.call(arr, start, end);
 };
 
-/**
- * 计算表达式的值
- *
- * @inner
- * @param  {string} expression 表达式字符串，类似于 `${name}` 中的 name
- * @param  {Object} curData    当前表达式对应的数据
- * @param  {boolean} avoidReturn 是否需要返回值，true 代表不需要；false 代表需要
- * @return {string}            计算结果
- */
-exports.calculateExpression = function (expression, curData, avoidReturn) {
-    var params = getVariableNamesFromExpr(expression);
-
-    var fnArgs = [];
-    for (var i = 0, il = params.length; i < il; i++) {
-        var param = params[i];
-        var value = curData[param];
-        fnArgs.push(value === undefined ? '' : value);
-    }
-
-    var result;
-    try {
-        result = (new Function(params, (avoidReturn ? '' : 'return ') + expression)).apply(null, fnArgs);
-    }
-    catch (e) {
-        result = '';
-    }
-
-    return result;
-};
-
 exports.goDark = function (node) {
     if (node.nodeType === 1) {
         node.style.display = 'none';
@@ -59,13 +29,14 @@ exports.restoreFromDark = function (node) {
     }
 };
 
-exports.createExprFn = function (exprRegExp, expr) {
+exports.createExprFn = function (exprRegExp, expr, exprCalculater) {
     expr = expr.replace(exprRegExp, function () {
         return arguments[1];
     });
+    exprCalculater.createExprFn(expr);
 
     return function (data) {
-        return exports.calculateExpression(expr, data);
+        return exprCalculater.calculate(expr, false, data);
     };
 };
 
@@ -136,36 +107,3 @@ exports.each = function (arr, fn, context) {
 exports.isArray = function (arr) {
     return Object.prototype.toString.call(arr) === 'object Array';
 };
-
-/**
- * 从表达式中抽离出变量名
- *
- * @inner
- * @param  {string} expr 表达式字符串，类似于 `${name}` 中的 name
- * @return {Array.<string>}      变量名数组
- */
-var exprNameMap = {};
-var exprNameRegExp = /\.?\$?([a-z|A-Z]+|([a-z|A-Z]+[0-9]+[a-z|A-Z]*))/g;
-function getVariableNamesFromExpr(expr) {
-    if (exprNameMap[expr]) {
-        return exprNameMap[expr];
-    }
-
-    var matches = expr.match(exprNameRegExp) || [];
-    var names = {};
-    for (var i = 0, il = matches.length; i < il; i++) {
-        if (matches[i] && matches[i][0] !== '.') {
-            names[matches[i]] = true;
-        }
-    }
-
-    var ret = [];
-    exports.each(names, function (isOk, name) {
-        if (isOk) {
-            ret.push(name);
-        }
-    });
-    exprNameMap[expr] = ret;
-
-    return ret;
-}

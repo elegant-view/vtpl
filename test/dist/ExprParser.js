@@ -92,7 +92,8 @@ describe('ExprParser', function () {
     function createParser(node) {
         var parser = new ExprParser({
             node: node,
-            config: config
+            config: config,
+            exprCalculater: new ExprCalculater()
         });
         parser.collectExprs();
         return parser;

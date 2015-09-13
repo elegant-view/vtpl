@@ -1,3 +1,8 @@
+/**
+ * @file 处理了事件的 ExprParser
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
 var ExprParser = require('./ExprParser');
 var inherit = require('./inherit');
 var utils = require('./utils');
@@ -28,18 +33,17 @@ EventExprParser.prototype.addExpr = function (attr) {
         if (this.config.getExprRegExp().test(attr.value)) {
             this.events[eventName] = attr.value;
 
+            var expr = attr.value.replace(
+                this.config.getExprRegExp(),
+                function () {
+                    return arguments[1];
+                }
+            );
+            this.exprCalculater.createExprFn(expr, true);
+
             var me = this;
             this.node['on' + eventName] = function (event) {
-                utils.calculateExpression(
-                    attr.value.replace(
-                        me.config.getExprRegExp(),
-                        function () {
-                            return arguments[1];
-                        }
-                    ),
-                    utils.extend({}, me.curData, {event: event}),
-                    true
-                );
+                me.exprCalculater.calculate(expr, true, utils.extend({}, me.curData, {event: event}));
             };
         }
     }

@@ -1,6 +1,7 @@
 var parser = new EventExprParser({
     node: document.getElementById('node'),
-    config: new Config()
+    config: new Config(),
+    exprCalculater: new ExprCalculater()
 });
 
 parser.collectExprs();

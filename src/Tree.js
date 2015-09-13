@@ -7,11 +7,13 @@ var IfDirectiveParser = require('./IfDirectiveParser');
 var ExprParser = require('./EventExprParser');
 var ForDirectiveParser = require('./ForDirectiveParser');
 var utils = require('./utils');
+var ExprCalculater = require('./ExprCalculater');
 
 function Tree(options) {
     this.startNode = options.startNode;
     this.endNode = options.endNode;
     this.config = options.config;
+    this.exprCalculater = new ExprCalculater();
 
     this.tree = [];
 }
@@ -97,7 +99,8 @@ function walk(tree, startNode, endNode, container) {
             var ifDirectiveParser = new IfDirectiveParser({
                 startNode: curNode,
                 endNode: ifEndNode,
-                config: tree.config
+                config: tree.config,
+                exprCalculater: tree.exprCalculater
             });
 
             var branches = ifDirectiveParser.collectExprs();
@@ -125,7 +128,8 @@ function walk(tree, startNode, endNode, container) {
                 startNode: curNode,
                 endNode: forEndNode,
                 config: tree.config,
-                Tree: Tree
+                Tree: Tree,
+                exprCalculater: tree.exprCalculater
             });
 
             forDirectiveParser.collectExprs();
@@ -137,7 +141,8 @@ function walk(tree, startNode, endNode, container) {
         else {
             var exprParser = new ExprParser({
                 node: curNode,
-                config: tree.config
+                config: tree.config,
+                exprCalculater: tree.exprCalculater
             });
             exprParser.collectExprs();
 

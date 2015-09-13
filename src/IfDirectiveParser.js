@@ -12,6 +12,8 @@ function IfDirectiveParser(options) {
 }
 
 IfDirectiveParser.prototype.initialize = function (options) {
+    Parser.prototype.initialize.apply(this, arguments);
+
     this.startNode = options.startNode;
     this.endNode = options.endNode;
     this.config = options.config;
@@ -39,7 +41,7 @@ IfDirectiveParser.prototype.collectExprs = function () {
                 this.exprs.push(expr);
 
                 if (!this.exprFns[expr]) {
-                    this.exprFns[expr] = utils.createExprFn(this.config.getExprRegExp(), expr);
+                    this.exprFns[expr] = utils.createExprFn(this.config.getExprRegExp(), expr, this.exprCalculater);
                 }
             }
             else if (nodeType === 3) {

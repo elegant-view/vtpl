@@ -46,7 +46,8 @@ describe('IfDirectiveParser', function () {
         var parser = new IfDirectiveParser({
             startNode: node.firstChild,
             endNode: node.lastChild,
-            config: config
+            config: config,
+            exprCalculater: new ExprCalculater()
         });
         parser.collectExprs();
 

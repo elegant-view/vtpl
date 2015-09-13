@@ -12,6 +12,8 @@ function ForDirectiveParser(options) {
 }
 
 ForDirectiveParser.prototype.initialize = function (options) {
+    Parser.prototype.initialize.apply(this, arguments);
+
     this.startNode = options.startNode;
     this.endNode = options.endNode;
     this.config = options.config;
@@ -34,7 +36,7 @@ ForDirectiveParser.prototype.collectExprs = function () {
     this.tplSeg = tplSeg;
 
     this.expr = this.startNode.nodeValue.match(this.config.getForExprsRegExp())[1];
-    this.exprFn = utils.createExprFn(this.config.getExprRegExp(), this.expr);
+    this.exprFn = utils.createExprFn(this.config.getExprRegExp(), this.expr, this.exprCalculater);
     this.updateFn = createUpdateFn(
         this,
         this.Tree,
