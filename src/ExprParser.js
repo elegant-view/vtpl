@@ -21,33 +21,55 @@ ExprParser.prototype.initialize = function (options) {
     this.exprOldValues = {};
 };
 
+/**
+ * 搜集过程
+ *
+ * @public
+ */
 ExprParser.prototype.collectExprs = function () {
     var curNode = this.node;
 
     // 文本节点
     if (curNode.nodeType === 3) {
-        addExpr(this, curNode.nodeValue, (function (curNode) {
-            return function (exprValue) {
-                curNode.nodeValue = exprValue;
-            };
-        })(curNode));
+        this.addExpr();
     }
     // 元素节点
     else if (curNode.nodeType === 1) {
         var attributes = curNode.attributes;
         for (var i = 0, il = attributes.length; i < il; i++) {
-            var attr = attributes[i];
-            addExpr(this, attr.value, createAttrUpdateFn(attr));
+            this.addExpr(attributes[i]);
         }
-    }
-
-    function createAttrUpdateFn(attr) {
-        return function (exprValue) {
-            attr.value = exprValue;
-        };
     }
 };
 
+/**
+ * 添加表达式
+ *
+ * @protected
+ * @param {Attr} attr 如果当前是元素节点，则要传入遍历到的属性
+ */
+ExprParser.prototype.addExpr = function (attr) {
+    var expr = attr ? attr.value : this.node.nodeValue;
+    if (!this.config.getExprRegExp().test(expr)) {
+        return;
+    }
+    addExpr(
+        this,
+        expr,
+        attr ? createAttrUpdateFn(attr) : (function (curNode) {
+            return function (exprValue) {
+                curNode.nodeValue = exprValue;
+            };
+        })(this.node)
+    );
+};
+
+/**
+ * 设置数据过程
+ *
+ * @public
+ * @param {Object} data 数据
+ */
 ExprParser.prototype.setData = function (data) {
     var exprs = this.exprs;
     var exprOldValues = this.exprOldValues;
@@ -66,16 +88,32 @@ ExprParser.prototype.setData = function (data) {
     }
 };
 
+/**
+ * 节点“隐藏”起来
+ *
+ * @public
+ */
 ExprParser.prototype.goDark = function () {
     utils.goDark(this.node);
 };
 
+/**
+ * 节点“显示”出来
+ *
+ * @public
+ */
 ExprParser.prototype.restoreFromDark = function () {
     utils.restoreFromDark(this.node);
 };
 
 
 module.exports = inherit(ExprParser, Parser);
+
+function createAttrUpdateFn(attr) {
+    return function (exprValue) {
+        attr.value = exprValue;
+    };
+}
 
 function addExpr(parser, expr, updateFn) {
     parser.exprs.push(expr);

@@ -22,6 +22,8 @@ function Config() {
 
     this.forPrefixRegExp = /^\s*for:\s*/;
     this.forEndPrefixRegExp = /^\s*\/for\s*/;
+
+    this.eventPrefix = 'event';
 }
 
 Config.prototype.setExprPrefix = function (prefix) {
@@ -101,6 +103,10 @@ Config.prototype.getForItemValueNameRegExp = function () {
         );
     }
     return this.forItemValueNameRegExp;
+};
+
+Config.prototype.setEventPrefix = function (prefix) {
+    this.eventPrefix = prefix;
 };
 
 module.exports = Config;
