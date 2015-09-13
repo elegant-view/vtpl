@@ -1,7 +1,7 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 window.Config = require('./src/Config');
 window.Tree = require('./src/Tree');
-},{"./src/Config":2,"./src/Tree":7}],2:[function(require,module,exports){
+},{"./src/Config":2,"./src/Tree":8}],2:[function(require,module,exports){
 /**
  * @file 配置
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -26,6 +26,8 @@ function Config() {
 
     this.forPrefixRegExp = /^\s*for:\s*/;
     this.forEndPrefixRegExp = /^\s*\/for\s*/;
+
+    this.eventPrefix = 'event';
 }
 
 Config.prototype.setExprPrefix = function (prefix) {
@@ -107,6 +109,10 @@ Config.prototype.getForItemValueNameRegExp = function () {
     return this.forItemValueNameRegExp;
 };
 
+Config.prototype.setEventPrefix = function (prefix) {
+    this.eventPrefix = prefix;
+};
+
 module.exports = Config;
 
 function regExpEncode(str) {
@@ -114,6 +120,69 @@ function regExpEncode(str) {
 }
 
 },{}],3:[function(require,module,exports){
+var ExprParser = require('./ExprParser');
+var inherit = require('./inherit');
+var utils = require('./utils');
+
+function EventExprParser(options) {
+    ExprParser.call(this, options);
+}
+
+EventExprParser.prototype.initialize = function (options) {
+    ExprParser.prototype.initialize.apply(this, arguments);
+
+    this.events = {};
+};
+
+EventExprParser.prototype.setData = function (data) {
+    ExprParser.prototype.setData.apply(this, arguments);
+
+    this.curData = data;
+};
+
+EventExprParser.prototype.addExpr = function (attr) {
+    if (!attr) {
+        return ExprParser.prototype.addExpr.apply(this, arguments);
+    }
+
+    var eventName = getEventName(attr.name, this.config);
+    if (eventName) {
+        if (this.config.getExprRegExp().test(attr.value)) {
+            this.events[eventName] = attr.value;
+
+            var me = this;
+            this.node['on' + eventName] = function (event) {
+                utils.calculateExpression(
+                    attr.value.replace(
+                        me.config.getExprRegExp(),
+                        function () {
+                            return arguments[1];
+                        }
+                    ),
+                    utils.extend({}, me.curData, {event: event}),
+                    true
+                );
+            };
+        }
+    }
+    else {
+        ExprParser.prototype.addExpr.apply(this, arguments);
+    }
+};
+
+module.exports = inherit(EventExprParser, ExprParser);
+
+
+function getEventName(attrName, config) {
+    if (attrName.indexOf(config.eventPrefix + '-') === -1) {
+        return;
+    }
+
+    return attrName.replace(config.eventPrefix + '-', '');
+}
+
+
+},{"./ExprParser":4,"./inherit":9,"./utils":10}],4:[function(require,module,exports){
 /**
  * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -137,33 +206,55 @@ ExprParser.prototype.initialize = function (options) {
     this.exprOldValues = {};
 };
 
+/**
+ * 搜集过程
+ *
+ * @public
+ */
 ExprParser.prototype.collectExprs = function () {
     var curNode = this.node;
 
     // 文本节点
     if (curNode.nodeType === 3) {
-        addExpr(this, curNode.nodeValue, (function (curNode) {
-            return function (exprValue) {
-                curNode.nodeValue = exprValue;
-            };
-        })(curNode));
+        this.addExpr();
     }
     // 元素节点
     else if (curNode.nodeType === 1) {
         var attributes = curNode.attributes;
         for (var i = 0, il = attributes.length; i < il; i++) {
-            var attr = attributes[i];
-            addExpr(this, attr.value, createAttrUpdateFn(attr));
+            this.addExpr(attributes[i]);
         }
-    }
-
-    function createAttrUpdateFn(attr) {
-        return function (exprValue) {
-            attr.value = exprValue;
-        };
     }
 };
 
+/**
+ * 添加表达式
+ *
+ * @protected
+ * @param {Attr} attr 如果当前是元素节点，则要传入遍历到的属性
+ */
+ExprParser.prototype.addExpr = function (attr) {
+    var expr = attr ? attr.value : this.node.nodeValue;
+    if (!this.config.getExprRegExp().test(expr)) {
+        return;
+    }
+    addExpr(
+        this,
+        expr,
+        attr ? createAttrUpdateFn(attr) : (function (curNode) {
+            return function (exprValue) {
+                curNode.nodeValue = exprValue;
+            };
+        })(this.node)
+    );
+};
+
+/**
+ * 设置数据过程
+ *
+ * @public
+ * @param {Object} data 数据
+ */
 ExprParser.prototype.setData = function (data) {
     var exprs = this.exprs;
     var exprOldValues = this.exprOldValues;
@@ -182,16 +273,32 @@ ExprParser.prototype.setData = function (data) {
     }
 };
 
+/**
+ * 节点“隐藏”起来
+ *
+ * @public
+ */
 ExprParser.prototype.goDark = function () {
     utils.goDark(this.node);
 };
 
+/**
+ * 节点“显示”出来
+ *
+ * @public
+ */
 ExprParser.prototype.restoreFromDark = function () {
     utils.restoreFromDark(this.node);
 };
 
 
 module.exports = inherit(ExprParser, Parser);
+
+function createAttrUpdateFn(attr) {
+    return function (exprValue) {
+        attr.value = exprValue;
+    };
+}
 
 function addExpr(parser, expr, updateFn) {
     parser.exprs.push(expr);
@@ -210,7 +317,7 @@ function createExprFn(exprRegExp, expr) {
     };
 }
 
-},{"./Parser":6,"./inherit":8,"./utils":9}],4:[function(require,module,exports){
+},{"./Parser":7,"./inherit":9,"./utils":10}],5:[function(require,module,exports){
 /**
  * @file for 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -336,7 +443,7 @@ function createTree(parser, Tree, config) {
     return tree;
 }
 
-},{"./Parser":6,"./inherit":8,"./utils":9}],5:[function(require,module,exports){
+},{"./Parser":7,"./inherit":9,"./utils":10}],6:[function(require,module,exports){
 /**
  * @file if 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -360,10 +467,10 @@ IfDirectiveParser.prototype.initialize = function (options) {
 };
 
 IfDirectiveParser.prototype.collectExprs = function () {
-    var curNode = this.startNode;
     var branches = [];
     var branchIndex = -1;
-    do {
+
+    utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
         var nodeType = getIfNodeType(curNode, this.config);
 
         if (nodeType) {
@@ -394,9 +501,9 @@ IfDirectiveParser.prototype.collectExprs = function () {
         curNode = curNode.nextSibling;
         if (!curNode || curNode === this.endNode) {
             setEndNode(curNode, branches, branchIndex);
-            break;
+            return true;
         }
-    } while (true);
+    }, this);
 
     return branches;
 
@@ -471,7 +578,7 @@ function getIfNodeType(node, config) {
     }
 }
 
-},{"./Parser":6,"./inherit":8,"./utils":9}],6:[function(require,module,exports){
+},{"./Parser":7,"./inherit":9,"./utils":10}],7:[function(require,module,exports){
 /**
  * @file 解析器的抽象基类
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -554,14 +661,14 @@ Parser.prototype.setDirtyChecker = function (dirtyChecker) {
 
 module.exports = Parser;
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 /**
  * @file 最终的树
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
 var IfDirectiveParser = require('./IfDirectiveParser');
-var ExprParser = require('./ExprParser');
+var ExprParser = require('./EventExprParser');
 var ForDirectiveParser = require('./ForDirectiveParser');
 var utils = require('./utils');
 
@@ -583,21 +690,19 @@ Tree.prototype.setData = function (data) {
 };
 
 Tree.prototype.goDark = function () {
-    var curNode = this.startNode;
-    do {
+    utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
         if (curNode.nodeType === 1 || curNode.nodeType === 3) {
             utils.goDark(curNode);
         }
-    } while ((curNode = curNode.nextSibling) && curNode !== this.endNode);
+    }, this);
 };
 
 Tree.prototype.restoreFromDark = function () {
-    var curNode = this.startNode;
-    do {
+    utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
         if (curNode.nodeType === 1 || curNode.nodeType === 3) {
             utils.restoreFromDark(curNode);
         }
-    } while ((curNode = curNode.nextSibling) && curNode !== this.endNode);
+    }, this);
 };
 
 Tree.prototype.setDirtyChecker = function (dirtyChecker) {
@@ -714,10 +819,15 @@ function walk(tree, startNode, endNode, container) {
 
 
 
-},{"./ExprParser":3,"./ForDirectiveParser":4,"./IfDirectiveParser":5,"./utils":9}],8:[function(require,module,exports){
+},{"./EventExprParser":3,"./ForDirectiveParser":5,"./IfDirectiveParser":6,"./utils":10}],9:[function(require,module,exports){
+/**
+ * @file 继承
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
 function inherit(ChildClass, ParentClass) {
     var childProto = ChildClass.prototype;
-    ChildClass.prototype = new ParentClass();
+    ChildClass.prototype = new ParentClass({});
     for (var key in childProto) {
         if (childProto.hasOwnProperty(key)) {
             ChildClass.prototype[key] = childProto[key];
@@ -727,7 +837,28 @@ function inherit(ChildClass, ParentClass) {
 }
 
 module.exports = inherit;
-},{}],9:[function(require,module,exports){
+
+// module.exports = function (subClass, superClass) {
+//     var Empty = function () {};
+//     Empty.prototype = superClass.prototype;
+//     var selfPrototype = subClass.prototype;
+//     var proto = subClass.prototype = new Empty();
+
+//     for (var key in selfPrototype) {
+//         proto[key] = selfPrototype[key];
+//     }
+//     subClass.prototype.constructor = subClass;
+//     subClass.superClass = superClass.prototype;
+
+//     return subClass;
+// };
+
+},{}],10:[function(require,module,exports){
+/**
+ * @file 一堆项目里面常用的方法
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
 exports.slice = function (arr, start, end) {
     return Array.prototype.slice.call(arr, start, end);
 };
@@ -738,9 +869,10 @@ exports.slice = function (arr, start, end) {
  * @inner
  * @param  {string} expression 表达式字符串，类似于 `${name}` 中的 name
  * @param  {Object} curData    当前表达式对应的数据
+ * @param  {boolean} avoidReturn 是否需要返回值，true 代表不需要；false 代表需要
  * @return {string}            计算结果
  */
-exports.calculateExpression = function (expression, curData) {
+exports.calculateExpression = function (expression, curData, avoidReturn) {
     var params = getVariableNamesFromExpr(expression);
 
     var fnArgs = [];
@@ -752,7 +884,7 @@ exports.calculateExpression = function (expression, curData) {
 
     var result;
     try {
-        result = (new Function(params, 'return ' + expression)).apply(null, fnArgs);
+        result = (new Function(params, (avoidReturn ? '' : 'return ') + expression)).apply(null, fnArgs);
     }
     catch (e) {
         result = '';
@@ -804,11 +936,26 @@ exports.createExprFn = function (exprRegExp, expr) {
 exports.extend = function (target) {
     var srcs = exports.slice(arguments, 1);
     for (var i = 0, il = srcs.length; i < il; i++) {
+        /* eslint-disable guard-for-in */
         for (var key in srcs[i]) {
             target[key] = srcs[i][key];
         }
+        /* eslint-enable guard-for-in */
     }
     return target;
+};
+
+exports.traverseNoChangeNodes = function (startNode, endNode, nodeFn, context) {
+    for (var curNode = startNode;
+        curNode && curNode !== endNode;
+        curNode = curNode.nextSibling
+    ) {
+        if (nodeFn.call(context, curNode)) {
+            return;
+        }
+    }
+
+    nodeFn.call(context, endNode);
 };
 
 exports.traverseNodes = function (startNode, endNode, nodeFn, context) {
@@ -861,16 +1008,22 @@ function getVariableNamesFromExpr(expr) {
     }
 
     var matches = expr.match(exprNameRegExp) || [];
-    var names = [];
+    var names = {};
     for (var i = 0, il = matches.length; i < il; i++) {
         if (matches[i] && matches[i][0] !== '.') {
-            names.push(matches[i]);
+            names[matches[i]] = true;
         }
     }
 
-    exprNameMap[expr] = names;
+    var ret = [];
+    exports.each(names, function (isOk, name) {
+        if (isOk) {
+            ret.push(name);
+        }
+    });
+    exprNameMap[expr] = ret;
 
-    return names;
+    return ret;
 }
 
 },{}]},{},[1])

@@ -4,7 +4,7 @@
  */
 
 var IfDirectiveParser = require('./IfDirectiveParser');
-var ExprParser = require('./ExprParser');
+var ExprParser = require('./EventExprParser');
 var ForDirectiveParser = require('./ForDirectiveParser');
 var utils = require('./utils');
 

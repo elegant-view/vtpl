@@ -108,3 +108,27 @@ This is a template library. Unlike those traditional templates (such as [Jade](h
     </p>
     ```
 
+* use `event`:
+
+    ```html
+    <button id="node" event-click="${onClick(event)}">click me</button>
+    <script src="./dist/index.js"></script>
+    <script>
+    var node = document.getElementById('node');
+    var tree = new Tree({
+        startNode: node,
+        endNode: node,
+        config: new Config()
+    });
+    tree.traverse();
+    tree.setData({
+        onClick: function (event) {
+            console.log('clicked');
+        }
+    });
+    </script>
+    ```
+
+
+
+
