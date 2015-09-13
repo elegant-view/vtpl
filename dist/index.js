@@ -3,6 +3,7 @@ require('./src/EventExprParser');
 require('./src/ForDirectiveParser');
 require('./src/IfDirectiveParser');
 
+
 window.Config = require('./src/Config');
 window.Tree = require('./src/Tree');
 
@@ -834,9 +835,30 @@ Tree.prototype.setDirtyChecker = function (dirtyChecker) {
 };
 
 var ParserClasses = [];
+window.ParserClasses = ParserClasses;
 
-Tree.registeParser = function (parser) {
-    ParserClasses.push(parser);
+/**
+ * 注册一下解析器类。
+ *
+ * @param  {Constructor} ParserClass 解析器类
+ */
+Tree.registeParser = function (ParserClass) {
+    var isExitsChildClass = false;
+    utils.each(ParserClasses, function (PC, index) {
+        if (utils.isSubClassOf(PC, ParserClass)) {
+            isExitsChildClass = true;
+        }
+        else if (utils.isSubClassOf(ParserClass, PC)) {
+            ParserClasses[index] = ParserClass;
+            isExitsChildClass = true;
+        }
+
+        return isExitsChildClass;
+    });
+
+    if (!isExitsChildClass) {
+        ParserClasses.push(ParserClass);
+    }
 };
 
 module.exports = Tree;
@@ -1138,6 +1160,10 @@ exports.isArray = function (arr) {
 
 exports.isNumber = function (obj) {
     return Object.prototype.toString.call(obj) === '[object Number]';
+};
+
+exports.isSubClassOf = function (SubClass, SuperClass) {
+    return SubClass.prototype instanceof SuperClass;
 };
 
 },{}]},{},[1])

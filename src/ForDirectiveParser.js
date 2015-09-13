@@ -17,8 +17,6 @@ ForDirectiveParser.prototype.initialize = function (options) {
 
     this.startNode = options.startNode;
     this.endNode = options.endNode;
-    this.config = options.config;
-    this.Tree = options.Tree;
 };
 
 ForDirectiveParser.prototype.collectExprs = function () {

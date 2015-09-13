@@ -111,3 +111,7 @@ exports.isArray = function (arr) {
 exports.isNumber = function (obj) {
     return Object.prototype.toString.call(obj) === '[object Number]';
 };
+
+exports.isSubClassOf = function (SubClass, SuperClass) {
+    return SubClass.prototype instanceof SuperClass;
+};

@@ -45,6 +45,7 @@ Tree.prototype.setDirtyChecker = function (dirtyChecker) {
 };
 
 var ParserClasses = [];
+window.ParserClasses = ParserClasses;
 
 /**
  * 注册一下解析器类。
@@ -52,7 +53,22 @@ var ParserClasses = [];
  * @param  {Constructor} ParserClass 解析器类
  */
 Tree.registeParser = function (ParserClass) {
-    ParserClasses.push(ParserClass);
+    var isExitsChildClass = false;
+    utils.each(ParserClasses, function (PC, index) {
+        if (utils.isSubClassOf(PC, ParserClass)) {
+            isExitsChildClass = true;
+        }
+        else if (utils.isSubClassOf(ParserClass, PC)) {
+            ParserClasses[index] = ParserClass;
+            isExitsChildClass = true;
+        }
+
+        return isExitsChildClass;
+    });
+
+    if (!isExitsChildClass) {
+        ParserClasses.push(ParserClass);
+    }
 };
 
 module.exports = Tree;

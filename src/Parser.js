@@ -28,6 +28,7 @@ function Parser(options) {
  */
 Parser.prototype.initialize = function (options) {
     this.exprCalculater = options.exprCalculater;
+    this.config = options.config;
 };
 
 /**
