@@ -6,6 +6,7 @@
 var inherit = require('./inherit');
 var Parser = require('./Parser');
 var utils = require('./utils');
+var Tree = require('./Tree');
 
 function ForDirectiveParser(options) {
     Parser.call(this, options);
@@ -39,12 +40,13 @@ ForDirectiveParser.prototype.collectExprs = function () {
     this.exprFn = utils.createExprFn(this.config.getExprRegExp(), this.expr, this.exprCalculater);
     this.updateFn = createUpdateFn(
         this,
-        this.Tree,
         this.startNode.nextSibling,
         this.endNode.previousSibling,
         this.config,
         this.startNode.nodeValue
     );
+
+    return true;
 };
 
 ForDirectiveParser.prototype.setData = function (data) {
@@ -60,7 +62,7 @@ ForDirectiveParser.prototype.setData = function (data) {
     this.exprOldValue = exprValue;
 };
 
-ForDirectiveParser.isForNode = function (node, config) {
+ForDirectiveParser.isProperNode = ForDirectiveParser.isForNode = function (node, config) {
     return node.nodeType === 8 && config.forPrefixRegExp.test(node.nodeValue);
 };
 
@@ -68,7 +70,7 @@ ForDirectiveParser.isForEndNode = function (node, config) {
     return node.nodeType === 8 && config.forEndPrefixRegExp.test(node.nodeValue);
 };
 
-ForDirectiveParser.findForEnd = function (forStartNode, config) {
+ForDirectiveParser.findEndNode = ForDirectiveParser.findForEnd = function (forStartNode, config) {
     var curNode = forStartNode;
     while ((curNode = curNode.nextSibling)) {
         if (ForDirectiveParser.isForEndNode(curNode, config)) {
@@ -77,16 +79,21 @@ ForDirectiveParser.findForEnd = function (forStartNode, config) {
     }
 };
 
-module.exports = inherit(ForDirectiveParser, Parser);
+ForDirectiveParser.getNoEndNodeError = function () {
+    return new Error('the for directive is not properly ended!');
+};
 
-function createUpdateFn(parser, Tree, startNode, endNode, config, fullExpr) {
+module.exports = inherit(ForDirectiveParser, Parser);
+Tree.registeParser(module.exports);
+
+function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
     var trees = [];
     var itemVariableName = fullExpr.match(parser.config.getForItemValueNameRegExp())[1];
     return function (exprValue, data) {
         var index = 0;
         for (var k in exprValue) {
             if (!trees[index]) {
-                trees[index] = createTree(parser, Tree, config);
+                trees[index] = createTree(parser, config);
             }
 
             trees[index].restoreFromDark();
@@ -108,7 +115,7 @@ function createUpdateFn(parser, Tree, startNode, endNode, config, fullExpr) {
     };
 }
 
-function createTree(parser, Tree, config) {
+function createTree(parser, config) {
     var copySeg = parser.tplSeg.cloneNode(true);
     var startNode = copySeg.firstChild;
     var endNode = copySeg.lastChild;

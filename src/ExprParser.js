@@ -6,6 +6,7 @@
 var Parser = require('./Parser');
 var inherit = require('./inherit');
 var utils = require('./utils');
+var Tree = require('./Tree');
 
 function ExprParser(options) {
     Parser.call(this, options);
@@ -34,14 +35,19 @@ ExprParser.prototype.collectExprs = function () {
     // 文本节点
     if (curNode.nodeType === 3) {
         this.addExpr();
+        return true;
     }
+
     // 元素节点
-    else if (curNode.nodeType === 1) {
+    if (curNode.nodeType === 1) {
         var attributes = curNode.attributes;
         for (var i = 0, il = attributes.length; i < il; i++) {
             this.addExpr(attributes[i]);
         }
+        return true;
     }
+
+    return false;
 };
 
 /**
@@ -108,8 +114,12 @@ ExprParser.prototype.restoreFromDark = function () {
     utils.restoreFromDark(this.node);
 };
 
+ExprParser.isProperNode = function (node) {
+    return node.nodeType === 1 || node.nodeType === 3;
+};
 
-module.exports = inherit(ExprParser, Parser);
+module.exports = inherit(ExprParser, Parser)
+Tree.registeParser(module.exports);
 
 function createAttrUpdateFn(attr) {
     return function (exprValue) {

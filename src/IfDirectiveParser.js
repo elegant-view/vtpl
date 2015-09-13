@@ -6,6 +6,7 @@
 var Parser = require('./Parser');
 var inherit = require('./inherit');
 var utils = require('./utils');
+var Tree = require('./Tree');
 
 function IfDirectiveParser(options) {
     Parser.call(this, options);
@@ -85,7 +86,7 @@ IfDirectiveParser.prototype.setData = function (data) {
     }
 };
 
-IfDirectiveParser.isIfNode = function (node, config) {
+IfDirectiveParser.isProperNode = IfDirectiveParser.isIfNode = function (node, config) {
     return getIfNodeType(node, config) === 1;
 };
 
@@ -101,7 +102,7 @@ IfDirectiveParser.isIfEndNode = function (node, config) {
     return getIfNodeType(node, config) === 4;
 };
 
-IfDirectiveParser.findIfEnd = function (ifStartNode, config) {
+IfDirectiveParser.findEndNode = IfDirectiveParser.findIfEnd = function (ifStartNode, config) {
     var curNode = ifStartNode;
     while ((curNode = curNode.nextSibling)) {
         if (IfDirectiveParser.isIfEndNode(curNode, config)) {
@@ -110,7 +111,12 @@ IfDirectiveParser.findIfEnd = function (ifStartNode, config) {
     }
 };
 
+IfDirectiveParser.getNoEndNodeError = function () {
+    return new Error('the if directive is not properly ended!');
+};
+
 module.exports = inherit(IfDirectiveParser, Parser);
+Tree.registeParser(module.exports);
 
 function getIfNodeType(node, config) {
     if (node.nodeType !== 8) {

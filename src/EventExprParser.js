@@ -6,6 +6,7 @@
 var ExprParser = require('./ExprParser');
 var inherit = require('./inherit');
 var utils = require('./utils');
+var Tree = require('./Tree');
 
 function EventExprParser(options) {
     ExprParser.call(this, options);
@@ -53,6 +54,7 @@ EventExprParser.prototype.addExpr = function (attr) {
 };
 
 module.exports = inherit(EventExprParser, ExprParser);
+Tree.registeParser(module.exports);
 
 
 function getEventName(attrName, config) {
