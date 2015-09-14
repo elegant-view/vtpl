@@ -45,7 +45,6 @@ Tree.prototype.setDirtyChecker = function (dirtyChecker) {
 };
 
 var ParserClasses = [];
-window.ParserClasses = ParserClasses;
 
 /**
  * 注册一下解析器类。

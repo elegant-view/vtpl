@@ -1,13 +1,21 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-require('./src/EventExprParser');
-require('./src/ForDirectiveParser');
-require('./src/IfDirectiveParser');
+var amdExports = {
+    Config: require('./src/Config'),
+    Tree: require('./src/Tree'),
+    DirtyChecker: require('./src/DirtyChecker'),
+    Parser: require('./src/Parser'),
+    ForDirectiveParser: require('./src/ForDirectiveParser'),
+    IfDirectiveParser: require('./src/IfDirectiveParser'),
+    EventExprParser: require('./src/EventExprParser'),
+    ExprParser: require('./src/ExprParser'),
+    ExprCalculater: require('./src/ExprCalculater'),
+    VarDirectiveParser: require('./src/VarDirectiveParser')
+};
+define(function (require, exports, module) {
+    module.exports = amdExports;
+});
 
-
-window.Config = require('./src/Config');
-window.Tree = require('./src/Tree');
-
-},{"./src/Config":2,"./src/EventExprParser":3,"./src/ForDirectiveParser":6,"./src/IfDirectiveParser":7,"./src/Tree":9}],2:[function(require,module,exports){
+},{"./src/Config":2,"./src/DirtyChecker":3,"./src/EventExprParser":4,"./src/ExprCalculater":5,"./src/ExprParser":6,"./src/ForDirectiveParser":7,"./src/IfDirectiveParser":8,"./src/Parser":9,"./src/Tree":10,"./src/VarDirectiveParser":11}],2:[function(require,module,exports){
 /**
  * @file 配置
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -34,6 +42,8 @@ function Config() {
     this.forEndPrefixRegExp = /^\s*\/for\s*/;
 
     this.eventPrefix = 'event';
+
+    this.varName = 'var';
 }
 
 Config.prototype.setExprPrefix = function (prefix) {
@@ -119,6 +129,10 @@ Config.prototype.setEventPrefix = function (prefix) {
     this.eventPrefix = prefix;
 };
 
+Config.prototype.setVarName = function (name) {
+    this.varName = name;
+};
+
 module.exports = Config;
 
 function regExpEncode(str) {
@@ -126,6 +140,26 @@ function regExpEncode(str) {
 }
 
 },{}],3:[function(require,module,exports){
+/**
+ * @file 脏检测器
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+function DirtyChecker() {
+    this.checkers = {};
+}
+
+DirtyChecker.prototype.setChecker = function (expr, checkerFn) {
+    this.checkers[expr] = checkerFn;
+};
+
+DirtyChecker.prototype.getChecker = function (expr) {
+    return this.checkers[expr];
+};
+
+module.exports = DirtyChecker;
+
+},{}],4:[function(require,module,exports){
 /**
  * @file 处理了事件的 ExprParser
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -194,7 +228,7 @@ function getEventName(attrName, config) {
 }
 
 
-},{"./ExprParser":5,"./Tree":9,"./inherit":10,"./utils":11}],4:[function(require,module,exports){
+},{"./ExprParser":6,"./Tree":10,"./inherit":12,"./utils":13}],5:[function(require,module,exports){
 var utils = require('./utils');
 
 function ExprCalculater() {
@@ -258,12 +292,29 @@ function getVariableNamesFromExpr(me, expr) {
         return me.exprNameMap[expr];
     }
 
-    var matches = expr.match(me.exprNameRegExp) || [];
-    var names = {};
-    for (var i = 0, il = matches.length; i < il; i++) {
-        if (matches[i] && matches[i][0] !== '.') {
-            names[matches[i]] = true;
+    var reg = /[\$|_|a-z|A-Z]{1}(?:[a-z|A-Z|0-9|\$|_]*)/g;
+
+    for (var names = {}, name = reg.exec(expr); name; name = reg.exec(expr)) {
+        var restStr = expr.slice(name.index + name[0].length);
+
+        // 是左值
+        if (/^\s*=(?!=)/.test(restStr)) {
+            continue;
         }
+
+        // 变量名前面是否存在 `.` ，或者变量名是否位于引号内部
+        if (name.index
+            && (expr[name.index - 1] === '.'
+                || isInQuote(
+                        expr.slice(0, name.index),
+                        restStr
+                   )
+            )
+        ) {
+            continue;
+        }
+
+        names[name[0]] = true;
     }
 
     var ret = [];
@@ -275,9 +326,17 @@ function getVariableNamesFromExpr(me, expr) {
     me.exprNameMap[expr] = ret;
 
     return ret;
+
+    function isInQuote(preStr, restStr) {
+        if ((preStr.lastIndexOf('\'') + 1 && restStr.indexOf('\'') + 1)
+            || (preStr.lastIndexOf('"') + 1 && restStr.indexOf('"') + 1)
+        ) {
+            return true;
+        }
+    }
 }
 
-},{"./utils":11}],5:[function(require,module,exports){
+},{"./utils":13}],6:[function(require,module,exports){
 /**
  * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -425,7 +484,7 @@ function createExprFn(parser, expr) {
     };
 }
 
-},{"./Parser":8,"./Tree":9,"./inherit":10,"./utils":11}],6:[function(require,module,exports){
+},{"./Parser":9,"./Tree":10,"./inherit":12,"./utils":13}],7:[function(require,module,exports){
 /**
  * @file for 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -445,8 +504,6 @@ ForDirectiveParser.prototype.initialize = function (options) {
 
     this.startNode = options.startNode;
     this.endNode = options.endNode;
-    this.config = options.config;
-    this.Tree = options.Tree;
 };
 
 ForDirectiveParser.prototype.collectExprs = function () {
@@ -560,7 +617,7 @@ function createTree(parser, config) {
     return tree;
 }
 
-},{"./Parser":8,"./Tree":9,"./inherit":10,"./utils":11}],7:[function(require,module,exports){
+},{"./Parser":9,"./Tree":10,"./inherit":12,"./utils":13}],8:[function(require,module,exports){
 /**
  * @file if 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -703,7 +760,7 @@ function getIfNodeType(node, config) {
     }
 }
 
-},{"./Parser":8,"./Tree":9,"./inherit":10,"./utils":11}],8:[function(require,module,exports){
+},{"./Parser":9,"./Tree":10,"./inherit":12,"./utils":13}],9:[function(require,module,exports){
 /**
  * @file 解析器的抽象基类
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -734,6 +791,7 @@ function Parser(options) {
  */
 Parser.prototype.initialize = function (options) {
     this.exprCalculater = options.exprCalculater;
+    this.config = options.config;
 };
 
 /**
@@ -787,7 +845,7 @@ Parser.prototype.setDirtyChecker = function (dirtyChecker) {
 
 module.exports = Parser;
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 /**
  * @file 最终的树
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -835,7 +893,6 @@ Tree.prototype.setDirtyChecker = function (dirtyChecker) {
 };
 
 var ParserClasses = [];
-window.ParserClasses = ParserClasses;
 
 /**
  * 注册一下解析器类。
@@ -1001,7 +1058,48 @@ function createParser(ParserClass, options) {
 
 
 
-},{"./ExprCalculater":4,"./utils":11}],10:[function(require,module,exports){
+},{"./ExprCalculater":5,"./utils":13}],11:[function(require,module,exports){
+/**
+ * @file 变量定义指令解析器
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+var Parser = require('./Parser');
+var inherit = require('./inherit');
+var Tree = require('./Tree');
+
+function VarDirectiveParser(options) {
+    Parser.call(this, options);
+
+    this.node = options.node;
+}
+
+VarDirectiveParser.prototype.collectExprs = function () {
+    var expr = this.node.nodeValue.replace(this.config.varName + ':', '');
+    this.exprCalculater.createExprFn(expr);
+
+    var leftValueName = expr.match(/\s*.+(?=\=)/)[0].replace(/\s+/g, '');
+
+    var me = this;
+    this.exprFn = function (data) {
+        data[leftValueName] = me.exprCalculater.calculate(expr, false, data);
+    };
+};
+
+VarDirectiveParser.prototype.setData = function (data) {
+    this.exprFn(data);
+};
+
+VarDirectiveParser.isProperNode = function (node, config) {
+    return node.nodeType === 8
+        && node.nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;
+};
+
+
+module.exports = inherit(VarDirectiveParser, Parser);
+Tree.registeParser(VarDirectiveParser);
+
+},{"./Parser":9,"./Tree":10,"./inherit":12}],12:[function(require,module,exports){
 /**
  * @file 继承
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1047,7 +1145,7 @@ module.exports = inherit;
 //     return subClass;
 // };
 
-},{}],11:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 /**
  * @file 一堆项目里面常用的方法
  * @author yibuyisheng(yibuyisheng@163.com)

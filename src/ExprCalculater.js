@@ -61,12 +61,29 @@ function getVariableNamesFromExpr(me, expr) {
         return me.exprNameMap[expr];
     }
 
-    var matches = expr.match(me.exprNameRegExp) || [];
-    var names = {};
-    for (var i = 0, il = matches.length; i < il; i++) {
-        if (matches[i] && matches[i][0] !== '.') {
-            names[matches[i]] = true;
+    var reg = /[\$|_|a-z|A-Z]{1}(?:[a-z|A-Z|0-9|\$|_]*)/g;
+
+    for (var names = {}, name = reg.exec(expr); name; name = reg.exec(expr)) {
+        var restStr = expr.slice(name.index + name[0].length);
+
+        // 是左值
+        if (/^\s*=(?!=)/.test(restStr)) {
+            continue;
         }
+
+        // 变量名前面是否存在 `.` ，或者变量名是否位于引号内部
+        if (name.index
+            && (expr[name.index - 1] === '.'
+                || isInQuote(
+                        expr.slice(0, name.index),
+                        restStr
+                   )
+            )
+        ) {
+            continue;
+        }
+
+        names[name[0]] = true;
     }
 
     var ret = [];
@@ -78,4 +95,12 @@ function getVariableNamesFromExpr(me, expr) {
     me.exprNameMap[expr] = ret;
 
     return ret;
+
+    function isInQuote(preStr, restStr) {
+        if ((preStr.lastIndexOf('\'') + 1 && restStr.indexOf('\'') + 1)
+            || (preStr.lastIndexOf('"') + 1 && restStr.indexOf('"') + 1)
+        ) {
+            return true;
+        }
+    }
 }
