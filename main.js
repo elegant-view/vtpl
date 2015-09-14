@@ -10,7 +10,8 @@ var amdExports = {
     ExprCalculater: require('./src/ExprCalculater'),
     VarDirectiveParser: require('./src/VarDirectiveParser'),
     inherit: require('./src/inherit'),
-    utils: require('./src/utils')
+    utils: require('./src/utils'),
+    DomUpdater: require('./src/DomUpdater')
 };
 define(function (require, exports, module) {
     module.exports = amdExports;

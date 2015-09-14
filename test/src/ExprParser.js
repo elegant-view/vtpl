@@ -1,7 +1,6 @@
 require(['/dist/main'], function (main) {
     var Config = main.Config;
-    var ExprParser = main.ExprParser;
-    var ExprCalculater = main.ExprCalculater;
+    var Tree = main.Tree;
 
     describe('ExprParser', function () {
         var config;
@@ -16,58 +15,70 @@ require(['/dist/main'], function (main) {
             testNode.innerHTML = '';
         });
 
-        it('${name}', function () {
+        it('${name}', function (done) {
             testNode.innerHTML = '${name}';
 
-            var parser = createParser(testNode.firstChild);
+            var tree = createTree(testNode.firstChild);
 
-            parser.setData({name: 'zhangsan'});
-            expect(testNode.innerText).toEqual('zhangsan');
+            tree.setData({name: 'zhangsan'}, function () {
+                expect(testNode.innerText).toEqual('zhangsan');
 
-            parser.setData({});
-            expect(testNode.innerText).toEqual('');
+                tree.setData({name: ''}, function () {
+                    expect(testNode.innerText).toEqual('');
 
-            parser.setData({name: '李四'});
-            expect(testNode.innerText).toEqual('李四');
+                    tree.setData({name: '李四'}, function () {
+                        expect(testNode.innerText).toEqual('李四');
+                        done();
+                    });
+                });
+            });
         });
 
-        it('${student.name}', function () {
+        it('${student.name}', function (done) {
             testNode.innerText = '${student.name}';
 
-            var parser = createParser(testNode.firstChild);
+            var tree = createTree(testNode.firstChild);
 
-            parser.setData({student: {name: '张三'}});
-            expect(testNode.innerText).toEqual('张三');
+            tree.setData({student: {name: '张三'}}, function () {
+                expect(testNode.innerText).toEqual('张三');
 
-            parser.setData({student: null});
-            expect(testNode.innerText).toEqual('');
+                tree.setData({student: null}, function () {
+                    expect(testNode.innerText).toEqual('');
+                    done();
+                });
+            });
         });
 
-        it('${10 - num}', function () {
+        it('${10 - num}', function (done) {
             testNode.innerHTML = '${10 - num}';
 
-            var parser = createParser(testNode.firstChild);
+            var tree = createTree(testNode.firstChild);
 
-            parser.setData({num: 8});
-            expect(testNode.innerText).toEqual('2');
+            tree.setData({num: 8}, function () {
+                expect(testNode.innerText).toEqual('2');
 
-            parser.setData({num: 'aaa'});
-            expect(testNode.innerText).toEqual('NaN');
+                tree.setData({num: 'aaa'}, function () {
+                    expect(testNode.innerText).toEqual('NaN');
+                    done();
+                });
+            });
         });
 
-        it('${3-1}', function () {
+        it('${3-1}', function (done) {
             testNode.innerHTML = '${3-1}';
 
-            var parser = createParser(testNode.firstChild);
+            var tree = createTree(testNode.firstChild);
 
-            parser.setData({});
-            expect(testNode.innerText).toEqual('2');
+            tree.setData({}, function () {
+                expect(testNode.innerText).toEqual('2');
+                done();
+            });
         });
 
-        it('${getSex(sex)}', function () {
+        it('${getSex(sex)}', function (done) {
             testNode.innerHTML = '${getSex(sex)}';
 
-            var parser = createParser(testNode.firstChild);
+            var tree = createTree(testNode.firstChild);
 
             var data = {
                 getSex: function (sex) {
@@ -82,26 +93,31 @@ require(['/dist/main'], function (main) {
                 sex: 1
             };
 
-            parser.setData(data);
-            expect(testNode.innerText).toEqual('男');
+            tree.setData(data, function () {
+                expect(testNode.innerText).toEqual('男');
 
-            data.sex = 0;
-            parser.setData(data);
-            expect(testNode.innerText).toEqual('女');
+                data.sex = 0;
+                tree.setData(data, function () {
+                    expect(testNode.innerText).toEqual('女');
 
-            data.sex = null;
-            parser.setData(data);
-            expect(testNode.innerText).toEqual('未知性别');
+                    data.sex = null;
+                    tree.setData(data, function () {
+                        expect(testNode.innerText).toEqual('未知性别');
+
+                        done();
+                    });
+                });
+            });
         });
 
-        function createParser(node) {
-            var parser = new ExprParser({
-                node: node,
-                config: config,
-                exprCalculater: new ExprCalculater()
+        function createTree(node) {
+            var tree = new Tree({
+                startNode: node,
+                endNode: node,
+                config: config
             });
-            parser.collectExprs();
-            return parser;
+            tree.traverse();
+            return tree;
         }
     });
 });

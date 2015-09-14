@@ -11,13 +11,14 @@ var amdExports = {
     ExprCalculater: require('./src/ExprCalculater'),
     VarDirectiveParser: require('./src/VarDirectiveParser'),
     inherit: require('./src/inherit'),
-    utils: require('./src/utils')
+    utils: require('./src/utils'),
+    DomUpdater: require('./src/DomUpdater')
 };
 define(function (require, exports, module) {
     module.exports = amdExports;
 });
 
-},{"./src/Config":2,"./src/DirtyChecker":3,"./src/EventExprParser":5,"./src/ExprCalculater":6,"./src/ExprParser":7,"./src/ForDirectiveParser":8,"./src/IfDirectiveParser":9,"./src/Parser":10,"./src/Tree":11,"./src/VarDirectiveParser":12,"./src/inherit":13,"./src/utils":14}],2:[function(require,module,exports){
+},{"./src/Config":2,"./src/DirtyChecker":3,"./src/DomUpdater":4,"./src/EventExprParser":5,"./src/ExprCalculater":6,"./src/ExprParser":7,"./src/ForDirectiveParser":8,"./src/IfDirectiveParser":9,"./src/Parser":10,"./src/Tree":11,"./src/VarDirectiveParser":12,"./src/inherit":13,"./src/utils":14}],2:[function(require,module,exports){
 /**
  * @file 配置
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -447,7 +448,7 @@ ExprParser.prototype.addExpr = function (attr) {
     addExpr(
         this,
         expr,
-        attr ? createAttrUpdateFn(attr, me.domUpdater) : (function (me, curNode) {
+        attr ? createAttrUpdateFn(attr, this.domUpdater) : (function (me, curNode) {
             return function (exprValue) {
                 me.domUpdater.addTaskFn(utils.bind(function (curNode, exprValue) {
                     curNode.nodeValue = exprValue;

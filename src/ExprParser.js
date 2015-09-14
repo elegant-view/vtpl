@@ -64,7 +64,7 @@ ExprParser.prototype.addExpr = function (attr) {
     addExpr(
         this,
         expr,
-        attr ? createAttrUpdateFn(attr, me.domUpdater) : (function (me, curNode) {
+        attr ? createAttrUpdateFn(attr, this.domUpdater) : (function (me, curNode) {
             return function (exprValue) {
                 me.domUpdater.addTaskFn(utils.bind(function (curNode, exprValue) {
                     curNode.nodeValue = exprValue;
