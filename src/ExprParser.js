@@ -64,11 +64,13 @@ ExprParser.prototype.addExpr = function (attr) {
     addExpr(
         this,
         expr,
-        attr ? createAttrUpdateFn(attr) : (function (curNode) {
+        attr ? createAttrUpdateFn(attr, me.domUpdater) : (function (me, curNode) {
             return function (exprValue) {
-                curNode.nodeValue = exprValue;
+                me.domUpdater.addTaskFn(utils.bind(function (curNode, exprValue) {
+                    curNode.nodeValue = exprValue;
+                }, null, curNode, exprValue));
             };
-        })(this.node)
+        })(this, this.node)
     );
 };
 
@@ -118,12 +120,14 @@ ExprParser.isProperNode = function (node) {
     return node.nodeType === 1 || node.nodeType === 3;
 };
 
-module.exports = inherit(ExprParser, Parser)
+module.exports = inherit(ExprParser, Parser);
 Tree.registeParser(module.exports);
 
-function createAttrUpdateFn(attr) {
+function createAttrUpdateFn(attr, domUpdater) {
     return function (exprValue) {
-        attr.value = exprValue;
+        domUpdater.addTaskFn(utils.bind(function (attr, exprValue) {
+            attr.value = exprValue;
+        }, null, attr, exprValue));
     };
 }
 

@@ -108,7 +108,11 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
         }
 
         for (var i = index, il = trees.length; i < il; i++) {
-            trees[i].goDark();
+            parser.domUpdater.addTaskFn((function (tree) {
+                return function () {
+                    tree.goDark();
+                };
+            })(trees[i]));
         }
     };
 }

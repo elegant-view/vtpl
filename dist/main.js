@@ -17,7 +17,7 @@ define(function (require, exports, module) {
     module.exports = amdExports;
 });
 
-},{"./src/Config":2,"./src/DirtyChecker":3,"./src/EventExprParser":4,"./src/ExprCalculater":5,"./src/ExprParser":6,"./src/ForDirectiveParser":7,"./src/IfDirectiveParser":8,"./src/Parser":9,"./src/Tree":10,"./src/VarDirectiveParser":11,"./src/inherit":12,"./src/utils":13}],2:[function(require,module,exports){
+},{"./src/Config":2,"./src/DirtyChecker":3,"./src/EventExprParser":5,"./src/ExprCalculater":6,"./src/ExprParser":7,"./src/ForDirectiveParser":8,"./src/IfDirectiveParser":9,"./src/Parser":10,"./src/Tree":11,"./src/VarDirectiveParser":12,"./src/inherit":13,"./src/utils":14}],2:[function(require,module,exports){
 /**
  * @file 配置
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -163,6 +163,48 @@ module.exports = DirtyChecker;
 
 },{}],4:[function(require,module,exports){
 /**
+ * @file DOM 更新器
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+var utils = require('./utils');
+
+function DomUpdater() {
+    this.tasks = [];
+}
+
+DomUpdater.prototype.addTaskFn = function (taskFn) {
+    this.tasks.push(taskFn);
+};
+
+DomUpdater.prototype.executeTaskFns = function (doneFn) {
+    setTimeout(
+        utils.bind(
+            function (tasks, doneFn) {
+                utils.each(tasks, function (taskFn) {
+                    try {
+                        taskFn();
+                    }
+                    catch (e) {}
+                });
+
+                if (utils.isFunction(doneFn)) {
+                    doneFn();
+                }
+            },
+            null,
+            this.tasks,
+            doneFn
+        )
+    );
+
+    this.tasks = [];
+};
+
+module.exports = DomUpdater;
+
+},{"./utils":14}],5:[function(require,module,exports){
+/**
  * @file 处理了事件的 ExprParser
  * @author yibuyisheng(yibuyisheng@163.com)
  */
@@ -230,7 +272,7 @@ function getEventName(attrName, config) {
 }
 
 
-},{"./ExprParser":6,"./Tree":10,"./inherit":12,"./utils":13}],5:[function(require,module,exports){
+},{"./ExprParser":7,"./Tree":11,"./inherit":13,"./utils":14}],6:[function(require,module,exports){
 var utils = require('./utils');
 
 function ExprCalculater() {
@@ -338,7 +380,7 @@ function getVariableNamesFromExpr(me, expr) {
     }
 }
 
-},{"./utils":13}],6:[function(require,module,exports){
+},{"./utils":14}],7:[function(require,module,exports){
 /**
  * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -405,11 +447,13 @@ ExprParser.prototype.addExpr = function (attr) {
     addExpr(
         this,
         expr,
-        attr ? createAttrUpdateFn(attr) : (function (curNode) {
+        attr ? createAttrUpdateFn(attr, me.domUpdater) : (function (me, curNode) {
             return function (exprValue) {
-                curNode.nodeValue = exprValue;
+                me.domUpdater.addTaskFn(utils.bind(function (curNode, exprValue) {
+                    curNode.nodeValue = exprValue;
+                }, null, curNode, exprValue));
             };
-        })(this.node)
+        })(this, this.node)
     );
 };
 
@@ -459,12 +503,14 @@ ExprParser.isProperNode = function (node) {
     return node.nodeType === 1 || node.nodeType === 3;
 };
 
-module.exports = inherit(ExprParser, Parser)
+module.exports = inherit(ExprParser, Parser);
 Tree.registeParser(module.exports);
 
-function createAttrUpdateFn(attr) {
+function createAttrUpdateFn(attr, domUpdater) {
     return function (exprValue) {
-        attr.value = exprValue;
+        domUpdater.addTaskFn(utils.bind(function (attr, exprValue) {
+            attr.value = exprValue;
+        }, null, attr, exprValue));
     };
 }
 
@@ -486,7 +532,7 @@ function createExprFn(parser, expr) {
     };
 }
 
-},{"./Parser":9,"./Tree":10,"./inherit":12,"./utils":13}],7:[function(require,module,exports){
+},{"./Parser":10,"./Tree":11,"./inherit":13,"./utils":14}],8:[function(require,module,exports){
 /**
  * @file for 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -597,7 +643,11 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
         }
 
         for (var i = index, il = trees.length; i < il; i++) {
-            trees[i].goDark();
+            parser.domUpdater.addTaskFn((function (tree) {
+                return function () {
+                    tree.goDark();
+                };
+            })(trees[i]));
         }
     };
 }
@@ -619,7 +669,7 @@ function createTree(parser, config) {
     return tree;
 }
 
-},{"./Parser":9,"./Tree":10,"./inherit":12,"./utils":13}],8:[function(require,module,exports){
+},{"./Parser":10,"./Tree":11,"./inherit":13,"./utils":14}],9:[function(require,module,exports){
 /**
  * @file if 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -762,7 +812,7 @@ function getIfNodeType(node, config) {
     }
 }
 
-},{"./Parser":9,"./Tree":10,"./inherit":12,"./utils":13}],9:[function(require,module,exports){
+},{"./Parser":10,"./Tree":11,"./inherit":13,"./utils":14}],10:[function(require,module,exports){
 /**
  * @file 解析器的抽象基类
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -794,6 +844,7 @@ function Parser(options) {
 Parser.prototype.initialize = function (options) {
     this.exprCalculater = options.exprCalculater;
     this.config = options.config;
+    this.domUpdater = options.domUpdater;
 };
 
 /**
@@ -847,7 +898,7 @@ Parser.prototype.setDirtyChecker = function (dirtyChecker) {
 
 module.exports = Parser;
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 /**
  * @file 最终的树
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -855,12 +906,15 @@ module.exports = Parser;
 
 var utils = require('./utils');
 var ExprCalculater = require('./ExprCalculater');
+var DomUpdater = require('./DomUpdater');
 
 function Tree(options) {
     this.startNode = options.startNode;
     this.endNode = options.endNode;
     this.config = options.config;
+
     this.exprCalculater = new ExprCalculater();
+    this.domUpdater = new DomUpdater();
 
     this.tree = [];
 }
@@ -869,9 +923,10 @@ Tree.prototype.traverse = function () {
     walk(this, this.startNode, this.endNode, this.tree);
 };
 
-Tree.prototype.setData = function (data) {
+Tree.prototype.setData = function (data, doneFn) {
     data = data || {};
     walkParsers(this, this.tree, data);
+    this.domUpdater.executeTaskFns(doneFn);
 };
 
 Tree.prototype.goDark = function () {
@@ -923,30 +978,40 @@ Tree.registeParser = function (ParserClass) {
 module.exports = Tree;
 
 function walkParsers(tree, parsers, data) {
-    for (var i = 0, il = parsers.length; i < il; i++) {
-        var parserObj = parsers[i];
+    utils.each(parsers, function (parserObj) {
         parserObj.parser.setDirtyChecker(tree.dirtyChecker);
         parserObj.data = utils.extend({}, parserObj.data || {}, data);
 
-        parserObj.parser.restoreFromDark();
         var result = parserObj.parser.setData(parserObj.data);
         if (utils.isNumber(result)) {
             var branchIndex = result;
             var branches = parserObj.children;
-            for (var j = 0, jl = branches.length; j < jl; j++) {
+
+            utils.each(branches, function (branch, j) {
                 if (j === branchIndex) {
+                    tree.domUpdater.addTaskFn(utils.bind(hideParsers, null, branches[j]));
                     walkParsers(tree, branches[j], parserObj.data);
-                    continue;
+                    return;
                 }
 
-                for (var z = 0, zl = branches[j].length; z < zl; z++) {
-                    branches[j][z].parser.goDark();
-                }
-            }
+                tree.domUpdater.addTaskFn(utils.bind(showParserObjs, null, branch));
+            }, this);
         }
         else if (parserObj.children) {
             walkParsers(tree, parserObj.children, parserObj.data);
         }
+    }, this);
+
+    function showParserObjs(parserObjs) {
+        utils.each(parserObjs, function (parserObj) {
+            parserObj.parser.goDark();
+        });
+    }
+
+    function hideParsers(parsers) {
+        utils.each(parsers, function (parser) {
+            parser.restoreFromDark();
+        });
     }
 }
 
@@ -956,7 +1021,8 @@ function walk(tree, startNode, endNode, container) {
             startNode: curNode,
             node: curNode,
             config: tree.config,
-            exprCalculater: tree.exprCalculater
+            exprCalculater: tree.exprCalculater,
+            domUpdater: tree.domUpdater
         };
 
         var parserObj;
@@ -1060,7 +1126,7 @@ function createParser(ParserClass, options) {
 
 
 
-},{"./ExprCalculater":5,"./utils":13}],11:[function(require,module,exports){
+},{"./DomUpdater":4,"./ExprCalculater":6,"./utils":14}],12:[function(require,module,exports){
 /**
  * @file 变量定义指令解析器
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1101,7 +1167,7 @@ VarDirectiveParser.isProperNode = function (node, config) {
 module.exports = inherit(VarDirectiveParser, Parser);
 Tree.registeParser(VarDirectiveParser);
 
-},{"./Parser":9,"./Tree":10,"./inherit":12}],12:[function(require,module,exports){
+},{"./Parser":10,"./Tree":11,"./inherit":13}],13:[function(require,module,exports){
 /**
  * @file 继承
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1147,7 +1213,7 @@ module.exports = inherit;
 //     return subClass;
 // };
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 /**
  * @file 一堆项目里面常用的方法
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1260,6 +1326,27 @@ exports.isArray = function (arr) {
 
 exports.isNumber = function (obj) {
     return Object.prototype.toString.call(obj) === '[object Number]';
+};
+
+exports.isFunction = function (obj) {
+    return Object.prototype.toString.call(obj) === '[object Function]';
+};
+
+exports.bind = function (fn, thisArg) {
+    if (!exports.isFunction(fn)) {
+        return;
+    }
+
+    var bind = Function.prototype.bind || function () {
+        var args = arguments;
+        var obj = args.length > 0 ? args[0] : undefined;
+        var me = this;
+        return function () {
+            var totalArgs = Array.prototype.concat.apply(Array.prototype.slice.call(args, 1), arguments);
+            return me.apply(obj, totalArgs);
+        };
+    };
+    return bind.apply(fn, [thisArg].concat(Array.prototype.slice.call(arguments, 2)));
 };
 
 exports.isSubClassOf = function (SubClass, SuperClass) {

@@ -112,6 +112,27 @@ exports.isNumber = function (obj) {
     return Object.prototype.toString.call(obj) === '[object Number]';
 };
 
+exports.isFunction = function (obj) {
+    return Object.prototype.toString.call(obj) === '[object Function]';
+};
+
+exports.bind = function (fn, thisArg) {
+    if (!exports.isFunction(fn)) {
+        return;
+    }
+
+    var bind = Function.prototype.bind || function () {
+        var args = arguments;
+        var obj = args.length > 0 ? args[0] : undefined;
+        var me = this;
+        return function () {
+            var totalArgs = Array.prototype.concat.apply(Array.prototype.slice.call(args, 1), arguments);
+            return me.apply(obj, totalArgs);
+        };
+    };
+    return bind.apply(fn, [thisArg].concat(Array.prototype.slice.call(arguments, 2)));
+};
+
 exports.isSubClassOf = function (SubClass, SuperClass) {
     return SubClass.prototype instanceof SuperClass;
 };
