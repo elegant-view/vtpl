@@ -102,10 +102,6 @@ function walkParsers(tree, parsers, data) {
 
 function walk(tree, startNode, endNode, container) {
     utils.traverseNoChangeNodes(startNode, endNode, function (curNode) {
-        if (!curNode) {
-            return true;
-        }
-
         var options = {
             startNode: curNode,
             node: curNode,
@@ -151,6 +147,10 @@ function walk(tree, startNode, endNode, container) {
 
         if (!parserObj) {
             curNode = curNode.nextSibling;
+        }
+
+        if (!curNode) {
+            return true;
         }
     }, this);
 }

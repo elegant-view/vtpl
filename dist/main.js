@@ -9,13 +9,15 @@ var amdExports = {
     EventExprParser: require('./src/EventExprParser'),
     ExprParser: require('./src/ExprParser'),
     ExprCalculater: require('./src/ExprCalculater'),
-    VarDirectiveParser: require('./src/VarDirectiveParser')
+    VarDirectiveParser: require('./src/VarDirectiveParser'),
+    inherit: require('./src/inherit'),
+    utils: require('./src/utils')
 };
 define(function (require, exports, module) {
     module.exports = amdExports;
 });
 
-},{"./src/Config":2,"./src/DirtyChecker":3,"./src/EventExprParser":4,"./src/ExprCalculater":5,"./src/ExprParser":6,"./src/ForDirectiveParser":7,"./src/IfDirectiveParser":8,"./src/Parser":9,"./src/Tree":10,"./src/VarDirectiveParser":11}],2:[function(require,module,exports){
+},{"./src/Config":2,"./src/DirtyChecker":3,"./src/EventExprParser":4,"./src/ExprCalculater":5,"./src/ExprParser":6,"./src/ForDirectiveParser":7,"./src/IfDirectiveParser":8,"./src/Parser":9,"./src/Tree":10,"./src/VarDirectiveParser":11,"./src/inherit":12,"./src/utils":13}],2:[function(require,module,exports){
 /**
  * @file 配置
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -950,10 +952,6 @@ function walkParsers(tree, parsers, data) {
 
 function walk(tree, startNode, endNode, container) {
     utils.traverseNoChangeNodes(startNode, endNode, function (curNode) {
-        if (!curNode) {
-            return true;
-        }
-
         var options = {
             startNode: curNode,
             node: curNode,
@@ -999,6 +997,10 @@ function walk(tree, startNode, endNode, container) {
 
         if (!parserObj) {
             curNode = curNode.nextSibling;
+        }
+
+        if (!curNode) {
+            return true;
         }
     }, this);
 }

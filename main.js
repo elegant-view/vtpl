@@ -8,7 +8,9 @@ var amdExports = {
     EventExprParser: require('./src/EventExprParser'),
     ExprParser: require('./src/ExprParser'),
     ExprCalculater: require('./src/ExprCalculater'),
-    VarDirectiveParser: require('./src/VarDirectiveParser')
+    VarDirectiveParser: require('./src/VarDirectiveParser'),
+    inherit: require('./src/inherit'),
+    utils: require('./src/utils')
 };
 define(function (require, exports, module) {
     module.exports = amdExports;
