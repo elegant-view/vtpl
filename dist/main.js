@@ -846,6 +846,7 @@ Parser.prototype.initialize = function (options) {
     this.exprCalculater = options.exprCalculater;
     this.config = options.config;
     this.domUpdater = options.domUpdater;
+    this.tree = options.tree;
 };
 
 /**
@@ -918,7 +919,24 @@ function Tree(options) {
     this.domUpdater = new DomUpdater();
 
     this.tree = [];
+    this.treeVars = {};
 }
+
+Tree.prototype.setTreeVar = function (name, value) {
+    if (this.treeVars[name] !== undefined) {
+        return false;
+    }
+    this.treeVars[name] = value;
+    return true;
+};
+
+Tree.prototype.unsetTreeVar = function (name) {
+    this.treeVars[name] = undefined;
+};
+
+Tree.prototype.getTreeVar = function (name) {
+    return this.treeVars[name];
+};
 
 Tree.prototype.traverse = function () {
     walk(this, this.startNode, this.endNode, this.tree);
@@ -926,8 +944,15 @@ Tree.prototype.traverse = function () {
 
 Tree.prototype.setData = function (data, doneFn) {
     data = data || {};
+    console.time('walkParsers');
     walkParsers(this, this.tree, data);
-    this.domUpdater.executeTaskFns(doneFn);
+    console.timeEnd('walkParsers');
+
+    console.time('executeTaskFns');
+    this.domUpdater.executeTaskFns(function () {
+        console.timeEnd('executeTaskFns');
+        doneFn();
+    });
 };
 
 Tree.prototype.goDark = function () {
@@ -1023,7 +1048,8 @@ function walk(tree, startNode, endNode, container) {
             node: curNode,
             config: tree.config,
             exprCalculater: tree.exprCalculater,
-            domUpdater: tree.domUpdater
+            domUpdater: tree.domUpdater,
+            tree: tree
         };
 
         var parserObj;

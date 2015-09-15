@@ -41,8 +41,15 @@ Tree.prototype.traverse = function () {
 
 Tree.prototype.setData = function (data, doneFn) {
     data = data || {};
+    console.time('walkParsers');
     walkParsers(this, this.tree, data);
-    this.domUpdater.executeTaskFns(doneFn);
+    console.timeEnd('walkParsers');
+
+    console.time('executeTaskFns');
+    this.domUpdater.executeTaskFns(function () {
+        console.timeEnd('executeTaskFns');
+        doneFn();
+    });
 };
 
 Tree.prototype.goDark = function () {
