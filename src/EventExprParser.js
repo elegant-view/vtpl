@@ -53,6 +53,15 @@ EventExprParser.prototype.addExpr = function (attr) {
     }
 };
 
+EventExprParser.prototype.destroy = function () {
+    utils.each(this.events, function (attrValue, eventName) {
+        this.node['on' + eventName] = null;
+    }, this);
+    this.events = null;
+
+    ExprParser.prototype.destroy.call(this);
+};
+
 module.exports = inherit(EventExprParser, ExprParser);
 Tree.registeParser(module.exports);
 

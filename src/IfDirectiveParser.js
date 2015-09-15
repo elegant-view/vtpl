@@ -86,6 +86,16 @@ IfDirectiveParser.prototype.setData = function (data) {
     }
 };
 
+IfDirectiveParser.prototype.destroy = function () {
+    this.startNode = null;
+    this.endNode = null;
+    this.config = null;
+    this.exprs = null;
+    this.exprFns = null;
+
+    Parser.prototype.destroy.call(this);
+};
+
 IfDirectiveParser.isProperNode = IfDirectiveParser.isIfNode = function (node, config) {
     return getIfNodeType(node, config) === 1;
 };

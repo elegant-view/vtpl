@@ -46,6 +46,12 @@ ExprCalculater.prototype.calculate = function (expr, avoidReturn, data) {
     return result;
 };
 
+ExprCalculater.prototype.destroy = function () {
+    this.fns = null;
+    this.exprNameMap = null;
+    this.exprNameRegExp = null;
+};
+
 module.exports = ExprCalculater;
 
 /**

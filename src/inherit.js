@@ -27,18 +27,3 @@ function inherit(ChildClass, ParentClass) {
 }
 
 module.exports = inherit;
-
-// module.exports = function (subClass, superClass) {
-//     var Empty = function () {};
-//     Empty.prototype = superClass.prototype;
-//     var selfPrototype = subClass.prototype;
-//     var proto = subClass.prototype = new Empty();
-
-//     for (var key in selfPrototype) {
-//         proto[key] = selfPrototype[key];
-//     }
-//     subClass.prototype.constructor = subClass;
-//     subClass.superClass = superClass.prototype;
-
-//     return subClass;
-// };

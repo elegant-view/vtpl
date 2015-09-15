@@ -15,4 +15,8 @@ DirtyChecker.prototype.getChecker = function (expr) {
     return this.checkers[expr];
 };
 
+DirtyChecker.prototype.destroy = function () {
+    this.checkers = null;
+};
+
 module.exports = DirtyChecker;

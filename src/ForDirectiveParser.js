@@ -60,6 +60,24 @@ ForDirectiveParser.prototype.setData = function (data) {
     this.exprOldValue = exprValue;
 };
 
+ForDirectiveParser.prototype.destroy = function () {
+    utils.traverseNodes(this.tplSeg.firstChild, this.tplSeg.lastChild, function (curNode) {
+        this.endNode.parentNode.insertBefore(curNode, this.endNode);
+    }, this);
+
+    utils.each(this.trees, function (tree) {
+        tree.destroy();
+    });
+
+    this.tplSeg = null;
+    this.expr = null;
+    this.exprFn = null;
+    this.updateFn = null;
+    this.startNode = null;
+    this.endNode = null;
+    Parser.prototype.destroy.call(this);
+};
+
 ForDirectiveParser.isProperNode = ForDirectiveParser.isForNode = function (node, config) {
     return node.nodeType === 8 && config.forPrefixRegExp.test(node.nodeValue);
 };
@@ -86,6 +104,7 @@ Tree.registeParser(module.exports);
 
 function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
     var trees = [];
+    parser.trees = trees;
     var itemVariableName = fullExpr.match(parser.config.getForItemValueNameRegExp())[1];
     return function (exprValue, data) {
         var index = 0;

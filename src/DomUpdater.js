@@ -37,4 +37,8 @@ DomUpdater.prototype.executeTaskFns = function (doneFn) {
     this.tasks = [];
 };
 
+DomUpdater.prototype.destroy = function () {
+    this.tasks = null;
+};
+
 module.exports = DomUpdater;

@@ -160,6 +160,10 @@ DirtyChecker.prototype.getChecker = function (expr) {
     return this.checkers[expr];
 };
 
+DirtyChecker.prototype.destroy = function () {
+    this.checkers = null;
+};
+
 module.exports = DirtyChecker;
 
 },{}],4:[function(require,module,exports){
@@ -200,6 +204,10 @@ DomUpdater.prototype.executeTaskFns = function (doneFn) {
     );
 
     this.tasks = [];
+};
+
+DomUpdater.prototype.destroy = function () {
+    this.tasks = null;
 };
 
 module.exports = DomUpdater;
@@ -258,6 +266,15 @@ EventExprParser.prototype.addExpr = function (attr) {
     else {
         ExprParser.prototype.addExpr.apply(this, arguments);
     }
+};
+
+EventExprParser.prototype.destroy = function () {
+    utils.each(this.events, function (attrValue, eventName) {
+        this.node['on' + eventName] = null;
+    }, this);
+    this.events = null;
+
+    ExprParser.prototype.destroy.call(this);
 };
 
 module.exports = inherit(EventExprParser, ExprParser);
@@ -320,6 +337,12 @@ ExprCalculater.prototype.calculate = function (expr, avoidReturn, data) {
         result = '';
     }
     return result;
+};
+
+ExprCalculater.prototype.destroy = function () {
+    this.fns = null;
+    this.exprNameMap = null;
+    this.exprNameRegExp = null;
 };
 
 module.exports = ExprCalculater;
@@ -400,11 +423,11 @@ ExprParser.prototype.initialize = function (options) {
     Parser.prototype.initialize.apply(this, arguments);
 
     this.node = options.node;
-    this.config = options.config;
 
     this.exprs = [];
     this.exprFns = {};
     this.updateFns = {};
+    this.restoreFns = {}; // 恢复原貌的函数
     this.exprOldValues = {};
 };
 
@@ -412,6 +435,7 @@ ExprParser.prototype.initialize = function (options) {
  * 搜集过程
  *
  * @public
+ * @return {boolean} 返回布尔值
  */
 ExprParser.prototype.collectExprs = function () {
     var curNode = this.node;
@@ -456,6 +480,35 @@ ExprParser.prototype.addExpr = function (attr) {
             };
         })(this, this.node)
     );
+
+    this.restoreFns[expr] = this.restoreFns[expr] || [];
+    if (attr) {
+        this.restoreFns[expr].push(utils.bind(function (curNode, attrName, attrValue) {
+            curNode.setAttribute(attrName, attrValue);
+        }, null, this.node, attr.name, attr.value));
+    }
+    else {
+        this.restoreFns[expr].push(utils.bind(function (curNode, nodeValue) {
+            curNode.nodeValue = nodeValue;
+        }, null, this.node, this.node.nodeValue));
+    }
+};
+
+ExprParser.prototype.destroy = function () {
+    utils.each(this.exprs, function (expr) {
+        utils.each(this.restoreFns[expr], function (restoreFn) {
+            restoreFn();
+        }, this);
+    }, this);
+
+    this.node = null;
+    this.exprs = null;
+    this.exprFns = null;
+    this.updateFns = null;
+    this.exprOldValues = null;
+    this.restoreFns = null;
+
+    Parser.prototype.destroy.call(this);
 };
 
 /**
@@ -596,6 +649,24 @@ ForDirectiveParser.prototype.setData = function (data) {
     this.exprOldValue = exprValue;
 };
 
+ForDirectiveParser.prototype.destroy = function () {
+    utils.traverseNodes(this.tplSeg.firstChild, this.tplSeg.lastChild, function (curNode) {
+        this.endNode.parentNode.insertBefore(curNode, this.endNode);
+    }, this);
+
+    utils.each(this.trees, function (tree) {
+        tree.destroy();
+    });
+
+    this.tplSeg = null;
+    this.expr = null;
+    this.exprFn = null;
+    this.updateFn = null;
+    this.startNode = null;
+    this.endNode = null;
+    Parser.prototype.destroy.call(this);
+};
+
 ForDirectiveParser.isProperNode = ForDirectiveParser.isForNode = function (node, config) {
     return node.nodeType === 8 && config.forPrefixRegExp.test(node.nodeValue);
 };
@@ -622,6 +693,7 @@ Tree.registeParser(module.exports);
 
 function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
     var trees = [];
+    parser.trees = trees;
     var itemVariableName = fullExpr.match(parser.config.getForItemValueNameRegExp())[1];
     return function (exprValue, data) {
         var index = 0;
@@ -757,6 +829,16 @@ IfDirectiveParser.prototype.setData = function (data) {
     if (this.hasElseBranch) {
         return i;
     }
+};
+
+IfDirectiveParser.prototype.destroy = function () {
+    this.startNode = null;
+    this.endNode = null;
+    this.config = null;
+    this.exprs = null;
+    this.exprFns = null;
+
+    Parser.prototype.destroy.call(this);
 };
 
 IfDirectiveParser.isProperNode = IfDirectiveParser.isIfNode = function (node, config) {
@@ -898,6 +980,17 @@ Parser.prototype.setDirtyChecker = function (dirtyChecker) {
     this.dirtyChecker = dirtyChecker;
 };
 
+/**
+ * 销毁解析器，将界面恢复成原样
+ */
+Parser.prototype.destroy = function () {
+    this.exprCalculater = null;
+    this.config = null;
+    this.domUpdater = null;
+    this.tree = null;
+    this.dirtyChecker = null;
+};
+
 module.exports = Parser;
 
 },{}],11:[function(require,module,exports){
@@ -939,20 +1032,13 @@ Tree.prototype.getTreeVar = function (name) {
 };
 
 Tree.prototype.traverse = function () {
-    walk(this, this.startNode, this.endNode, this.tree);
+    walkDom(this, this.startNode, this.endNode, this.tree);
 };
 
 Tree.prototype.setData = function (data, doneFn) {
     data = data || {};
-    console.time('walkParsers');
     walkParsers(this, this.tree, data);
-    console.timeEnd('walkParsers');
-
-    console.time('executeTaskFns');
-    this.domUpdater.executeTaskFns(function () {
-        console.timeEnd('executeTaskFns');
-        doneFn();
-    });
+    this.domUpdater.executeTaskFns(doneFn);
 };
 
 Tree.prototype.goDark = function () {
@@ -1001,6 +1087,38 @@ Tree.registeParser = function (ParserClass) {
     }
 };
 
+Tree.prototype.destroy = function () {
+    walk(this.tree);
+
+    this.startNode = null;
+    this.endNode = null;
+    this.config = null;
+
+    this.exprCalculater.destroy();
+    this.exprCalculater = null;
+
+    this.domUpdater.destroy();
+    this.domUpdater = null;
+
+    this.tree = null;
+    this.treeVars = null;
+
+    if (this.dirtyChecker) {
+        this.dirtyChecker.destry();
+        this.dirtyChecker = null;
+    }
+
+    function walk(parserObjs) {
+        utils.each(parserObjs, function (curParserObj) {
+            curParserObj.parser.destroy();
+
+            if (curParserObj.children && curParserObj.children.length) {
+                walk(curParserObj.children);
+            }
+        });
+    }
+};
+
 module.exports = Tree;
 
 function walkParsers(tree, parsers, data) {
@@ -1041,7 +1159,7 @@ function walkParsers(tree, parsers, data) {
     }
 }
 
-function walk(tree, startNode, endNode, container) {
+function walkDom(tree, startNode, endNode, container) {
     utils.traverseNoChangeNodes(startNode, endNode, function (curNode) {
         var options = {
             startNode: curNode,
@@ -1224,21 +1342,6 @@ function inherit(ChildClass, ParentClass) {
 }
 
 module.exports = inherit;
-
-// module.exports = function (subClass, superClass) {
-//     var Empty = function () {};
-//     Empty.prototype = superClass.prototype;
-//     var selfPrototype = subClass.prototype;
-//     var proto = subClass.prototype = new Empty();
-
-//     for (var key in selfPrototype) {
-//         proto[key] = selfPrototype[key];
-//     }
-//     subClass.prototype.constructor = subClass;
-//     subClass.superClass = superClass.prototype;
-
-//     return subClass;
-// };
 
 },{}],14:[function(require,module,exports){
 /**

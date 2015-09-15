@@ -16,11 +16,11 @@ ExprParser.prototype.initialize = function (options) {
     Parser.prototype.initialize.apply(this, arguments);
 
     this.node = options.node;
-    this.config = options.config;
 
     this.exprs = [];
     this.exprFns = {};
     this.updateFns = {};
+    this.restoreFns = {}; // 恢复原貌的函数
     this.exprOldValues = {};
 };
 
@@ -28,6 +28,7 @@ ExprParser.prototype.initialize = function (options) {
  * 搜集过程
  *
  * @public
+ * @return {boolean} 返回布尔值
  */
 ExprParser.prototype.collectExprs = function () {
     var curNode = this.node;
@@ -72,6 +73,35 @@ ExprParser.prototype.addExpr = function (attr) {
             };
         })(this, this.node)
     );
+
+    this.restoreFns[expr] = this.restoreFns[expr] || [];
+    if (attr) {
+        this.restoreFns[expr].push(utils.bind(function (curNode, attrName, attrValue) {
+            curNode.setAttribute(attrName, attrValue);
+        }, null, this.node, attr.name, attr.value));
+    }
+    else {
+        this.restoreFns[expr].push(utils.bind(function (curNode, nodeValue) {
+            curNode.nodeValue = nodeValue;
+        }, null, this.node, this.node.nodeValue));
+    }
+};
+
+ExprParser.prototype.destroy = function () {
+    utils.each(this.exprs, function (expr) {
+        utils.each(this.restoreFns[expr], function (restoreFn) {
+            restoreFn();
+        }, this);
+    }, this);
+
+    this.node = null;
+    this.exprs = null;
+    this.exprFns = null;
+    this.updateFns = null;
+    this.exprOldValues = null;
+    this.restoreFns = null;
+
+    Parser.prototype.destroy.call(this);
 };
 
 /**

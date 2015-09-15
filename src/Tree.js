@@ -36,20 +36,13 @@ Tree.prototype.getTreeVar = function (name) {
 };
 
 Tree.prototype.traverse = function () {
-    walk(this, this.startNode, this.endNode, this.tree);
+    walkDom(this, this.startNode, this.endNode, this.tree);
 };
 
 Tree.prototype.setData = function (data, doneFn) {
     data = data || {};
-    console.time('walkParsers');
     walkParsers(this, this.tree, data);
-    console.timeEnd('walkParsers');
-
-    console.time('executeTaskFns');
-    this.domUpdater.executeTaskFns(function () {
-        console.timeEnd('executeTaskFns');
-        doneFn();
-    });
+    this.domUpdater.executeTaskFns(doneFn);
 };
 
 Tree.prototype.goDark = function () {
@@ -98,6 +91,38 @@ Tree.registeParser = function (ParserClass) {
     }
 };
 
+Tree.prototype.destroy = function () {
+    walk(this.tree);
+
+    this.startNode = null;
+    this.endNode = null;
+    this.config = null;
+
+    this.exprCalculater.destroy();
+    this.exprCalculater = null;
+
+    this.domUpdater.destroy();
+    this.domUpdater = null;
+
+    this.tree = null;
+    this.treeVars = null;
+
+    if (this.dirtyChecker) {
+        this.dirtyChecker.destry();
+        this.dirtyChecker = null;
+    }
+
+    function walk(parserObjs) {
+        utils.each(parserObjs, function (curParserObj) {
+            curParserObj.parser.destroy();
+
+            if (curParserObj.children && curParserObj.children.length) {
+                walk(curParserObj.children);
+            }
+        });
+    }
+};
+
 module.exports = Tree;
 
 function walkParsers(tree, parsers, data) {
@@ -138,7 +163,7 @@ function walkParsers(tree, parsers, data) {
     }
 }
 
-function walk(tree, startNode, endNode, container) {
+function walkDom(tree, startNode, endNode, container) {
     utils.traverseNoChangeNodes(startNode, endNode, function (curNode) {
         var options = {
             startNode: curNode,

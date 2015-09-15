@@ -82,4 +82,15 @@ Parser.prototype.setDirtyChecker = function (dirtyChecker) {
     this.dirtyChecker = dirtyChecker;
 };
 
+/**
+ * 销毁解析器，将界面恢复成原样
+ */
+Parser.prototype.destroy = function () {
+    this.exprCalculater = null;
+    this.config = null;
+    this.domUpdater = null;
+    this.tree = null;
+    this.dirtyChecker = null;
+};
+
 module.exports = Parser;
