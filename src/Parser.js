@@ -30,6 +30,7 @@ Parser.prototype.initialize = function (options) {
     this.exprCalculater = options.exprCalculater;
     this.config = options.config;
     this.domUpdater = options.domUpdater;
+    this.tree = options.tree;
 };
 
 /**

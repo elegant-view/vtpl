@@ -16,7 +16,24 @@ function Tree(options) {
     this.domUpdater = new DomUpdater();
 
     this.tree = [];
+    this.treeVars = {};
 }
+
+Tree.prototype.setTreeVar = function (name, value) {
+    if (this.treeVars[name] !== undefined) {
+        return false;
+    }
+    this.treeVars[name] = value;
+    return true;
+};
+
+Tree.prototype.unsetTreeVar = function (name) {
+    this.treeVars[name] = undefined;
+};
+
+Tree.prototype.getTreeVar = function (name) {
+    return this.treeVars[name];
+};
 
 Tree.prototype.traverse = function () {
     walk(this, this.startNode, this.endNode, this.tree);
@@ -121,7 +138,8 @@ function walk(tree, startNode, endNode, container) {
             node: curNode,
             config: tree.config,
             exprCalculater: tree.exprCalculater,
-            domUpdater: tree.domUpdater
+            domUpdater: tree.domUpdater,
+            tree: tree
         };
 
         var parserObj;
