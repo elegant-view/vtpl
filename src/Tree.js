@@ -191,7 +191,7 @@ function walkDom(tree, startNode, endNode, container) {
                     }
 
                     var con = [];
-                    walk(tree, branch.startNode, branch.endNode, con);
+                    walkDom(tree, branch.startNode, branch.endNode, con);
                     branches[i] = con;
                 }, this);
 
@@ -201,8 +201,8 @@ function walkDom(tree, startNode, endNode, container) {
 
             var con = [];
             container.push({parser: parserObj.parser, children: con});
-            if (curNode.nodeType === 1) {
-                walk(tree, curNode.firstChild, curNode.lastChild, con);
+            if (curNode.nodeType === 1 && curNode.childNodes.length) {
+                walkDom(tree, curNode.firstChild, curNode.lastChild, con);
             }
 
             curNode = curNode.nextSibling;

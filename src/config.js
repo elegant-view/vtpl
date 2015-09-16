@@ -40,6 +40,7 @@ Config.prototype.getExprRegExp = function () {
     if (!this.exprRegExp) {
         this.exprRegExp = new RegExp(regExpEncode(this.exprPrefix) + '(.+?)' + regExpEncode(this.exprSuffix), 'g');
     }
+    this.exprRegExp.lastIndex = 0;
     return this.exprRegExp;
 };
 
@@ -51,6 +52,7 @@ Config.prototype.getAllIfRegExp = function () {
             + this.elseName + '|'
             + this.ifEndName + '):\\s*', 'g');
     }
+    this.allIfRegExp.lastIndex = 0;
     return this.allIfRegExp;
 };
 
@@ -93,6 +95,7 @@ Config.prototype.getForExprsRegExp = function () {
             + '([^' + regExpEncode(this.exprSuffix)
             + ']+)' + regExpEncode(this.exprSuffix));
     }
+    this.forExprsRegExp.lastIndex = 0;
     return this.forExprsRegExp;
 };
 
@@ -104,6 +107,7 @@ Config.prototype.getForItemValueNameRegExp = function () {
             + regExpEncode(this.exprSuffix)
         );
     }
+    this.forItemValueNameRegExp.lastIndex = 0;
     return this.forItemValueNameRegExp;
 };
 

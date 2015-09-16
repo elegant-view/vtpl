@@ -61,6 +61,7 @@ Config.prototype.getExprRegExp = function () {
     if (!this.exprRegExp) {
         this.exprRegExp = new RegExp(regExpEncode(this.exprPrefix) + '(.+?)' + regExpEncode(this.exprSuffix), 'g');
     }
+    this.exprRegExp.lastIndex = 0;
     return this.exprRegExp;
 };
 
@@ -1187,7 +1188,7 @@ function walkDom(tree, startNode, endNode, container) {
                     }
 
                     var con = [];
-                    walk(tree, branch.startNode, branch.endNode, con);
+                    walkDom(tree, branch.startNode, branch.endNode, con);
                     branches[i] = con;
                 }, this);
 
@@ -1197,8 +1198,8 @@ function walkDom(tree, startNode, endNode, container) {
 
             var con = [];
             container.push({parser: parserObj.parser, children: con});
-            if (curNode.nodeType === 1) {
-                walk(tree, curNode.firstChild, curNode.lastChild, con);
+            if (curNode.nodeType === 1 && curNode.childNodes.length) {
+                walkDom(tree, curNode.firstChild, curNode.lastChild, con);
             }
 
             curNode = curNode.nextSibling;
