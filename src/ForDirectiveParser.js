@@ -106,6 +106,7 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
     var trees = [];
     parser.trees = trees;
     var itemVariableName = fullExpr.match(parser.config.getForItemValueNameRegExp())[1];
+    var taskId = parser.domUpdater.generateTaskId();
     return function (exprValue, data) {
         var index = 0;
         for (var k in exprValue) {
@@ -126,13 +127,11 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
             index++;
         }
 
-        for (var i = index, il = trees.length; i < il; i++) {
-            parser.domUpdater.addTaskFn((function (tree) {
-                return function () {
-                    tree.goDark();
-                };
-            })(trees[i]));
-        }
+        parser.domUpdater.addTaskFn(taskId, utils.bind(function (trees, index) {
+            for (var i = index, il = trees.length; i < il; i++) {
+                trees[i].goDark();
+            }
+        }, null, trees, index));
     };
 }
 

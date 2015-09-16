@@ -6,39 +6,52 @@
 var utils = require('./utils');
 
 function DomUpdater() {
-    this.tasks = [];
+    this.tasks = {};
+    this.isExecuting = false;
+    this.doneFns = [];
 }
 
-DomUpdater.prototype.addTaskFn = function (taskFn) {
-    this.tasks.push(taskFn);
+var counter = 0;
+DomUpdater.prototype.generateTaskId = function () {
+    return counter++;
 };
 
-DomUpdater.prototype.executeTaskFns = function (doneFn) {
-    setTimeout(
-        utils.bind(
-            function (tasks, doneFn) {
-                utils.each(tasks, function (taskFn) {
-                    try {
-                        taskFn();
-                    }
-                    catch (e) {}
-                });
-
-                if (utils.isFunction(doneFn)) {
-                    doneFn();
-                }
-            },
-            null,
-            this.tasks,
-            doneFn
-        )
-    );
-
-    this.tasks = [];
+DomUpdater.prototype.addTaskFn = function (taskId, taskFn) {
+    this.tasks[taskId] = taskFn;
 };
 
 DomUpdater.prototype.destroy = function () {
     this.tasks = null;
+};
+
+DomUpdater.prototype.execute = function (doneFn) {
+    if (utils.isFunction(doneFn)) {
+        this.doneFns.push(doneFn);
+    }
+
+    var me = this;
+    if (!this.isExecuting) {
+        this.isExecuting = true;
+        requestAnimationFrame(function () {
+            console.log(Object.keys(me.tasks).length);
+            utils.each(me.tasks, function (taskFn) {
+                try {
+                    taskFn();
+                }
+                catch (e) {}
+            });
+            me.tasks = {};
+
+            setTimeout(utils.bind(function (doneFns) {
+                utils.each(doneFns, function (doneFn) {
+                    doneFn();
+                });
+            }, null, me.doneFns));
+            me.doneFns = [];
+
+            me.isExecuting = false;
+        });
+    }
 };
 
 module.exports = DomUpdater;

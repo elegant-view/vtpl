@@ -66,10 +66,14 @@ ExprParser.prototype.addExpr = function (attr) {
         this,
         expr,
         attr ? createAttrUpdateFn(attr, this.domUpdater) : (function (me, curNode) {
+            var taskId = me.domUpdater.generateTaskId();
             return function (exprValue) {
-                me.domUpdater.addTaskFn(utils.bind(function (curNode, exprValue) {
-                    curNode.nodeValue = exprValue;
-                }, null, curNode, exprValue));
+                me.domUpdater.addTaskFn(
+                    taskId,
+                    utils.bind(function (curNode, exprValue) {
+                        curNode.nodeValue = exprValue;
+                    }, null, curNode, exprValue)
+                );
             };
         })(this, this.node)
     );
@@ -154,10 +158,14 @@ module.exports = inherit(ExprParser, Parser);
 Tree.registeParser(module.exports);
 
 function createAttrUpdateFn(attr, domUpdater) {
+    var taskId = domUpdater.generateTaskId();
     return function (exprValue) {
-        domUpdater.addTaskFn(utils.bind(function (attr, exprValue) {
-            attr.value = exprValue;
-        }, null, attr, exprValue));
+        domUpdater.addTaskFn(
+            taskId,
+            utils.bind(function (attr, exprValue) {
+                attr.value = exprValue;
+            }, null, attr, exprValue)
+        );
     };
 }
 

@@ -179,39 +179,52 @@ module.exports = DirtyChecker;
 var utils = require('./utils');
 
 function DomUpdater() {
-    this.tasks = [];
+    this.tasks = {};
+    this.isExecuting = false;
+    this.doneFns = [];
 }
 
-DomUpdater.prototype.addTaskFn = function (taskFn) {
-    this.tasks.push(taskFn);
+var counter = 0;
+DomUpdater.prototype.generateTaskId = function () {
+    return counter++;
 };
 
-DomUpdater.prototype.executeTaskFns = function (doneFn) {
-    setTimeout(
-        utils.bind(
-            function (tasks, doneFn) {
-                utils.each(tasks, function (taskFn) {
-                    try {
-                        taskFn();
-                    }
-                    catch (e) {}
-                });
-
-                if (utils.isFunction(doneFn)) {
-                    doneFn();
-                }
-            },
-            null,
-            this.tasks,
-            doneFn
-        )
-    );
-
-    this.tasks = [];
+DomUpdater.prototype.addTaskFn = function (taskId, taskFn) {
+    this.tasks[taskId] = taskFn;
 };
 
 DomUpdater.prototype.destroy = function () {
     this.tasks = null;
+};
+
+DomUpdater.prototype.execute = function (doneFn) {
+    if (utils.isFunction(doneFn)) {
+        this.doneFns.push(doneFn);
+    }
+
+    var me = this;
+    if (!this.isExecuting) {
+        this.isExecuting = true;
+        requestAnimationFrame(function () {
+            console.log(Object.keys(me.tasks).length);
+            utils.each(me.tasks, function (taskFn) {
+                try {
+                    taskFn();
+                }
+                catch (e) {}
+            });
+            me.tasks = {};
+
+            setTimeout(utils.bind(function (doneFns) {
+                utils.each(doneFns, function (doneFn) {
+                    doneFn();
+                });
+            }, null, me.doneFns));
+            me.doneFns = [];
+
+            me.isExecuting = false;
+        });
+    }
 };
 
 module.exports = DomUpdater;
@@ -477,10 +490,14 @@ ExprParser.prototype.addExpr = function (attr) {
         this,
         expr,
         attr ? createAttrUpdateFn(attr, this.domUpdater) : (function (me, curNode) {
+            var taskId = me.domUpdater.generateTaskId();
             return function (exprValue) {
-                me.domUpdater.addTaskFn(utils.bind(function (curNode, exprValue) {
-                    curNode.nodeValue = exprValue;
-                }, null, curNode, exprValue));
+                me.domUpdater.addTaskFn(
+                    taskId,
+                    utils.bind(function (curNode, exprValue) {
+                        curNode.nodeValue = exprValue;
+                    }, null, curNode, exprValue)
+                );
             };
         })(this, this.node)
     );
@@ -565,10 +582,14 @@ module.exports = inherit(ExprParser, Parser);
 Tree.registeParser(module.exports);
 
 function createAttrUpdateFn(attr, domUpdater) {
+    var taskId = domUpdater.generateTaskId();
     return function (exprValue) {
-        domUpdater.addTaskFn(utils.bind(function (attr, exprValue) {
-            attr.value = exprValue;
-        }, null, attr, exprValue));
+        domUpdater.addTaskFn(
+            taskId,
+            utils.bind(function (attr, exprValue) {
+                attr.value = exprValue;
+            }, null, attr, exprValue)
+        );
     };
 }
 
@@ -699,6 +720,7 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
     var trees = [];
     parser.trees = trees;
     var itemVariableName = fullExpr.match(parser.config.getForItemValueNameRegExp())[1];
+    var taskId = parser.domUpdater.generateTaskId();
     return function (exprValue, data) {
         var index = 0;
         for (var k in exprValue) {
@@ -719,13 +741,11 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
             index++;
         }
 
-        for (var i = index, il = trees.length; i < il; i++) {
-            parser.domUpdater.addTaskFn((function (tree) {
-                return function () {
-                    tree.goDark();
-                };
-            })(trees[i]));
-        }
+        parser.domUpdater.addTaskFn(taskId, utils.bind(function (trees, index) {
+            for (var i = index, il = trees.length; i < il; i++) {
+                trees[i].goDark();
+            }
+        }, null, trees, index));
     };
 }
 
@@ -1042,7 +1062,7 @@ Tree.prototype.traverse = function () {
 Tree.prototype.setData = function (data, doneFn) {
     data = data || {};
     walkParsers(this, this.tree, data);
-    this.domUpdater.executeTaskFns(doneFn);
+    this.domUpdater.execute(doneFn);
 };
 
 Tree.prototype.goDark = function () {
@@ -1135,14 +1155,24 @@ function walkParsers(tree, parsers, data) {
             var branchIndex = result;
             var branches = parserObj.children;
 
+            if (!parserObj.taskId) {
+                parserObj.showTaskId = tree.domUpdater.generateTaskId();
+                parserObj.hideTaskId = tree.domUpdater.generateTaskId();
+            }
             utils.each(branches, function (branch, j) {
                 if (j === branchIndex) {
-                    tree.domUpdater.addTaskFn(utils.bind(hideParsers, null, branches[j]));
+                    tree.domUpdater.addTaskFn(
+                        parserObj.showTaskId,
+                        utils.bind(showParsers, null, branches[j])
+                    );
                     walkParsers(tree, branches[j], parserObj.data);
                     return;
                 }
 
-                tree.domUpdater.addTaskFn(utils.bind(showParserObjs, null, branch));
+                tree.domUpdater.addTaskFn(
+                    parserObj.hideTaskId,
+                    utils.bind(hideParserObjs, null, branch)
+                );
             }, this);
         }
         else if (parserObj.children) {
@@ -1150,13 +1180,13 @@ function walkParsers(tree, parsers, data) {
         }
     }, this);
 
-    function showParserObjs(parserObjs) {
+    function hideParserObjs(parserObjs) {
         utils.each(parserObjs, function (parserObj) {
             parserObj.parser.goDark();
         });
     }
 
-    function hideParsers(parsers) {
+    function showParsers(parsers) {
         utils.each(parsers, function (parser) {
             parser.restoreFromDark();
         });

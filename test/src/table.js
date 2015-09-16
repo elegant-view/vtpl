@@ -57,5 +57,29 @@ require(['/dist/main'], function (main) {
             ]
         };
         tree.setData(data);
+
+        data = {
+            students: [
+                {
+                    id: 1,
+                    name: '张三',
+                    sex: 1,
+                    age: data.students[0].age + 1
+                },
+                {
+                    id: 2,
+                    name: '李四',
+                    sex: 1,
+                    age: data.students[1].age + 1
+                },
+                {
+                    id: 3,
+                    name: '王五',
+                    sex: 0,
+                    age: data.students[2].age + 1
+                }
+            ]
+        };
+        tree.setData(data);
     };
 });

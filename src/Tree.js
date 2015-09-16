@@ -42,7 +42,7 @@ Tree.prototype.traverse = function () {
 Tree.prototype.setData = function (data, doneFn) {
     data = data || {};
     walkParsers(this, this.tree, data);
-    this.domUpdater.executeTaskFns(doneFn);
+    this.domUpdater.execute(doneFn);
 };
 
 Tree.prototype.goDark = function () {
@@ -135,14 +135,24 @@ function walkParsers(tree, parsers, data) {
             var branchIndex = result;
             var branches = parserObj.children;
 
+            if (!parserObj.taskId) {
+                parserObj.showTaskId = tree.domUpdater.generateTaskId();
+                parserObj.hideTaskId = tree.domUpdater.generateTaskId();
+            }
             utils.each(branches, function (branch, j) {
                 if (j === branchIndex) {
-                    tree.domUpdater.addTaskFn(utils.bind(hideParsers, null, branches[j]));
+                    tree.domUpdater.addTaskFn(
+                        parserObj.showTaskId,
+                        utils.bind(showParsers, null, branches[j])
+                    );
                     walkParsers(tree, branches[j], parserObj.data);
                     return;
                 }
 
-                tree.domUpdater.addTaskFn(utils.bind(showParserObjs, null, branch));
+                tree.domUpdater.addTaskFn(
+                    parserObj.hideTaskId,
+                    utils.bind(hideParserObjs, null, branch)
+                );
             }, this);
         }
         else if (parserObj.children) {
@@ -150,13 +160,13 @@ function walkParsers(tree, parsers, data) {
         }
     }, this);
 
-    function showParserObjs(parserObjs) {
+    function hideParserObjs(parserObjs) {
         utils.each(parserObjs, function (parserObj) {
             parserObj.parser.goDark();
         });
     }
 
-    function hideParsers(parsers) {
+    function showParsers(parsers) {
         utils.each(parsers, function (parser) {
             parser.restoreFromDark();
         });
