@@ -4,14 +4,15 @@
  */
 
 function inherit(ChildClass, ParentClass) {
+    function Cls() {}
+
+    Cls.prototype = ParentClass.prototype;
     var childProto = ChildClass.prototype;
-    ChildClass.prototype = new ParentClass({});
+    ChildClass.prototype = new Cls();
 
     var key;
     for (key in childProto) {
-        if (childProto.hasOwnProperty(key)) {
-            ChildClass.prototype[key] = childProto[key];
-        }
+        ChildClass.prototype[key] = childProto[key];
     }
 
     // 继承静态属性
