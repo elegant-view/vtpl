@@ -4,6 +4,7 @@
  */
 
 var utils = require('./utils');
+var log = require('./log');
 
 function DomUpdater() {
     this.tasks = {};
@@ -37,7 +38,9 @@ DomUpdater.prototype.execute = function (doneFn) {
                 try {
                     taskFn();
                 }
-                catch (e) {}
+                catch (e) {
+                    log.warn(e);
+                }
             });
             me.tasks = {};
 
