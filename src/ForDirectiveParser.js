@@ -4,16 +4,16 @@
  */
 
 var inherit = require('./inherit');
-var Parser = require('./Parser');
+var DirectiveParser = require('./DirectiveParser');
 var utils = require('./utils');
 var Tree = require('./Tree');
 
 function ForDirectiveParser(options) {
-    Parser.call(this, options);
+    DirectiveParser.call(this, options);
 }
 
 ForDirectiveParser.prototype.initialize = function (options) {
-    Parser.prototype.initialize.apply(this, arguments);
+    DirectiveParser.prototype.initialize.apply(this, arguments);
 
     this.startNode = options.startNode;
     this.endNode = options.endNode;
@@ -75,21 +75,18 @@ ForDirectiveParser.prototype.destroy = function () {
     this.updateFn = null;
     this.startNode = null;
     this.endNode = null;
-    Parser.prototype.destroy.call(this);
+    DirectiveParser.prototype.destroy.call(this);
 };
 
 ForDirectiveParser.isProperNode = ForDirectiveParser.isForNode = function (node, config) {
-    return node.nodeType === 8 && config.forPrefixRegExp.test(node.nodeValue);
-};
-
-ForDirectiveParser.isForEndNode = function (node, config) {
-    return node.nodeType === 8 && config.forEndPrefixRegExp.test(node.nodeValue);
+    return DirectiveParser.isProperNode(node, config)
+        && config.forPrefixRegExp.test(node.nodeValue);
 };
 
 ForDirectiveParser.findEndNode = ForDirectiveParser.findForEnd = function (forStartNode, config) {
     var curNode = forStartNode;
     while ((curNode = curNode.nextSibling)) {
-        if (ForDirectiveParser.isForEndNode(curNode, config)) {
+        if (isForEndNode(curNode, config)) {
             return curNode;
         }
     }
@@ -99,8 +96,12 @@ ForDirectiveParser.getNoEndNodeError = function () {
     return new Error('the for directive is not properly ended!');
 };
 
-module.exports = inherit(ForDirectiveParser, Parser);
+module.exports = inherit(ForDirectiveParser, DirectiveParser);
 Tree.registeParser(module.exports);
+
+function isForEndNode(node, config) {
+    return node.nodeType === 8 && config.forEndPrefixRegExp.test(node.nodeValue);
+}
 
 function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
     var trees = [];
