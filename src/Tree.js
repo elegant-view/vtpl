@@ -247,16 +247,20 @@ function walkDom(tree, startNode, endNode, container) {
  * @return {Object}         返回值
  */
 function createParser(ParserClass, options) {
-    if (!ParserClass.isProperNode(options.startNode || options.node, options.config)) {
+    var startNode = options.startNode || options.node;
+    if (!ParserClass.isProperNode(startNode, options.config)) {
         return;
     }
 
     var endNode;
     if (ParserClass.findEndNode) {
-        endNode = ParserClass.findEndNode(options.startNode || options.node, options.config);
+        endNode = ParserClass.findEndNode(startNode, options.config);
 
         if (!endNode) {
             throw ParserClass.getNoEndNodeError();
+        }
+        else if (endNode.parentNode !== startNode.parentNode) {
+            throw new Error('the relationship between start node and end node is not brotherhood!');
         }
     }
 
