@@ -108,7 +108,7 @@ Tree.prototype.destroy = function () {
     this.treeVars = null;
 
     if (this.dirtyChecker) {
-        this.dirtyChecker.destry();
+        this.dirtyChecker.destroy();
         this.dirtyChecker = null;
     }
 

@@ -18,7 +18,7 @@ define(function (require, exports, module) {
     module.exports = amdExports;
 });
 
-},{"./src/Config":2,"./src/DirtyChecker":3,"./src/DomUpdater":4,"./src/EventExprParser":5,"./src/ExprCalculater":6,"./src/ExprParser":7,"./src/ForDirectiveParser":8,"./src/IfDirectiveParser":9,"./src/Parser":10,"./src/Tree":11,"./src/VarDirectiveParser":12,"./src/inherit":13,"./src/utils":14}],2:[function(require,module,exports){
+},{"./src/Config":2,"./src/DirtyChecker":3,"./src/DomUpdater":4,"./src/EventExprParser":5,"./src/ExprCalculater":6,"./src/ExprParser":7,"./src/ForDirectiveParser":8,"./src/IfDirectiveParser":9,"./src/Parser":10,"./src/Tree":11,"./src/VarDirectiveParser":12,"./src/inherit":13,"./src/utils":15}],2:[function(require,module,exports){
 /**
  * @file 配置
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -177,6 +177,7 @@ module.exports = DirtyChecker;
  */
 
 var utils = require('./utils');
+var log = require('./log');
 
 function DomUpdater() {
     this.tasks = {};
@@ -210,7 +211,9 @@ DomUpdater.prototype.execute = function (doneFn) {
                 try {
                     taskFn();
                 }
-                catch (e) {}
+                catch (e) {
+                    log.warn(e);
+                }
             });
             me.tasks = {};
 
@@ -228,7 +231,7 @@ DomUpdater.prototype.execute = function (doneFn) {
 
 module.exports = DomUpdater;
 
-},{"./utils":14}],5:[function(require,module,exports){
+},{"./log":14,"./utils":15}],5:[function(require,module,exports){
 /**
  * @file 处理了事件的 ExprParser
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -306,7 +309,7 @@ function getEventName(attrName, config) {
 }
 
 
-},{"./ExprParser":7,"./Tree":11,"./inherit":13,"./utils":14}],6:[function(require,module,exports){
+},{"./ExprParser":7,"./Tree":11,"./inherit":13,"./utils":15}],6:[function(require,module,exports){
 var utils = require('./utils');
 
 function ExprCalculater() {
@@ -420,7 +423,7 @@ function getVariableNamesFromExpr(me, expr) {
     }
 }
 
-},{"./utils":14}],7:[function(require,module,exports){
+},{"./utils":15}],7:[function(require,module,exports){
 /**
  * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -610,7 +613,7 @@ function createExprFn(parser, expr) {
     };
 }
 
-},{"./Parser":10,"./Tree":11,"./inherit":13,"./utils":14}],8:[function(require,module,exports){
+},{"./Parser":10,"./Tree":11,"./inherit":13,"./utils":15}],8:[function(require,module,exports){
 /**
  * @file for 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -767,7 +770,7 @@ function createTree(parser, config) {
     return tree;
 }
 
-},{"./Parser":10,"./Tree":11,"./inherit":13,"./utils":14}],9:[function(require,module,exports){
+},{"./Parser":10,"./Tree":11,"./inherit":13,"./utils":15}],9:[function(require,module,exports){
 /**
  * @file if 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -920,7 +923,7 @@ function getIfNodeType(node, config) {
     }
 }
 
-},{"./Parser":10,"./Tree":11,"./inherit":13,"./utils":14}],10:[function(require,module,exports){
+},{"./Parser":10,"./Tree":11,"./inherit":13,"./utils":15}],10:[function(require,module,exports){
 /**
  * @file 解析器的抽象基类
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1129,7 +1132,7 @@ Tree.prototype.destroy = function () {
     this.treeVars = null;
 
     if (this.dirtyChecker) {
-        this.dirtyChecker.destry();
+        this.dirtyChecker.destroy();
         this.dirtyChecker = null;
     }
 
@@ -1299,7 +1302,7 @@ function createParser(ParserClass, options) {
 
 
 
-},{"./DomUpdater":4,"./ExprCalculater":6,"./utils":14}],12:[function(require,module,exports){
+},{"./DomUpdater":4,"./ExprCalculater":6,"./utils":15}],12:[function(require,module,exports){
 /**
  * @file 变量定义指令解析器
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1347,14 +1350,15 @@ Tree.registeParser(VarDirectiveParser);
  */
 
 function inherit(ChildClass, ParentClass) {
+    function Cls() {}
+
+    Cls.prototype = ParentClass.prototype;
     var childProto = ChildClass.prototype;
-    ChildClass.prototype = new ParentClass({});
+    ChildClass.prototype = new Cls();
 
     var key;
     for (key in childProto) {
-        if (childProto.hasOwnProperty(key)) {
-            ChildClass.prototype[key] = childProto[key];
-        }
+        ChildClass.prototype[key] = childProto[key];
     }
 
     // 继承静态属性
@@ -1372,6 +1376,16 @@ function inherit(ChildClass, ParentClass) {
 module.exports = inherit;
 
 },{}],14:[function(require,module,exports){
+module.exports = {
+    warn: function () {
+        if (!console || !console.warn) {
+            return;
+        }
+
+        console.warn.apply(console, arguments);
+    }
+};
+},{}],15:[function(require,module,exports){
 /**
  * @file 一堆项目里面常用的方法
  * @author yibuyisheng(yibuyisheng@163.com)
