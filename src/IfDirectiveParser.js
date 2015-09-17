@@ -3,17 +3,17 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var Parser = require('./Parser');
+var DirectiveParser = require('./DirectiveParser');
 var inherit = require('./inherit');
 var utils = require('./utils');
 var Tree = require('./Tree');
 
 function IfDirectiveParser(options) {
-    Parser.call(this, options);
+    DirectiveParser.call(this, options);
 }
 
 IfDirectiveParser.prototype.initialize = function (options) {
-    Parser.prototype.initialize.apply(this, arguments);
+    DirectiveParser.prototype.initialize.apply(this, arguments);
 
     this.startNode = options.startNode;
     this.endNode = options.endNode;
@@ -93,29 +93,17 @@ IfDirectiveParser.prototype.destroy = function () {
     this.exprs = null;
     this.exprFns = null;
 
-    Parser.prototype.destroy.call(this);
+    DirectiveParser.prototype.destroy.call(this);
 };
 
-IfDirectiveParser.isProperNode = IfDirectiveParser.isIfNode = function (node, config) {
+IfDirectiveParser.isProperNode = function (node, config) {
     return getIfNodeType(node, config) === 1;
 };
 
-IfDirectiveParser.isElifNode = function (node, config) {
-    return getIfNodeType(node, config) === 2;
-};
-
-IfDirectiveParser.isElseNode = function (node, config) {
-    return getIfNodeType(node, config) === 3;
-};
-
-IfDirectiveParser.isIfEndNode = function (node, config) {
-    return getIfNodeType(node, config) === 4;
-};
-
-IfDirectiveParser.findEndNode = IfDirectiveParser.findIfEnd = function (ifStartNode, config) {
+IfDirectiveParser.findEndNode = function (ifStartNode, config) {
     var curNode = ifStartNode;
     while ((curNode = curNode.nextSibling)) {
-        if (IfDirectiveParser.isIfEndNode(curNode, config)) {
+        if (isIfEndNode(curNode, config)) {
             return curNode;
         }
     }
@@ -125,8 +113,12 @@ IfDirectiveParser.getNoEndNodeError = function () {
     return new Error('the if directive is not properly ended!');
 };
 
-module.exports = inherit(IfDirectiveParser, Parser);
+module.exports = inherit(IfDirectiveParser, DirectiveParser);
 Tree.registeParser(module.exports);
+
+function isIfEndNode(node, config) {
+    return getIfNodeType(node, config) === 4;
+}
 
 function getIfNodeType(node, config) {
     if (node.nodeType !== 8) {
