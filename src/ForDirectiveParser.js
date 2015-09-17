@@ -78,12 +78,12 @@ ForDirectiveParser.prototype.destroy = function () {
     DirectiveParser.prototype.destroy.call(this);
 };
 
-ForDirectiveParser.isProperNode = ForDirectiveParser.isForNode = function (node, config) {
+ForDirectiveParser.isProperNode = function (node, config) {
     return DirectiveParser.isProperNode(node, config)
         && config.forPrefixRegExp.test(node.nodeValue);
 };
 
-ForDirectiveParser.findEndNode = ForDirectiveParser.findForEnd = function (forStartNode, config) {
+ForDirectiveParser.findEndNode = function (forStartNode, config) {
     var curNode = forStartNode;
     while ((curNode = curNode.nextSibling)) {
         if (isForEndNode(curNode, config)) {
