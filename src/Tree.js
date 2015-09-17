@@ -12,8 +12,8 @@ function Tree(options) {
     this.endNode = options.endNode;
     this.config = options.config;
 
-    this.exprCalculater = new ExprCalculater();
-    this.domUpdater = new DomUpdater();
+    this.exprCalculater = options.exprCalculater || new ExprCalculater();
+    this.domUpdater = options.domUpdater || new DomUpdater();
 
     this.tree = [];
     this.treeVars = {};
@@ -136,41 +136,30 @@ function walkParsers(tree, parsers, data) {
             var branches = parserObj.children;
 
             if (!parserObj.taskId) {
-                parserObj.showTaskId = tree.domUpdater.generateTaskId();
-                parserObj.hideTaskId = tree.domUpdater.generateTaskId();
+                parserObj.taskId = tree.domUpdater.generateTaskId();
             }
+            tree.domUpdater.addTaskFn(parserObj.taskId, utils.bind(handleBranches, null, branches, branchIndex));
+
             utils.each(branches, function (branch, j) {
                 if (j === branchIndex) {
-                    tree.domUpdater.addTaskFn(
-                        parserObj.showTaskId,
-                        utils.bind(showParsers, null, branches[j])
-                    );
                     walkParsers(tree, branches[j], parserObj.data);
                     return;
                 }
-
-                tree.domUpdater.addTaskFn(
-                    parserObj.hideTaskId,
-                    utils.bind(hideParserObjs, null, branch)
-                );
             }, this);
         }
         else if (parserObj.children) {
             walkParsers(tree, parserObj.children, parserObj.data);
         }
     }, this);
+}
 
-    function hideParserObjs(parserObjs) {
-        utils.each(parserObjs, function (parserObj) {
-            parserObj.parser.goDark();
+function handleBranches(branches, showIndex) {
+    utils.each(branches, function (branch, j) {
+        var fn = j === showIndex ? 'restoreFromDark' : 'goDark';
+        utils.each(branch, function (parserObj) {
+            parserObj.parser[fn]();
         });
-    }
-
-    function showParsers(parsers) {
-        utils.each(parsers, function (parser) {
-            parser.restoreFromDark();
-        });
-    }
+    });
 }
 
 function walkDom(tree, startNode, endNode, container) {

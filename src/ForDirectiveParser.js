@@ -146,7 +146,9 @@ function createTree(parser, config) {
     var tree = new Tree({
         startNode: startNode,
         endNode: endNode,
-        config: config
+        config: config,
+        domUpdater: parser.tree.domUpdater,
+        exprCalculater: parser.tree.exprCalculater
     });
     tree.traverse();
     return tree;

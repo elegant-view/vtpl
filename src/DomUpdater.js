@@ -33,7 +33,7 @@ DomUpdater.prototype.execute = function (doneFn) {
     if (!this.isExecuting) {
         this.isExecuting = true;
         requestAnimationFrame(function () {
-            console.log(Object.keys(me.tasks).length);
+            console.log(Object.keys(me.tasks));
             utils.each(me.tasks, function (taskFn) {
                 try {
                     taskFn();
