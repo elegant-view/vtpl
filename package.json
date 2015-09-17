@@ -1,8 +1,8 @@
 {
   "name": "dom-data-bind",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "description": "This is a template library. Unlike those traditional templates (such as [Jade](http://jade-lang.com/)), It is based on DOM.",
-  "main": "dist/index.js",
+  "main": "main.js",
   "directories": {
     "test": "test"
   },
@@ -24,5 +24,12 @@
     "gulp-browserify": "^0.5.1",
     "gulp-util": "^3.0.6",
     "through2": "^2.0.0"
+  },
+  "edp": {
+    "wwwroot": "/",
+    "depDir": "dep",
+    "srcDir": "dist",
+    "loaderAutoConfig": "js,htm,html,tpl,vm,phtml",
+    "loaderUrl": "http://s1.bdstatic.com/r/www/cache/ecom/esl/1-8-2/esl.js"
   }
 }
