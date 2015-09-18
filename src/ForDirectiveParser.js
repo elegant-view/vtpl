@@ -7,7 +7,6 @@ var inherit = require('./inherit');
 var DirectiveParser = require('./DirectiveParser');
 var utils = require('./utils');
 var Tree = require('./Tree');
-var ScopeModel = require('./ScopeModel');
 
 function ForDirectiveParser(options) {
     DirectiveParser.call(this, options);
@@ -120,14 +119,13 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
             trees[index].restoreFromDark();
             trees[index].setDirtyChecker(parser.dirtyChecker);
 
-            var localScope = new ScopeModel();
-            localScope.setParent(scopeModel);
-            localScope.set({
+            var local = {
                 key: k,
                 index: index
-            });
-            localScope.set(itemVariableName, exprValue[k]);
-            trees[index].setData(localScope);
+            };
+            local[itemVariableName] = exprValue[k];
+            trees[index].setData(local);
+            trees[index].rootScope.setParent(scopeModel);
 
             index++;
         }

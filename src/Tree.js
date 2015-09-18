@@ -18,6 +18,8 @@ function Tree(options) {
 
     this.tree = [];
     this.treeVars = {};
+
+    this.rootScope = new ScopeModel();
 }
 
 Tree.prototype.setTreeVar = function (name, value) {
@@ -42,9 +44,8 @@ Tree.prototype.traverse = function () {
 
 Tree.prototype.setData = function (data, doneFn) {
     data = data || {};
-    var rootScope = new ScopeModel();
-    rootScope.set(data);
-    walkParsers(this, this.tree, rootScope);
+    this.rootScope.set(data);
+    walkParsers(this, this.tree, this.rootScope);
     this.domUpdater.execute(doneFn);
 };
 

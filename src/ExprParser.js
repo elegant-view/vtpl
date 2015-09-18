@@ -115,7 +115,7 @@ ExprParser.prototype.destroy = function () {
  * @param {ScopeModel} scopeModel 数据
  */
 ExprParser.prototype.setData = function (scopeModel) {
-    Parser.prototype.setData.apply(this, scopeModel);
+    Parser.prototype.setData.apply(this, arguments);
 
     var exprs = this.exprs;
     var exprOldValues = this.exprOldValues;

@@ -34,3 +34,5 @@ ScopeModel.prototype.get = function (name) {
         return this.parent.get(name);
     }
 };
+
+module.exports = ScopeModel;

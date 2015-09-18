@@ -560,7 +560,7 @@ ExprParser.prototype.destroy = function () {
  * @param {ScopeModel} scopeModel 数据
  */
 ExprParser.prototype.setData = function (scopeModel) {
-    Parser.prototype.setData.apply(this, scopeModel);
+    Parser.prototype.setData.apply(this, arguments);
 
     var exprs = this.exprs;
     var exprOldValues = this.exprOldValues;
@@ -644,7 +644,6 @@ var inherit = require('./inherit');
 var DirectiveParser = require('./DirectiveParser');
 var utils = require('./utils');
 var Tree = require('./Tree');
-var ScopeModel = require('./ScopeModel');
 
 function ForDirectiveParser(options) {
     DirectiveParser.call(this, options);
@@ -757,14 +756,13 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
             trees[index].restoreFromDark();
             trees[index].setDirtyChecker(parser.dirtyChecker);
 
-            var localScope = new ScopeModel();
-            localScope.setParent(scopeModel);
-            localScope.set({
+            var local = {
                 key: k,
                 index: index
-            });
-            localScope.set(itemVariableName, exprValue[k]);
-            trees[index].setData(localScope);
+            };
+            local[itemVariableName] = exprValue[k];
+            trees[index].setData(local);
+            trees[index].rootScope.setParent(scopeModel);
 
             index++;
         }
@@ -796,7 +794,7 @@ function createTree(parser, config) {
     return tree;
 }
 
-},{"./DirectiveParser":3,"./ScopeModel":12,"./Tree":13,"./inherit":15,"./utils":17}],10:[function(require,module,exports){
+},{"./DirectiveParser":3,"./Tree":13,"./inherit":15,"./utils":17}],10:[function(require,module,exports){
 /**
  * @file if 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -885,6 +883,8 @@ IfDirectiveParser.prototype.setData = function (scopeModel) {
     if (this.hasElseBranch) {
         return i;
     }
+
+    return i + 1;
 };
 
 IfDirectiveParser.prototype.destroy = function () {
@@ -1085,6 +1085,8 @@ ScopeModel.prototype.get = function (name) {
     }
 };
 
+module.exports = ScopeModel;
+
 },{"./utils":17}],13:[function(require,module,exports){
 /**
  * @file 最终的树
@@ -1106,6 +1108,8 @@ function Tree(options) {
 
     this.tree = [];
     this.treeVars = {};
+
+    this.rootScope = new ScopeModel();
 }
 
 Tree.prototype.setTreeVar = function (name, value) {
@@ -1130,9 +1134,8 @@ Tree.prototype.traverse = function () {
 
 Tree.prototype.setData = function (data, doneFn) {
     data = data || {};
-    var rootScope = new ScopeModel();
-    rootScope.set(data);
-    walkParsers(this, this.tree, rootScope);
+    this.rootScope.set(data);
+    walkParsers(this, this.tree, this.rootScope);
     this.domUpdater.execute(doneFn);
 };
 

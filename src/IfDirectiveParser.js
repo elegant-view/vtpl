@@ -86,6 +86,8 @@ IfDirectiveParser.prototype.setData = function (scopeModel) {
     if (this.hasElseBranch) {
         return i;
     }
+
+    return i + 1;
 };
 
 IfDirectiveParser.prototype.destroy = function () {
