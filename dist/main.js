@@ -18,7 +18,7 @@ define(function (require, exports, module) {
     module.exports = amdExports;
 });
 
-},{"./src/Config":2,"./src/DirtyChecker":4,"./src/DomUpdater":5,"./src/EventExprParser":6,"./src/ExprCalculater":7,"./src/ExprParser":8,"./src/ForDirectiveParser":9,"./src/IfDirectiveParser":10,"./src/Parser":11,"./src/Tree":13,"./src/VarDirectiveParser":14,"./src/inherit":15,"./src/utils":17}],2:[function(require,module,exports){
+},{"./src/Config":2,"./src/DirtyChecker":4,"./src/DomUpdater":5,"./src/EventExprParser":7,"./src/ExprCalculater":8,"./src/ExprParser":9,"./src/ForDirectiveParser":10,"./src/IfDirectiveParser":11,"./src/Parser":12,"./src/Tree":14,"./src/VarDirectiveParser":15,"./src/inherit":16,"./src/utils":18}],2:[function(require,module,exports){
 /**
  * @file 配置
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -168,7 +168,7 @@ DirectiveParser.isProperNode = function (node, config) {
 
 module.exports = inherit(DirectiveParser, Parser);
 
-},{"./Parser":11,"./inherit":15}],4:[function(require,module,exports){
+},{"./Parser":12,"./inherit":16}],4:[function(require,module,exports){
 /**
  * @file 脏检测器
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -253,7 +253,57 @@ DomUpdater.prototype.execute = function (doneFn) {
 
 module.exports = DomUpdater;
 
-},{"./log":16,"./utils":17}],6:[function(require,module,exports){
+},{"./log":17,"./utils":18}],6:[function(require,module,exports){
+var utils = require('./utils');
+
+function Event() {
+    this.evnts = {};
+}
+
+Event.prototype.on = function (eventName, fn, context) {
+    if (!utils.isFunction(fn)) {
+        return;
+    }
+
+    this.evnts[eventName] = this.evnts[eventName] || [];
+
+    this.evnts[eventName].push({
+        fn: fn,
+        context: context
+    });
+};
+
+Event.prototype.trigger = function (eventName) {
+    var fnObjs = this.evnts[eventName];
+    if (fnObjs && fnObjs.length) {
+        var args = utils.slice(arguments, 1);
+        utils.each(fnObjs, function (fnObj) {
+            fnObj.fn.apply(fnObj.context, args);
+        });
+    }
+};
+
+Event.prototype.off = function (eventName, fn) {
+    if (!fn) {
+        this.evnts[eventName] = null;
+        return;
+    }
+
+    var fnObjs = this.evnts[eventName];
+    if (fnObjs && fnObjs.length) {
+        var newFnObjs = [];
+        utils.each(fnObjs, function (fnObj) {
+            if (fn !== fnObj.fn) {
+                newFnObjs.push(fnObj);
+            }
+        });
+        this.evnts[eventName] = newFnObjs;
+    }
+};
+
+module.exports = Event;
+
+},{"./utils":18}],7:[function(require,module,exports){
 /**
  * @file 处理了事件的 ExprParser
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -328,7 +378,7 @@ function getEventName(attrName, config) {
 }
 
 
-},{"./ExprParser":8,"./ScopeModel":12,"./Tree":13,"./inherit":15,"./utils":17}],7:[function(require,module,exports){
+},{"./ExprParser":9,"./ScopeModel":13,"./Tree":14,"./inherit":16,"./utils":18}],8:[function(require,module,exports){
 var utils = require('./utils');
 
 function ExprCalculater() {
@@ -442,7 +492,7 @@ function getVariableNamesFromExpr(me, expr) {
     }
 }
 
-},{"./utils":17}],8:[function(require,module,exports){
+},{"./utils":18}],9:[function(require,module,exports){
 /**
  * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -554,19 +604,25 @@ ExprParser.prototype.destroy = function () {
 };
 
 /**
- * 设置数据过程
+ * 节点“隐藏”起来
  *
  * @public
- * @param {ScopeModel} scopeModel 数据
  */
-ExprParser.prototype.setData = function (scopeModel) {
-    Parser.prototype.setData.apply(this, arguments);
+ExprParser.prototype.goDark = function () {
+    utils.goDark(this.node);
+    this.isGoDark = true;
+};
+
+ExprParser.prototype.onChange = function () {
+    if (this.isGoDark) {
+        return;
+    }
 
     var exprs = this.exprs;
     var exprOldValues = this.exprOldValues;
     for (var i = 0, il = exprs.length; i < il; i++) {
         var expr = exprs[i];
-        var exprValue = this.exprFns[expr](scopeModel);
+        var exprValue = this.exprFns[expr](this.scopeModel);
 
         if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
             var updateFns = this.updateFns[expr];
@@ -577,15 +633,8 @@ ExprParser.prototype.setData = function (scopeModel) {
 
         exprOldValues[expr] = exprValue;
     }
-};
 
-/**
- * 节点“隐藏”起来
- *
- * @public
- */
-ExprParser.prototype.goDark = function () {
-    utils.goDark(this.node);
+    Parser.prototype.onChange.apply(this, arguments);
 };
 
 /**
@@ -595,6 +644,7 @@ ExprParser.prototype.goDark = function () {
  */
 ExprParser.prototype.restoreFromDark = function () {
     utils.restoreFromDark(this.node);
+    this.isGoDark = false;
 };
 
 ExprParser.isProperNode = function (node) {
@@ -634,7 +684,7 @@ function createExprFn(parser, expr) {
     };
 }
 
-},{"./Parser":11,"./Tree":13,"./inherit":15,"./utils":17}],9:[function(require,module,exports){
+},{"./Parser":12,"./Tree":14,"./inherit":16,"./utils":18}],10:[function(require,module,exports){
 /**
  * @file for 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -684,18 +734,19 @@ ForDirectiveParser.prototype.collectExprs = function () {
     return true;
 };
 
-ForDirectiveParser.prototype.setData = function (scopeModel) {
-    DirectiveParser.prototype.setData.apply(this, scopeModel);
+ForDirectiveParser.prototype.onChange = function () {
     if (!this.expr) {
         return;
     }
 
-    var exprValue = this.exprFn(scopeModel);
+    var exprValue = this.exprFn(this.scopeModel);
     if (this.dirtyCheck(this.expr, exprValue, this.exprOldValue)) {
-        this.updateFn(exprValue, scopeModel);
+        this.updateFn(exprValue, this.scopeModel);
     }
 
     this.exprOldValue = exprValue;
+
+    DirectiveParser.prototype.onChange.apply(this, arguments);
 };
 
 ForDirectiveParser.prototype.destroy = function () {
@@ -794,7 +845,7 @@ function createTree(parser, config) {
     return tree;
 }
 
-},{"./DirectiveParser":3,"./Tree":13,"./inherit":15,"./utils":17}],10:[function(require,module,exports){
+},{"./DirectiveParser":3,"./Tree":14,"./inherit":16,"./utils":18}],11:[function(require,module,exports){
 /**
  * @file if 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -818,6 +869,8 @@ IfDirectiveParser.prototype.initialize = function (options) {
 
     this.exprs = [];
     this.exprFns = {};
+
+    this.handleBranchesTaskId = this.domUpdater.generateTaskId();
 };
 
 IfDirectiveParser.prototype.collectExprs = function () {
@@ -859,6 +912,7 @@ IfDirectiveParser.prototype.collectExprs = function () {
         }
     }, this);
 
+    this.branches = branches;
     return branches;
 
     function setEndNode(curNode, branches, branchIndex) {
@@ -868,23 +922,27 @@ IfDirectiveParser.prototype.collectExprs = function () {
     }
 };
 
-IfDirectiveParser.prototype.setData = function (scopeModel) {
-    DirectiveParser.prototype.setData.apply(this, scopeModel);
-
+IfDirectiveParser.prototype.onChange = function () {
     var exprs = this.exprs;
     for (var i = 0, il = exprs.length; i < il; i++) {
         var expr = exprs[i];
-        var exprValue = this.exprFns[expr](scopeModel);
+        var exprValue = this.exprFns[expr](this.scopeModel);
         if (exprValue) {
-            return i;
+            this.domUpdater.addTaskFn(
+                this.handleBranchesTaskId,
+                utils.bind(handleBranches, null, this.branches, i)
+            );
+            return;
         }
     }
 
     if (this.hasElseBranch) {
-        return i;
+        this.domUpdater.addTaskFn(
+            this.handleBranchesTaskId,
+            utils.bind(handleBranches, null, this.branches, i)
+        );
+        return;
     }
-
-    return i + 1;
 };
 
 IfDirectiveParser.prototype.destroy = function () {
@@ -917,6 +975,15 @@ IfDirectiveParser.getNoEndNodeError = function () {
 module.exports = inherit(IfDirectiveParser, DirectiveParser);
 Tree.registeParser(module.exports);
 
+function handleBranches(branches, showIndex) {
+    utils.each(branches, function (branch, j) {
+        var fn = j === showIndex ? 'restoreFromDark' : 'goDark';
+        utils.each(branch, function (parserObj) {
+            parserObj.parser[fn]();
+        });
+    });
+}
+
 function isIfEndNode(node, config) {
     return getIfNodeType(node, config) === 4;
 }
@@ -943,7 +1010,7 @@ function getIfNodeType(node, config) {
     }
 }
 
-},{"./DirectiveParser":3,"./Tree":13,"./inherit":15,"./utils":17}],11:[function(require,module,exports){
+},{"./DirectiveParser":3,"./Tree":14,"./inherit":16,"./utils":18}],12:[function(require,module,exports){
 /**
  * @file 解析器的抽象基类
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -987,19 +1054,23 @@ Parser.prototype.initialize = function (options) {
  */
 Parser.prototype.destroy = function () {};
 
-/**
- * 设置数据
- *
- * @public
- * @abstract
- * @param {Object} data 要设置的数据
- */
-Parser.prototype.setData = function (data) {
-    this.data = data;
+Parser.prototype.setScope = function (scopeModel) {
+    this.scopeModel = scopeModel;
+
+    this.scopeModel.on('change', this.onChange, this);
+    this.scopeModel.on('parentchange', this.onChange, this);
 };
 
-Parser.prototype.getData = function () {
-    return this.data;
+Parser.prototype.onChange = function () {
+    this.domUpdater.execute();
+};
+
+Parser.prototype.getScope = function () {
+    return this.scopeModel;
+};
+
+Parser.prototype.setData = function (data) {
+    this.scopeModel.set(data);
 };
 
 /**
@@ -1047,28 +1118,36 @@ Parser.prototype.destroy = function () {
 
 module.exports = Parser;
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 var utils = require('./utils');
+var Event = require('./Event');
+var inherit = require('./inherit');
 
 function ScopeModel() {
+    Event.call(this);
+
     this.store = {};
     this.parent;
+    this.children = [];
 }
 
 ScopeModel.prototype.setParent = function (parent) {
     this.parent = parent;
 };
 
+ScopeModel.prototype.addChild = function (child) {
+    this.children.push(child);
+};
+
 ScopeModel.prototype.set = function (name, value) {
     if (utils.isClass(name, 'String')) {
-        return this.store[name] = value;
+        this.store[name] = value;
+        change(this);
     }
-
-    if (!utils.isClass(name, 'Object')) {
-        return;
+    else if (utils.isClass(name, 'Object')) {
+        utils.extend(this.store, name);
+        change(this);
     }
-
-    utils.extend(this.store, name);
 };
 
 ScopeModel.prototype.get = function (name) {
@@ -1085,9 +1164,16 @@ ScopeModel.prototype.get = function (name) {
     }
 };
 
-module.exports = ScopeModel;
+module.exports = inherit(ScopeModel, Event);
 
-},{"./utils":17}],13:[function(require,module,exports){
+function change(me) {
+    me.trigger('change', me);
+    utils.each(me.children, function (scope) {
+        scope.trigger('parentchange', me);
+    });
+}
+
+},{"./Event":6,"./inherit":16,"./utils":18}],14:[function(require,module,exports){
 /**
  * @file 最终的树
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1129,14 +1215,12 @@ Tree.prototype.getTreeVar = function (name) {
 };
 
 Tree.prototype.traverse = function () {
-    walkDom(this, this.startNode, this.endNode, this.tree);
+    walkDom(this, this.startNode, this.endNode, this.tree, this.rootScope);
 };
 
-Tree.prototype.setData = function (data, doneFn) {
+Tree.prototype.setData = function (data) {
     data = data || {};
     this.rootScope.set(data);
-    walkParsers(this, this.tree, this.rootScope);
-    this.domUpdater.execute(doneFn);
 };
 
 Tree.prototype.goDark = function () {
@@ -1219,43 +1303,7 @@ Tree.prototype.destroy = function () {
 
 module.exports = Tree;
 
-function walkParsers(tree, parsers, data) {
-    utils.each(parsers, function (parserObj) {
-        parserObj.parser.setDirtyChecker(tree.dirtyChecker);
-
-        var result = parserObj.parser.setData(data);
-        if (utils.isNumber(result)) {
-            var branchIndex = result;
-            var branches = parserObj.children;
-
-            if (!parserObj.taskId) {
-                parserObj.taskId = tree.domUpdater.generateTaskId();
-            }
-            tree.domUpdater.addTaskFn(parserObj.taskId, utils.bind(handleBranches, null, branches, branchIndex));
-
-            utils.each(branches, function (branch, j) {
-                if (j === branchIndex) {
-                    walkParsers(tree, branches[j], parserObj.parser.getData());
-                    return;
-                }
-            }, this);
-        }
-        else if (parserObj.children) {
-            walkParsers(tree, parserObj.children, parserObj.parser.getData());
-        }
-    }, this);
-}
-
-function handleBranches(branches, showIndex) {
-    utils.each(branches, function (branch, j) {
-        var fn = j === showIndex ? 'restoreFromDark' : 'goDark';
-        utils.each(branch, function (parserObj) {
-            parserObj.parser[fn]();
-        });
-    });
-}
-
-function walkDom(tree, startNode, endNode, container) {
+function walkDom(tree, startNode, endNode, container, scopeModel) {
     for (var curNode = startNode; curNode;) {
         var options = {
             startNode: curNode,
@@ -1274,6 +1322,8 @@ function walkDom(tree, startNode, endNode, container) {
                 return;
             }
 
+            parserObj.parser.setScope(scopeModel);
+
             if (utils.isArray(parserObj.collectResult)) {
                 var branches = parserObj.collectResult;
                 container.push({parser: parserObj.parser, children: branches});
@@ -1283,7 +1333,7 @@ function walkDom(tree, startNode, endNode, container) {
                     }
 
                     var con = [];
-                    walkDom(tree, branch.startNode, branch.endNode, con);
+                    walkDom(tree, branch.startNode, branch.endNode, con, parserObj.parser.getScope());
                     branches[i] = con;
                 }, this);
 
@@ -1293,7 +1343,7 @@ function walkDom(tree, startNode, endNode, container) {
                 var con = [];
                 container.push({parser: parserObj.parser, children: con});
                 if (curNode.nodeType === 1 && curNode.childNodes.length) {
-                    walkDom(tree, curNode.firstChild, curNode.lastChild, con);
+                    walkDom(tree, curNode.firstChild, curNode.lastChild, con, parserObj.parser.getScope());
                 }
 
                 curNode = curNode.nextSibling;
@@ -1371,7 +1421,7 @@ function createParser(ParserClass, options) {
 
 
 
-},{"./DomUpdater":5,"./ExprCalculater":7,"./ScopeModel":12,"./utils":17}],14:[function(require,module,exports){
+},{"./DomUpdater":5,"./ExprCalculater":8,"./ScopeModel":13,"./utils":18}],15:[function(require,module,exports){
 /**
  * @file 变量定义指令解析器
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1399,9 +1449,8 @@ VarDirectiveParser.prototype.collectExprs = function () {
     };
 };
 
-VarDirectiveParser.prototype.setData = function (scopeModel) {
-    Parser.prototype.setData.apply(this, arguments);
-    this.exprFn(scopeModel);
+VarDirectiveParser.prototype.onChange = function () {
+    this.exprFn(this.scopeModel);
 };
 
 VarDirectiveParser.isProperNode = function (node, config) {
@@ -1413,7 +1462,8 @@ VarDirectiveParser.isProperNode = function (node, config) {
 module.exports = inherit(VarDirectiveParser, Parser);
 Tree.registeParser(VarDirectiveParser);
 
-},{"./Parser":11,"./Tree":13,"./inherit":15}],15:[function(require,module,exports){
+
+},{"./Parser":12,"./Tree":14,"./inherit":16}],16:[function(require,module,exports){
 /**
  * @file 继承
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1445,7 +1495,7 @@ function inherit(ChildClass, ParentClass) {
 
 module.exports = inherit;
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 module.exports = {
     warn: function () {
         if (!console || !console.warn) {
@@ -1455,7 +1505,7 @@ module.exports = {
         console.warn.apply(console, arguments);
     }
 };
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 /**
  * @file 一堆项目里面常用的方法
  * @author yibuyisheng(yibuyisheng@163.com)

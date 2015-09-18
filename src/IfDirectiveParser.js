@@ -21,6 +21,8 @@ IfDirectiveParser.prototype.initialize = function (options) {
 
     this.exprs = [];
     this.exprFns = {};
+
+    this.handleBranchesTaskId = this.domUpdater.generateTaskId();
 };
 
 IfDirectiveParser.prototype.collectExprs = function () {
@@ -62,6 +64,7 @@ IfDirectiveParser.prototype.collectExprs = function () {
         }
     }, this);
 
+    this.branches = branches;
     return branches;
 
     function setEndNode(curNode, branches, branchIndex) {
@@ -71,23 +74,27 @@ IfDirectiveParser.prototype.collectExprs = function () {
     }
 };
 
-IfDirectiveParser.prototype.setData = function (scopeModel) {
-    DirectiveParser.prototype.setData.apply(this, scopeModel);
-
+IfDirectiveParser.prototype.onChange = function () {
     var exprs = this.exprs;
     for (var i = 0, il = exprs.length; i < il; i++) {
         var expr = exprs[i];
-        var exprValue = this.exprFns[expr](scopeModel);
+        var exprValue = this.exprFns[expr](this.scopeModel);
         if (exprValue) {
-            return i;
+            this.domUpdater.addTaskFn(
+                this.handleBranchesTaskId,
+                utils.bind(handleBranches, null, this.branches, i)
+            );
+            return;
         }
     }
 
     if (this.hasElseBranch) {
-        return i;
+        this.domUpdater.addTaskFn(
+            this.handleBranchesTaskId,
+            utils.bind(handleBranches, null, this.branches, i)
+        );
+        return;
     }
-
-    return i + 1;
 };
 
 IfDirectiveParser.prototype.destroy = function () {
@@ -119,6 +126,15 @@ IfDirectiveParser.getNoEndNodeError = function () {
 
 module.exports = inherit(IfDirectiveParser, DirectiveParser);
 Tree.registeParser(module.exports);
+
+function handleBranches(branches, showIndex) {
+    utils.each(branches, function (branch, j) {
+        var fn = j === showIndex ? 'restoreFromDark' : 'goDark';
+        utils.each(branch, function (parserObj) {
+            parserObj.parser[fn]();
+        });
+    });
+}
 
 function isIfEndNode(node, config) {
     return getIfNodeType(node, config) === 4;

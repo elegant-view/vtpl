@@ -16,13 +16,10 @@ ScopeDirectiveParser.prototype.initialize = function (options) {
     this.endNode = options.endNode;
 };
 
-ScopeDirectiveParser.prototype.setData = function (data) {
-    this.model.setParent(data);
-    return 0;
-};
-
-ScopeDirectiveParser.prototype.getData = function () {
-    return this.model;
+ScopeDirectiveParser.prototype.setScope = function (scopeModel) {
+    this.scopeModel = new ScopeModel();
+    this.scopeModel.setParent(scopeModel);
+    scopeModel.addChild(this.scopeModel);
 };
 
 ScopeDirectiveParser.prototype.collectExprs = function () {

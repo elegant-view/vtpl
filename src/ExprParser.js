@@ -109,19 +109,25 @@ ExprParser.prototype.destroy = function () {
 };
 
 /**
- * 设置数据过程
+ * 节点“隐藏”起来
  *
  * @public
- * @param {ScopeModel} scopeModel 数据
  */
-ExprParser.prototype.setData = function (scopeModel) {
-    Parser.prototype.setData.apply(this, arguments);
+ExprParser.prototype.goDark = function () {
+    utils.goDark(this.node);
+    this.isGoDark = true;
+};
+
+ExprParser.prototype.onChange = function () {
+    if (this.isGoDark) {
+        return;
+    }
 
     var exprs = this.exprs;
     var exprOldValues = this.exprOldValues;
     for (var i = 0, il = exprs.length; i < il; i++) {
         var expr = exprs[i];
-        var exprValue = this.exprFns[expr](scopeModel);
+        var exprValue = this.exprFns[expr](this.scopeModel);
 
         if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
             var updateFns = this.updateFns[expr];
@@ -132,15 +138,8 @@ ExprParser.prototype.setData = function (scopeModel) {
 
         exprOldValues[expr] = exprValue;
     }
-};
 
-/**
- * 节点“隐藏”起来
- *
- * @public
- */
-ExprParser.prototype.goDark = function () {
-    utils.goDark(this.node);
+    Parser.prototype.onChange.apply(this, arguments);
 };
 
 /**
@@ -150,6 +149,7 @@ ExprParser.prototype.goDark = function () {
  */
 ExprParser.prototype.restoreFromDark = function () {
     utils.restoreFromDark(this.node);
+    this.isGoDark = false;
 };
 
 ExprParser.isProperNode = function (node) {

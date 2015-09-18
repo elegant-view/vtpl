@@ -39,14 +39,12 @@ Tree.prototype.getTreeVar = function (name) {
 };
 
 Tree.prototype.traverse = function () {
-    walkDom(this, this.startNode, this.endNode, this.tree);
+    walkDom(this, this.startNode, this.endNode, this.tree, this.rootScope);
 };
 
-Tree.prototype.setData = function (data, doneFn) {
+Tree.prototype.setData = function (data) {
     data = data || {};
     this.rootScope.set(data);
-    walkParsers(this, this.tree, this.rootScope);
-    this.domUpdater.execute(doneFn);
 };
 
 Tree.prototype.goDark = function () {
@@ -129,43 +127,7 @@ Tree.prototype.destroy = function () {
 
 module.exports = Tree;
 
-function walkParsers(tree, parsers, data) {
-    utils.each(parsers, function (parserObj) {
-        parserObj.parser.setDirtyChecker(tree.dirtyChecker);
-
-        var result = parserObj.parser.setData(data);
-        if (utils.isNumber(result)) {
-            var branchIndex = result;
-            var branches = parserObj.children;
-
-            if (!parserObj.taskId) {
-                parserObj.taskId = tree.domUpdater.generateTaskId();
-            }
-            tree.domUpdater.addTaskFn(parserObj.taskId, utils.bind(handleBranches, null, branches, branchIndex));
-
-            utils.each(branches, function (branch, j) {
-                if (j === branchIndex) {
-                    walkParsers(tree, branches[j], parserObj.parser.getData());
-                    return;
-                }
-            }, this);
-        }
-        else if (parserObj.children) {
-            walkParsers(tree, parserObj.children, parserObj.parser.getData());
-        }
-    }, this);
-}
-
-function handleBranches(branches, showIndex) {
-    utils.each(branches, function (branch, j) {
-        var fn = j === showIndex ? 'restoreFromDark' : 'goDark';
-        utils.each(branch, function (parserObj) {
-            parserObj.parser[fn]();
-        });
-    });
-}
-
-function walkDom(tree, startNode, endNode, container) {
+function walkDom(tree, startNode, endNode, container, scopeModel) {
     for (var curNode = startNode; curNode;) {
         var options = {
             startNode: curNode,
@@ -184,6 +146,8 @@ function walkDom(tree, startNode, endNode, container) {
                 return;
             }
 
+            parserObj.parser.setScope(scopeModel);
+
             if (utils.isArray(parserObj.collectResult)) {
                 var branches = parserObj.collectResult;
                 container.push({parser: parserObj.parser, children: branches});
@@ -193,7 +157,7 @@ function walkDom(tree, startNode, endNode, container) {
                     }
 
                     var con = [];
-                    walkDom(tree, branch.startNode, branch.endNode, con);
+                    walkDom(tree, branch.startNode, branch.endNode, con, parserObj.parser.getScope());
                     branches[i] = con;
                 }, this);
 
@@ -203,7 +167,7 @@ function walkDom(tree, startNode, endNode, container) {
                 var con = [];
                 container.push({parser: parserObj.parser, children: con});
                 if (curNode.nodeType === 1 && curNode.childNodes.length) {
-                    walkDom(tree, curNode.firstChild, curNode.lastChild, con);
+                    walkDom(tree, curNode.firstChild, curNode.lastChild, con, parserObj.parser.getScope());
                 }
 
                 curNode = curNode.nextSibling;

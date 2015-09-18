@@ -41,19 +41,23 @@ Parser.prototype.initialize = function (options) {
  */
 Parser.prototype.destroy = function () {};
 
-/**
- * 设置数据
- *
- * @public
- * @abstract
- * @param {Object} data 要设置的数据
- */
-Parser.prototype.setData = function (data) {
-    this.data = data;
+Parser.prototype.setScope = function (scopeModel) {
+    this.scopeModel = scopeModel;
+
+    this.scopeModel.on('change', this.onChange, this);
+    this.scopeModel.on('parentchange', this.onChange, this);
 };
 
-Parser.prototype.getData = function () {
-    return this.data;
+Parser.prototype.onChange = function () {
+    this.domUpdater.execute();
+};
+
+Parser.prototype.getScope = function () {
+    return this.scopeModel;
+};
+
+Parser.prototype.setData = function (data) {
+    this.scopeModel.set(data);
 };
 
 /**

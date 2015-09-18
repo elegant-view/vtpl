@@ -1,24 +1,32 @@
 var utils = require('./utils');
+var Event = require('./Event');
+var inherit = require('./inherit');
 
 function ScopeModel() {
+    Event.call(this);
+
     this.store = {};
     this.parent;
+    this.children = [];
 }
 
 ScopeModel.prototype.setParent = function (parent) {
     this.parent = parent;
 };
 
+ScopeModel.prototype.addChild = function (child) {
+    this.children.push(child);
+};
+
 ScopeModel.prototype.set = function (name, value) {
     if (utils.isClass(name, 'String')) {
-        return this.store[name] = value;
+        this.store[name] = value;
+        change(this);
     }
-
-    if (!utils.isClass(name, 'Object')) {
-        return;
+    else if (utils.isClass(name, 'Object')) {
+        utils.extend(this.store, name);
+        change(this);
     }
-
-    utils.extend(this.store, name);
 };
 
 ScopeModel.prototype.get = function (name) {
@@ -35,4 +43,11 @@ ScopeModel.prototype.get = function (name) {
     }
 };
 
-module.exports = ScopeModel;
+module.exports = inherit(ScopeModel, Event);
+
+function change(me) {
+    me.trigger('change', me);
+    utils.each(me.children, function (scope) {
+        scope.trigger('parentchange', me);
+    });
+}

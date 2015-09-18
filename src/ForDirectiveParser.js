@@ -47,18 +47,19 @@ ForDirectiveParser.prototype.collectExprs = function () {
     return true;
 };
 
-ForDirectiveParser.prototype.setData = function (scopeModel) {
-    DirectiveParser.prototype.setData.apply(this, scopeModel);
+ForDirectiveParser.prototype.onChange = function () {
     if (!this.expr) {
         return;
     }
 
-    var exprValue = this.exprFn(scopeModel);
+    var exprValue = this.exprFn(this.scopeModel);
     if (this.dirtyCheck(this.expr, exprValue, this.exprOldValue)) {
-        this.updateFn(exprValue, scopeModel);
+        this.updateFn(exprValue, this.scopeModel);
     }
 
     this.exprOldValue = exprValue;
+
+    DirectiveParser.prototype.onChange.apply(this, arguments);
 };
 
 ForDirectiveParser.prototype.destroy = function () {

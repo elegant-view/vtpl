@@ -25,9 +25,8 @@ VarDirectiveParser.prototype.collectExprs = function () {
     };
 };
 
-VarDirectiveParser.prototype.setData = function (scopeModel) {
-    Parser.prototype.setData.apply(this, arguments);
-    this.exprFn(scopeModel);
+VarDirectiveParser.prototype.onChange = function () {
+    this.exprFn(this.scopeModel);
 };
 
 VarDirectiveParser.isProperNode = function (node, config) {
@@ -38,3 +37,4 @@ VarDirectiveParser.isProperNode = function (node, config) {
 
 module.exports = inherit(VarDirectiveParser, Parser);
 Tree.registeParser(VarDirectiveParser);
+

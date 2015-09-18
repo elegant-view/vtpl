@@ -36,6 +36,7 @@ gulp.task('static-server', function () {
 gulp.task('build', function () {
     return gulp.src('./main.js')
         .pipe(browserify())
+        .on('error', gutil.log)
         .pipe(gulp.dest('./dist'));
 });
 
