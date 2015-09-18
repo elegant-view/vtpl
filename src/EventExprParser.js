@@ -7,6 +7,7 @@ var ExprParser = require('./ExprParser');
 var inherit = require('./inherit');
 var utils = require('./utils');
 var Tree = require('./Tree');
+var ScopeModel = require('./ScopeModel');
 
 function EventExprParser(options) {
     ExprParser.call(this, options);
@@ -16,12 +17,6 @@ EventExprParser.prototype.initialize = function (options) {
     ExprParser.prototype.initialize.apply(this, arguments);
 
     this.events = {};
-};
-
-EventExprParser.prototype.setData = function (data) {
-    ExprParser.prototype.setData.apply(this, arguments);
-
-    this.curData = data;
 };
 
 EventExprParser.prototype.addExpr = function (attr) {
@@ -44,7 +39,9 @@ EventExprParser.prototype.addExpr = function (attr) {
 
             var me = this;
             this.node['on' + eventName] = function (event) {
-                me.exprCalculater.calculate(expr, true, utils.extend({}, me.curData, {event: event}));
+                var localScope = new ScopeModel();
+                localScope.setParent(me.data);
+                me.exprCalculater.calculate(expr, true, localScope);
             };
         }
     }

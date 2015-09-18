@@ -23,7 +23,7 @@ ExprCalculater.prototype.createExprFn = function (expr, avoidReturn) {
     };
 };
 
-ExprCalculater.prototype.calculate = function (expr, avoidReturn, data) {
+ExprCalculater.prototype.calculate = function (expr, avoidReturn, scopeModel) {
     var fnObj = this.fns[expr][avoidReturn];
     if (!fnObj) {
         throw new Error('no such expression function created!');
@@ -32,7 +32,7 @@ ExprCalculater.prototype.calculate = function (expr, avoidReturn, data) {
     var fnArgs = [];
     for (var i = 0, il = fnObj.paramNames.length; i < il; i++) {
         var param = fnObj.paramNames[i];
-        var value = data[param];
+        var value = scopeModel.get(param);
         fnArgs.push(value === undefined ? '' : value);
     }
 

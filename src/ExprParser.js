@@ -112,14 +112,16 @@ ExprParser.prototype.destroy = function () {
  * 设置数据过程
  *
  * @public
- * @param {Object} data 数据
+ * @param {ScopeModel} scopeModel 数据
  */
-ExprParser.prototype.setData = function (data) {
+ExprParser.prototype.setData = function (scopeModel) {
+    Parser.prototype.setData.apply(this, scopeModel);
+
     var exprs = this.exprs;
     var exprOldValues = this.exprOldValues;
     for (var i = 0, il = exprs.length; i < il; i++) {
         var expr = exprs[i];
-        var exprValue = this.exprFns[expr](data);
+        var exprValue = this.exprFns[expr](scopeModel);
 
         if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
             var updateFns = this.updateFns[expr];
@@ -179,10 +181,10 @@ function addExpr(parser, expr, updateFn) {
 }
 
 function createExprFn(parser, expr) {
-    return function (data) {
+    return function (scopeModel) {
         return expr.replace(parser.config.getExprRegExp(), function () {
             parser.exprCalculater.createExprFn(arguments[1]);
-            return parser.exprCalculater.calculate(arguments[1], false, data);
+            return parser.exprCalculater.calculate(arguments[1], false, scopeModel);
         });
     };
 }

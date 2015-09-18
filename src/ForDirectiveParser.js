@@ -7,6 +7,7 @@ var inherit = require('./inherit');
 var DirectiveParser = require('./DirectiveParser');
 var utils = require('./utils');
 var Tree = require('./Tree');
+var ScopeModel = require('./ScopeModel');
 
 function ForDirectiveParser(options) {
     DirectiveParser.call(this, options);
@@ -47,14 +48,15 @@ ForDirectiveParser.prototype.collectExprs = function () {
     return true;
 };
 
-ForDirectiveParser.prototype.setData = function (data) {
+ForDirectiveParser.prototype.setData = function (scopeModel) {
+    DirectiveParser.prototype.setData.apply(this, scopeModel);
     if (!this.expr) {
         return;
     }
 
-    var exprValue = this.exprFn(data);
+    var exprValue = this.exprFn(scopeModel);
     if (this.dirtyCheck(this.expr, exprValue, this.exprOldValue)) {
-        this.updateFn(exprValue, data);
+        this.updateFn(exprValue, scopeModel);
     }
 
     this.exprOldValue = exprValue;
@@ -108,7 +110,7 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
     parser.trees = trees;
     var itemVariableName = fullExpr.match(parser.config.getForItemValueNameRegExp())[1];
     var taskId = parser.domUpdater.generateTaskId();
-    return function (exprValue, data) {
+    return function (exprValue, scopeModel) {
         var index = 0;
         for (var k in exprValue) {
             if (!trees[index]) {
@@ -118,12 +120,14 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
             trees[index].restoreFromDark();
             trees[index].setDirtyChecker(parser.dirtyChecker);
 
-            var local = {
+            var localScope = new ScopeModel();
+            localScope.setParent(scopeModel);
+            localScope.set({
                 key: k,
                 index: index
-            };
-            local[itemVariableName] = exprValue[k];
-            trees[index].setData(utils.extend({}, data, local));
+            });
+            localScope.set(itemVariableName, exprValue[k]);
+            trees[index].setData(localScope);
 
             index++;
         }

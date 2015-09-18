@@ -71,11 +71,13 @@ IfDirectiveParser.prototype.collectExprs = function () {
     }
 };
 
-IfDirectiveParser.prototype.setData = function (data) {
+IfDirectiveParser.prototype.setData = function (scopeModel) {
+    DirectiveParser.prototype.setData.apply(this, scopeModel);
+
     var exprs = this.exprs;
     for (var i = 0, il = exprs.length; i < il; i++) {
         var expr = exprs[i];
-        var exprValue = this.exprFns[expr](data);
+        var exprValue = this.exprFns[expr](scopeModel);
         if (exprValue) {
             return i;
         }

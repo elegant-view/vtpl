@@ -26,6 +26,9 @@ function Config() {
     this.eventPrefix = 'event';
 
     this.varName = 'var';
+
+    this.scopeName = 'scope';
+    this.scopeEndName = '/scope';
 }
 
 Config.prototype.setExprPrefix = function (prefix) {

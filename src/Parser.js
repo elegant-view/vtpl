@@ -48,7 +48,13 @@ Parser.prototype.destroy = function () {};
  * @abstract
  * @param {Object} data 要设置的数据
  */
-Parser.prototype.setData = function (data) {};
+Parser.prototype.setData = function (data) {
+    this.data = data;
+};
+
+Parser.prototype.getData = function () {
+    return this.data;
+};
 
 /**
  * 隐藏相关元素

@@ -35,8 +35,8 @@ exports.createExprFn = function (exprRegExp, expr, exprCalculater) {
     });
     exprCalculater.createExprFn(expr);
 
-    return function (data) {
-        return exprCalculater.calculate(expr, false, data);
+    return function (scopeModel) {
+        return exprCalculater.calculate(expr, false, scopeModel);
     };
 };
 
@@ -104,17 +104,23 @@ exports.each = function (arr, fn, context) {
     }
 };
 
+function isClass(obj, clsName) {
+    return Object.prototype.toString.call(obj) === '[object ' + clsName + ']';
+}
+
 exports.isArray = function (arr) {
-    return Object.prototype.toString.call(arr) === '[object Array]';
+    return isClass(arr, 'Array');
 };
 
 exports.isNumber = function (obj) {
-    return Object.prototype.toString.call(obj) === '[object Number]';
+    return isClass(obj, 'Number');
 };
 
 exports.isFunction = function (obj) {
-    return Object.prototype.toString.call(obj) === '[object Function]';
+    return isClass(obj, 'Function');
 };
+
+exports.isClass = isClass;
 
 exports.bind = function (fn, thisArg) {
     if (!exports.isFunction(fn)) {

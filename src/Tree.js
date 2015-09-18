@@ -6,6 +6,7 @@
 var utils = require('./utils');
 var ExprCalculater = require('./ExprCalculater');
 var DomUpdater = require('./DomUpdater');
+var ScopeModel = require('./ScopeModel');
 
 function Tree(options) {
     this.startNode = options.startNode;
@@ -41,7 +42,9 @@ Tree.prototype.traverse = function () {
 
 Tree.prototype.setData = function (data, doneFn) {
     data = data || {};
-    walkParsers(this, this.tree, data);
+    var rootScope = new ScopeModel();
+    rootScope.set(data);
+    walkParsers(this, this.tree, rootScope);
     this.domUpdater.execute(doneFn);
 };
 
@@ -128,9 +131,8 @@ module.exports = Tree;
 function walkParsers(tree, parsers, data) {
     utils.each(parsers, function (parserObj) {
         parserObj.parser.setDirtyChecker(tree.dirtyChecker);
-        parserObj.data = utils.extend({}, parserObj.data || {}, data);
 
-        var result = parserObj.parser.setData(parserObj.data);
+        var result = parserObj.parser.setData(data);
         if (utils.isNumber(result)) {
             var branchIndex = result;
             var branches = parserObj.children;
@@ -142,13 +144,13 @@ function walkParsers(tree, parsers, data) {
 
             utils.each(branches, function (branch, j) {
                 if (j === branchIndex) {
-                    walkParsers(tree, branches[j], parserObj.data);
+                    walkParsers(tree, branches[j], parserObj.parser.getData());
                     return;
                 }
             }, this);
         }
         else if (parserObj.children) {
-            walkParsers(tree, parserObj.children, parserObj.data);
+            walkParsers(tree, parserObj.children, parserObj.parser.getData());
         }
     }, this);
 }
@@ -163,7 +165,7 @@ function handleBranches(branches, showIndex) {
 }
 
 function walkDom(tree, startNode, endNode, container) {
-    utils.traverseNoChangeNodes(startNode, endNode, function (curNode) {
+    for (var curNode = startNode; curNode;) {
         var options = {
             startNode: curNode,
             node: curNode,
@@ -195,16 +197,16 @@ function walkDom(tree, startNode, endNode, container) {
                 }, this);
 
                 curNode = parserObj.endNode.nextSibling;
-                return true;
             }
+            else {
+                var con = [];
+                container.push({parser: parserObj.parser, children: con});
+                if (curNode.nodeType === 1 && curNode.childNodes.length) {
+                    walkDom(tree, curNode.firstChild, curNode.lastChild, con);
+                }
 
-            var con = [];
-            container.push({parser: parserObj.parser, children: con});
-            if (curNode.nodeType === 1 && curNode.childNodes.length) {
-                walkDom(tree, curNode.firstChild, curNode.lastChild, con);
+                curNode = curNode.nextSibling;
             }
-
-            curNode = curNode.nextSibling;
 
             return true;
         }, this);
@@ -213,10 +215,10 @@ function walkDom(tree, startNode, endNode, container) {
             curNode = curNode.nextSibling;
         }
 
-        if (!curNode) {
-            return true;
+        if (!curNode || curNode === endNode) {
+            break;
         }
-    }, this);
+    }
 }
 
 /**

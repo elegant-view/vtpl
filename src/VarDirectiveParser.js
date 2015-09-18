@@ -20,13 +20,14 @@ VarDirectiveParser.prototype.collectExprs = function () {
     var leftValueName = expr.match(/\s*.+(?=\=)/)[0].replace(/\s+/g, '');
 
     var me = this;
-    this.exprFn = function (data) {
-        data[leftValueName] = me.exprCalculater.calculate(expr, false, data);
+    this.exprFn = function (scopeModel) {
+        scopeModel.set(leftValueName, me.exprCalculater.calculate(expr, false, scopeModel));
     };
 };
 
-VarDirectiveParser.prototype.setData = function (data) {
-    this.exprFn(data);
+VarDirectiveParser.prototype.setData = function (scopeModel) {
+    Parser.prototype.setData.apply(this, arguments);
+    this.exprFn(scopeModel);
 };
 
 VarDirectiveParser.isProperNode = function (node, config) {
