@@ -1,4 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+require('./src/ScopeDirectiveParser');
+
 var amdExports = {
     Config: require('./src/Config'),
     Tree: require('./src/Tree'),
@@ -18,7 +20,7 @@ define(function (require, exports, module) {
     module.exports = amdExports;
 });
 
-},{"./src/Config":2,"./src/DirtyChecker":4,"./src/DomUpdater":5,"./src/EventExprParser":7,"./src/ExprCalculater":8,"./src/ExprParser":9,"./src/ForDirectiveParser":10,"./src/IfDirectiveParser":11,"./src/Parser":12,"./src/Tree":14,"./src/VarDirectiveParser":15,"./src/inherit":16,"./src/utils":18}],2:[function(require,module,exports){
+},{"./src/Config":2,"./src/DirtyChecker":4,"./src/DomUpdater":5,"./src/EventExprParser":7,"./src/ExprCalculater":8,"./src/ExprParser":9,"./src/ForDirectiveParser":10,"./src/IfDirectiveParser":11,"./src/Parser":12,"./src/ScopeDirectiveParser":13,"./src/Tree":15,"./src/VarDirectiveParser":16,"./src/inherit":17,"./src/utils":19}],2:[function(require,module,exports){
 /**
  * @file 配置
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -168,7 +170,7 @@ DirectiveParser.isProperNode = function (node, config) {
 
 module.exports = inherit(DirectiveParser, Parser);
 
-},{"./Parser":12,"./inherit":16}],4:[function(require,module,exports){
+},{"./Parser":12,"./inherit":17}],4:[function(require,module,exports){
 /**
  * @file 脏检测器
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -253,7 +255,7 @@ DomUpdater.prototype.execute = function (doneFn) {
 
 module.exports = DomUpdater;
 
-},{"./log":17,"./utils":18}],6:[function(require,module,exports){
+},{"./log":18,"./utils":19}],6:[function(require,module,exports){
 var utils = require('./utils');
 
 function Event() {
@@ -303,7 +305,7 @@ Event.prototype.off = function (eventName, fn) {
 
 module.exports = Event;
 
-},{"./utils":18}],7:[function(require,module,exports){
+},{"./utils":19}],7:[function(require,module,exports){
 /**
  * @file 处理了事件的 ExprParser
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -346,7 +348,7 @@ EventExprParser.prototype.addExpr = function (attr) {
             var me = this;
             this.node['on' + eventName] = function (event) {
                 var localScope = new ScopeModel();
-                localScope.setParent(me.data);
+                localScope.setParent(me.getScope());
                 me.exprCalculater.calculate(expr, true, localScope);
             };
         }
@@ -378,7 +380,7 @@ function getEventName(attrName, config) {
 }
 
 
-},{"./ExprParser":9,"./ScopeModel":13,"./Tree":14,"./inherit":16,"./utils":18}],8:[function(require,module,exports){
+},{"./ExprParser":9,"./ScopeModel":14,"./Tree":15,"./inherit":17,"./utils":19}],8:[function(require,module,exports){
 var utils = require('./utils');
 
 function ExprCalculater() {
@@ -492,7 +494,7 @@ function getVariableNamesFromExpr(me, expr) {
     }
 }
 
-},{"./utils":18}],9:[function(require,module,exports){
+},{"./utils":19}],9:[function(require,module,exports){
 /**
  * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -684,7 +686,7 @@ function createExprFn(parser, expr) {
     };
 }
 
-},{"./Parser":12,"./Tree":14,"./inherit":16,"./utils":18}],10:[function(require,module,exports){
+},{"./Parser":12,"./Tree":15,"./inherit":17,"./utils":19}],10:[function(require,module,exports){
 /**
  * @file for 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -814,6 +816,7 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
             local[itemVariableName] = exprValue[k];
             trees[index].setData(local);
             trees[index].rootScope.setParent(scopeModel);
+            scopeModel.addChild(trees[index].rootScope);
 
             index++;
         }
@@ -839,13 +842,14 @@ function createTree(parser, config) {
         endNode: endNode,
         config: config,
         domUpdater: parser.tree.domUpdater,
-        exprCalculater: parser.tree.exprCalculater
+        exprCalculater: parser.tree.exprCalculater,
+        treeVars: parser.tree.treeVars
     });
     tree.traverse();
     return tree;
 }
 
-},{"./DirectiveParser":3,"./Tree":14,"./inherit":16,"./utils":18}],11:[function(require,module,exports){
+},{"./DirectiveParser":3,"./Tree":15,"./inherit":17,"./utils":19}],11:[function(require,module,exports){
 /**
  * @file if 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1010,7 +1014,7 @@ function getIfNodeType(node, config) {
     }
 }
 
-},{"./DirectiveParser":3,"./Tree":14,"./inherit":16,"./utils":18}],12:[function(require,module,exports){
+},{"./DirectiveParser":3,"./Tree":15,"./inherit":17,"./utils":19}],12:[function(require,module,exports){
 /**
  * @file 解析器的抽象基类
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1119,6 +1123,78 @@ Parser.prototype.destroy = function () {
 module.exports = Parser;
 
 },{}],13:[function(require,module,exports){
+var inherit = require('./inherit');
+var DirectiveParser = require('./DirectiveParser');
+var utils = require('./utils');
+var ScopeModel = require('./ScopeModel');
+var Tree = require('./Tree');
+
+function ScopeDirectiveParser(options) {
+    DirectiveParser.call(this, options);
+}
+
+ScopeDirectiveParser.prototype.initialize = function (options) {
+    DirectiveParser.prototype.initialize.call(this, options);
+
+    this.startNode = options.startNode;
+    this.endNode = options.endNode;
+
+    if (!this.tree.getTreeVar('scopes')) {
+        this.tree.setTreeVar('scopes', {});
+    }
+};
+
+ScopeDirectiveParser.prototype.setScope = function (scopeModel) {
+    this.scopeModel.setParent(scopeModel);
+    scopeModel.addChild(this.scopeModel);
+};
+
+ScopeDirectiveParser.prototype.collectExprs = function () {
+    var scopeName = this.startNode.nodeValue
+        .replace(/\s+/g, '')
+        .replace(this.config.scopeName + ':', '');
+    if (scopeName) {
+        var scopes = this.tree.getTreeVar('scopes');
+        this.scopeModel = new ScopeModel();
+        scopes[scopeName] = scopes[scopeName] || [];
+        scopes[scopeName].push(this.scopeModel);
+    }
+
+    return [
+        {
+            startNode: this.startNode.nextSibling,
+            endNode: this.endNode.previousSibling
+        }
+    ];
+};
+
+ScopeDirectiveParser.isProperNode = function (node, config) {
+    return DirectiveParser.isProperNode(node, config)
+        && node.nodeValue.replace(/\s+/, '').indexOf(config.scopeName + ':') === 0;
+};
+
+ScopeDirectiveParser.findEndNode = function (startNode, config) {
+    var curNode = startNode;
+    while ((curNode = curNode.nextSibling)) {
+        if (isEndNode(curNode, config)) {
+            return curNode;
+        }
+    }
+};
+
+ScopeDirectiveParser.getNoEndNodeError = function () {
+    return new Error('the scope directive is not properly ended!');
+};
+
+module.exports = inherit(ScopeDirectiveParser, DirectiveParser);
+Tree.registeParser(module.exports);
+
+function isEndNode(node, config) {
+    return node.nodeType === 8
+        && node.nodeValue.replace(/\s+/g, '') === config.scopeEndName;
+}
+
+},{"./DirectiveParser":3,"./ScopeModel":14,"./Tree":15,"./inherit":17,"./utils":19}],14:[function(require,module,exports){
 var utils = require('./utils');
 var Event = require('./Event');
 var inherit = require('./inherit');
@@ -1173,7 +1249,7 @@ function change(me) {
     });
 }
 
-},{"./Event":6,"./inherit":16,"./utils":18}],14:[function(require,module,exports){
+},{"./Event":6,"./inherit":17,"./utils":19}],15:[function(require,module,exports){
 /**
  * @file 最终的树
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1193,7 +1269,7 @@ function Tree(options) {
     this.domUpdater = options.domUpdater || new DomUpdater();
 
     this.tree = [];
-    this.treeVars = {};
+    this.treeVars = options.treeVars || {};
 
     this.rootScope = new ScopeModel();
 }
@@ -1212,6 +1288,14 @@ Tree.prototype.unsetTreeVar = function (name) {
 
 Tree.prototype.getTreeVar = function (name) {
     return this.treeVars[name];
+};
+
+Tree.prototype.getScopeByName = function (name) {
+    var scopes = this.getTreeVar('scopes');
+    if (!scopes) {
+        return;
+    }
+    return scopes[name];
 };
 
 Tree.prototype.traverse = function () {
@@ -1421,7 +1505,7 @@ function createParser(ParserClass, options) {
 
 
 
-},{"./DomUpdater":5,"./ExprCalculater":8,"./ScopeModel":13,"./utils":18}],15:[function(require,module,exports){
+},{"./DomUpdater":5,"./ExprCalculater":8,"./ScopeModel":14,"./utils":19}],16:[function(require,module,exports){
 /**
  * @file 变量定义指令解析器
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1463,7 +1547,7 @@ module.exports = inherit(VarDirectiveParser, Parser);
 Tree.registeParser(VarDirectiveParser);
 
 
-},{"./Parser":12,"./Tree":14,"./inherit":16}],16:[function(require,module,exports){
+},{"./Parser":12,"./Tree":15,"./inherit":17}],17:[function(require,module,exports){
 /**
  * @file 继承
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1495,7 +1579,7 @@ function inherit(ChildClass, ParentClass) {
 
 module.exports = inherit;
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 module.exports = {
     warn: function () {
         if (!console || !console.warn) {
@@ -1505,7 +1589,7 @@ module.exports = {
         console.warn.apply(console, arguments);
     }
 };
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 /**
  * @file 一堆项目里面常用的方法
  * @author yibuyisheng(yibuyisheng@163.com)

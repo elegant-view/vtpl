@@ -127,6 +127,7 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
             local[itemVariableName] = exprValue[k];
             trees[index].setData(local);
             trees[index].rootScope.setParent(scopeModel);
+            scopeModel.addChild(trees[index].rootScope);
 
             index++;
         }
@@ -152,7 +153,8 @@ function createTree(parser, config) {
         endNode: endNode,
         config: config,
         domUpdater: parser.tree.domUpdater,
-        exprCalculater: parser.tree.exprCalculater
+        exprCalculater: parser.tree.exprCalculater,
+        treeVars: parser.tree.treeVars
     });
     tree.traverse();
     return tree;

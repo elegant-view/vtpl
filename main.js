@@ -1,3 +1,5 @@
+require('./src/ScopeDirectiveParser');
+
 var amdExports = {
     Config: require('./src/Config'),
     Tree: require('./src/Tree'),

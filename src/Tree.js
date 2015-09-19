@@ -17,7 +17,7 @@ function Tree(options) {
     this.domUpdater = options.domUpdater || new DomUpdater();
 
     this.tree = [];
-    this.treeVars = {};
+    this.treeVars = options.treeVars || {};
 
     this.rootScope = new ScopeModel();
 }
@@ -36,6 +36,14 @@ Tree.prototype.unsetTreeVar = function (name) {
 
 Tree.prototype.getTreeVar = function (name) {
     return this.treeVars[name];
+};
+
+Tree.prototype.getScopeByName = function (name) {
+    var scopes = this.getTreeVar('scopes');
+    if (!scopes) {
+        return;
+    }
+    return scopes[name];
 };
 
 Tree.prototype.traverse = function () {

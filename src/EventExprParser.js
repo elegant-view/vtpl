@@ -40,7 +40,7 @@ EventExprParser.prototype.addExpr = function (attr) {
             var me = this;
             this.node['on' + eventName] = function (event) {
                 var localScope = new ScopeModel();
-                localScope.setParent(me.data);
+                localScope.setParent(me.getScope());
                 me.exprCalculater.calculate(expr, true, localScope);
             };
         }
