@@ -136,7 +136,16 @@ Tree.prototype.destroy = function () {
 module.exports = Tree;
 
 function walkDom(tree, startNode, endNode, container, scopeModel) {
+    if (startNode === endNode) {
+        add(startNode);
+        return;
+    }
+
     for (var curNode = startNode; curNode;) {
+        curNode = add(curNode);
+    }
+
+    function add(curNode) {
         var options = {
             startNode: curNode,
             node: curNode,
@@ -169,7 +178,12 @@ function walkDom(tree, startNode, endNode, container, scopeModel) {
                     branches[i] = con;
                 }, this);
 
-                curNode = parserObj.endNode.nextSibling;
+                if (parserObj.endNode !== endNode) {
+                    curNode = parserObj.endNode.nextSibling;
+                }
+                else {
+                    curNode = null;
+                }
             }
             else {
                 var con = [];
@@ -178,7 +192,12 @@ function walkDom(tree, startNode, endNode, container, scopeModel) {
                     walkDom(tree, curNode.firstChild, curNode.lastChild, con, parserObj.parser.getScope());
                 }
 
-                curNode = curNode.nextSibling;
+                if (curNode !== endNode) {
+                    curNode = curNode.nextSibling;
+                }
+                else {
+                    curNode = null;
+                }
             }
 
             return true;
@@ -188,9 +207,7 @@ function walkDom(tree, startNode, endNode, container, scopeModel) {
             curNode = curNode.nextSibling;
         }
 
-        if (!curNode || curNode === endNode) {
-            break;
-        }
+        return curNode;
     }
 }
 

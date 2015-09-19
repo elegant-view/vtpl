@@ -9,6 +9,7 @@ require(['/dist/main'], function (main) {
         config: new Config()
     });
     tree.traverse();
+    console.log(tree);
     var data = {
         students: [
             {
@@ -33,10 +34,10 @@ require(['/dist/main'], function (main) {
     };
     tree.setData(data);
 
-    var scope = tree.getScopeByName('testScope');
-    var student = scope[0].get('student');
-    student.sex = 0;
-    scope[0].set('student', student);
+    // var scope = tree.getScopeByName('testScope');
+    // var student = scope[0].get('student');
+    // student.sex = 0;
+    // scope[0].set('student', student);
 
 
     document.getElementsByTagName('button')[0].onclick = function () {

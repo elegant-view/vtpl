@@ -1,3 +1,4 @@
+
 <table>
     <thead>
         <tr>
@@ -9,20 +10,20 @@
     </thead>
     <tbody>
         <!-- for: ${students} as ${student} -->
-        <!-- scope: testScope -->
-        <tr>
-            <td>${student.id}</td>
-            <td>${student.name}</td>
-            <td>
-            <!-- if: ${student.sex} === 0 -->
-            女
-            <!-- elif: ${student.sex} === 1 -->
-            男
-            <!-- /if -->
-            </td>
-            <td>${student.age}</td>
-        </tr>
-        <!-- /scope -->
+            <!-- scope: testScope -->
+            <tr>
+                <td>${student.id}</td>
+                <td>${student.name}</td>
+                <td>
+                <!-- if: ${student.sex} === 0 -->
+                女
+                <!-- elif: ${student.sex} === 1 -->
+                男
+                <!-- /if -->
+                </td>
+                <td>${student.age}</td>
+            </tr>
+            <!-- /scope -->
         <!-- /for -->
     </tbody>
 </table>

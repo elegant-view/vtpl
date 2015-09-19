@@ -3,12 +3,12 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var Parser = require('./Parser');
+var DirectiveParser = require('./DirectiveParser');
 var inherit = require('./inherit');
 var Tree = require('./Tree');
 
 function VarDirectiveParser(options) {
-    Parser.call(this, options);
+    DirectiveParser.call(this, options);
 
     this.node = options.node;
 }
@@ -21,13 +21,22 @@ VarDirectiveParser.prototype.collectExprs = function () {
 
     var me = this;
     this.exprFn = function (scopeModel) {
-        scopeModel.set(leftValueName, me.exprCalculater.calculate(expr, false, scopeModel));
+        var oldValue = scopeModel.get(leftValueName);
+        var newValue = me.exprCalculater.calculate(expr, false, scopeModel);
+        if (oldValue !== newValue) {
+            scopeModel.set(leftValueName, newValue);
+        }
     };
 };
 
-VarDirectiveParser.prototype.onChange = function () {
+VarDirectiveParser.prototype.setScope = function (scopeModel) {
+    DirectiveParser.prototype.setScope.apply(this, arguments);
     this.exprFn(this.scopeModel);
 };
+
+// VarDirectiveParser.prototype.onChange = function () {
+//     this.exprFn(this.scopeModel);
+// };
 
 VarDirectiveParser.isProperNode = function (node, config) {
     return node.nodeType === 8
@@ -35,6 +44,6 @@ VarDirectiveParser.isProperNode = function (node, config) {
 };
 
 
-module.exports = inherit(VarDirectiveParser, Parser);
+module.exports = inherit(VarDirectiveParser, DirectiveParser);
 Tree.registeParser(VarDirectiveParser);
 
