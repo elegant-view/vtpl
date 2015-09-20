@@ -14,13 +14,14 @@ var amdExports = {
     VarDirectiveParser: require('./src/VarDirectiveParser'),
     inherit: require('./src/inherit'),
     utils: require('./src/utils'),
-    DomUpdater: require('./src/DomUpdater')
+    DomUpdater: require('./src/DomUpdater'),
+    ScopeModel: require('./src/ScopeModel')
 };
 define(function (require, exports, module) {
     module.exports = amdExports;
 });
 
-},{"./src/Config":2,"./src/DirtyChecker":4,"./src/DomUpdater":5,"./src/EventExprParser":7,"./src/ExprCalculater":8,"./src/ExprParser":9,"./src/ForDirectiveParser":10,"./src/IfDirectiveParser":11,"./src/Parser":12,"./src/ScopeDirectiveParser":13,"./src/Tree":15,"./src/VarDirectiveParser":16,"./src/inherit":17,"./src/utils":19}],2:[function(require,module,exports){
+},{"./src/Config":2,"./src/DirtyChecker":4,"./src/DomUpdater":5,"./src/EventExprParser":7,"./src/ExprCalculater":8,"./src/ExprParser":9,"./src/ForDirectiveParser":10,"./src/IfDirectiveParser":11,"./src/Parser":12,"./src/ScopeDirectiveParser":13,"./src/ScopeModel":14,"./src/Tree":15,"./src/VarDirectiveParser":16,"./src/inherit":17,"./src/utils":19}],2:[function(require,module,exports){
 /**
  * @file 配置
  * @author yibuyisheng(yibuyisheng@163.com)

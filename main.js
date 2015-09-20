@@ -13,7 +13,8 @@ var amdExports = {
     VarDirectiveParser: require('./src/VarDirectiveParser'),
     inherit: require('./src/inherit'),
     utils: require('./src/utils'),
-    DomUpdater: require('./src/DomUpdater')
+    DomUpdater: require('./src/DomUpdater'),
+    ScopeModel: require('./src/ScopeModel')
 };
 define(function (require, exports, module) {
     module.exports = amdExports;
