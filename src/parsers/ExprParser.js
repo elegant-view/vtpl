@@ -4,9 +4,9 @@
  */
 
 var Parser = require('./Parser');
-var inherit = require('./inherit');
-var utils = require('./utils');
-var Tree = require('./Tree');
+var inherit = require('../inherit');
+var utils = require('../utils');
+var Tree = require('../Tree');
 
 function ExprParser(options) {
     Parser.call(this, options);

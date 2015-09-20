@@ -4,10 +4,10 @@
  */
 
 var ExprParser = require('./ExprParser');
-var inherit = require('./inherit');
-var utils = require('./utils');
-var Tree = require('./Tree');
-var ScopeModel = require('./ScopeModel');
+var inherit = require('../inherit');
+var utils = require('../utils');
+var Tree = require('../Tree');
+var ScopeModel = require('../ScopeModel');
 
 function EventExprParser(options) {
     ExprParser.call(this, options);

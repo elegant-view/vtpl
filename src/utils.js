@@ -142,3 +142,31 @@ exports.bind = function (fn, thisArg) {
 exports.isSubClassOf = function (SubClass, SuperClass) {
     return SubClass.prototype instanceof SuperClass;
 };
+
+exports.xhr = function (options, loadFn, errorFn) {
+    options = exports.extend({
+        method: 'GET'
+    }, options);
+
+    var xhr = new XMLHttpRequest();
+    xhr.onerror = errorFn;
+    xhr.onload = loadFn;
+    xhr.open(options.method, options.url, true);
+    setHeaders(options.headers, xhr);
+    xhr.send(options.body);
+};
+
+function setHeaders(headers, xhr) {
+    if (!headers) {
+        return;
+    }
+
+    for (var k in headers) {
+        if (!headers.hasOwnProperty(k)) {
+            continue;
+        }
+        xhr.setRequestHeader(k, headers[k]);
+    }
+}
+
+

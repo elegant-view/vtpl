@@ -3,10 +3,10 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var inherit = require('./inherit');
+var inherit = require('../inherit');
 var DirectiveParser = require('./DirectiveParser');
-var utils = require('./utils');
-var Tree = require('./Tree');
+var utils = require('../utils');
+var Tree = require('../Tree');
 
 function ForDirectiveParser(options) {
     DirectiveParser.call(this, options);

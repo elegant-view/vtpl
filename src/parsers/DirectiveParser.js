@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var inherit = require('./inherit');
+var inherit = require('../inherit');
 var Parser = require('./Parser');
 
 function DirectiveParser(options) {

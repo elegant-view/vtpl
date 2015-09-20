@@ -33,14 +33,6 @@ Parser.prototype.initialize = function (options) {
     this.tree = options.tree;
 };
 
-/**
- * 销毁解析器
- *
- * @public
- * @abstract
- */
-Parser.prototype.destroy = function () {};
-
 Parser.prototype.setScope = function (scopeModel) {
     this.scopeModel = scopeModel;
 

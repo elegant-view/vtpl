@@ -4,9 +4,9 @@
  */
 
 var DirectiveParser = require('./DirectiveParser');
-var inherit = require('./inherit');
-var utils = require('./utils');
-var Tree = require('./Tree');
+var inherit = require('../inherit');
+var utils = require('../utils');
+var Tree = require('../Tree');
 
 function IfDirectiveParser(options) {
     DirectiveParser.call(this, options);
