@@ -1,5 +1,6 @@
 require('./src/parsers/ScopeDirectiveParser');
 require('./src/parsers/ComponentParser');
+require('./src/parsers/ChildrenDirectiveParser');
 
 var amdExports = {
     Config: require('./src/Config'),

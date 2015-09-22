@@ -6,7 +6,7 @@
 var inherit = require('../inherit');
 var DirectiveParser = require('./DirectiveParser');
 var utils = require('../utils');
-var Tree = require('../Tree');
+var ForTree = require('../ForTree');
 
 function ForDirectiveParser(options) {
     DirectiveParser.call(this, options);
@@ -99,7 +99,7 @@ ForDirectiveParser.getNoEndNodeError = function () {
 };
 
 module.exports = inherit(ForDirectiveParser, DirectiveParser);
-Tree.registeParser(module.exports);
+ForTree.registeParser(module.exports);
 
 function isForEndNode(node, config) {
     return node.nodeType === 8 && config.forEndPrefixRegExp.test(node.nodeValue);
@@ -148,13 +148,14 @@ function createTree(parser, config) {
         parser.endNode.parentNode.insertBefore(curNode, parser.endNode);
     });
 
-    var tree = new Tree({
+    var tree = new ForTree({
         startNode: startNode,
         endNode: endNode,
         config: config,
         domUpdater: parser.tree.domUpdater,
         exprCalculater: parser.tree.exprCalculater,
-        treeVars: parser.tree.treeVars
+        treeVars: parser.tree.treeVars,
+        componentChildren: parser.tree.componentChildren
     });
     tree.traverse();
     return tree;

@@ -1,6 +1,7 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 require('./src/parsers/ScopeDirectiveParser');
 require('./src/parsers/ComponentParser');
+require('./src/parsers/ChildrenDirectiveParser');
 
 var amdExports = {
     Config: require('./src/Config'),
@@ -24,7 +25,26 @@ define(function (require, exports, module) {
     module.exports = amdExports;
 });
 
-},{"./src/Component":2,"./src/ComponentManager":3,"./src/Config":4,"./src/DirtyChecker":5,"./src/DomUpdater":6,"./src/ExprCalculater":8,"./src/ScopeModel":9,"./src/Tree":10,"./src/inherit":11,"./src/parsers/ComponentParser":13,"./src/parsers/EventExprParser":15,"./src/parsers/ExprParser":16,"./src/parsers/ForDirectiveParser":17,"./src/parsers/IfDirectiveParser":18,"./src/parsers/Parser":19,"./src/parsers/ScopeDirectiveParser":20,"./src/parsers/VarDirectiveParser":21,"./src/utils":22}],2:[function(require,module,exports){
+},{"./src/Component":3,"./src/ComponentManager":5,"./src/Config":7,"./src/DirtyChecker":8,"./src/DomUpdater":9,"./src/ExprCalculater":11,"./src/ScopeModel":13,"./src/Tree":14,"./src/inherit":15,"./src/parsers/ChildrenDirectiveParser":17,"./src/parsers/ComponentParser":18,"./src/parsers/EventExprParser":20,"./src/parsers/ExprParser":21,"./src/parsers/ForDirectiveParser":22,"./src/parsers/IfDirectiveParser":23,"./src/parsers/Parser":24,"./src/parsers/ScopeDirectiveParser":25,"./src/parsers/VarDirectiveParser":26,"./src/utils":27}],2:[function(require,module,exports){
+var Tree = require('./Tree');
+var inherit = require('./inherit');
+
+function ChildrenTree(options) {
+    if (!options.config || !options.domUpdater
+        || !options.exprCalculater || !options.treeVars
+    ) {
+        throw new Error('wrong arguments');
+    }
+
+    options.componentChildren = undefined;
+    delete options.componentChildren;
+
+    Tree.call(this, options);
+}
+
+module.exports = inherit(ChildrenTree, Tree);
+
+},{"./Tree":14,"./inherit":15}],3:[function(require,module,exports){
 /**
  * @file 组件基类
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -32,7 +52,8 @@ define(function (require, exports, module) {
 
 var log = require('./log');
 var utils = require('./utils');
-var Tree = require('./Tree');
+var ComponentTree = require('./ComponentTree');
+var ComponentChildren = require('./ComponentChildren');
 
 function Component(options) {
     this.componentNode = options.componentNode;
@@ -53,43 +74,24 @@ Component.prototype.mount = function () {
     div.innerHTML = this.tpl;
     this.startNode = div.firstChild;
     this.endNode = div.lastChild;
-    this.children = {
-        startNode: this.componentNode.firstChild,
-        endNode: this.componentNode.lastChild
-    };
 
-    // 替换掉组件节点
-    var childNodes = div.childNodes;
-    while (childNodes.length) {
-        this.componentNode.parentNode.insertBefore(childNodes[0], this.componentNode);
-    }
-    this.componentNode.parentNode.removeChild(this.componentNode);
+    var parentNode = this.componentNode.parentNode;
+    utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
+        parentNode.insertBefore(curNode, this.componentNode);
+    }, this);
+    parentNode.removeChild(this.componentNode);
 
     // 组件的作用域是和外部的作用域隔开的
-    this.tree = new Tree(utils.extend({
+    this.tree = new ComponentTree(utils.extend({
         startNode: this.startNode,
-        endNode: this.endNode
+        endNode: this.endNode,
+        componentChildren: new ComponentChildren(
+            this.componentNode.firstChild,
+            this.componentNode.lastChild,
+            this.outScope
+        )
     }, this.treeOptions));
     this.tree.traverse();
-
-    // 找到 children 注释节点
-    this.childrenNode = findChildrenNode(this.startNode, this.endNode);
-
-    // 将 children 放到 children 注释节点前面
-    if (this.childrenNode) {
-        utils.traverseNodes(this.children.startNode, this.children.endNode, function (curNode) {
-            this.childrenNode.parentNode.insertBefore(curNode, this.childrenNode);
-        }, this);
-    }
-
-    // children 的作用域实际上和外部作用域是一致的，所以它的父作用域要设置成外部的作用域
-    this.childrenTree = new Tree(utils.extend({
-        startNode: this.children.startNode,
-        endNode: this.children.endNode
-    }, this.treeOptions));
-    this.childrenTree.rootScope.setParent(this.outScope);
-    this.outScope.addChild(this.childrenTree.rootScope);
-    this.childrenTree.traverse();
 };
 
 Component.prototype.getTpl = function (doneFn) {
@@ -124,24 +126,49 @@ Component.prototype.restoreFromDark = function () {
 
 module.exports = Component;
 
-function findChildrenNode(startNode, endNode) {
-    var childrenNode;
+function findChildrenNodes(startNode, endNode) {
+    var childrenNodes = [];
     utils.traverseNoChangeNodes(startNode, endNode, function (curNode) {
         if (curNode.nodeType === 8 && curNode.nodeValue.replace(/\s+/g, '') === 'children') {
-            childrenNode = curNode;
-            return true;
+            childrenNodes.push(curNode);
         }
-
-        if (curNode.nodeType === 1 && curNode.childNodes.length) {
-            childrenNode = findChildrenNode(curNode.firstChild, curNode.lastChild);
-            return !!childrenNode;
+        else if (curNode.nodeType === 1 && curNode.childNodes.length) {
+            Array.prototype.push.apply(childrenNodes, findChildrenNodes(curNode.firstChild, curNode.lastChild));
         }
     });
-    return childrenNode;
+    return childrenNodes;
 }
 
 
-},{"./Tree":10,"./log":12,"./utils":22}],3:[function(require,module,exports){
+},{"./ComponentChildren":4,"./ComponentTree":6,"./log":16,"./utils":27}],4:[function(require,module,exports){
+var utils = require('./utils');
+
+function ComponentChildren(startNode, endNode, scope) {
+    this.div = document.createElement('div');
+    if (!startNode || !endNode) {
+        this.div.innerHTML = '';
+    }
+    else {
+        utils.traverseNoChangeNodes(
+            startNode,
+            endNode,
+            function (curNode) {
+                this.div.appendChild(curNode);
+            },
+            this
+        );
+    }
+
+    this.scope = scope;
+}
+
+ComponentChildren.prototype.getTplHtml = function () {
+    return this.div.innerHTML;
+};
+
+module.exports = ComponentChildren;
+
+},{"./utils":27}],5:[function(require,module,exports){
 /**
  * @file 组件管理
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -165,7 +192,26 @@ function getClassName(klass) {
     return klass.toString().match(/^function\s*(\w+?)(?=\(\w*?\))/)[1];
 }
 
-},{}],4:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
+var Tree = require('./Tree');
+var inherit = require('./inherit');
+
+function ComponentTree(options) {
+    if (!options.config || !options.domUpdater
+        || !options.exprCalculater || !options.treeVars
+        || !options.componentChildren
+    ) {
+        throw new Error('wrong arguments');
+    }
+
+    Tree.call(this, options);
+
+    this.componentChildren = options.componentChildren;
+}
+
+module.exports = inherit(ComponentTree, Tree);
+
+},{"./Tree":14,"./inherit":15}],7:[function(require,module,exports){
 /**
  * @file 配置
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -296,7 +342,7 @@ function regExpEncode(str) {
     return '\\' + str.split('').join('\\');
 }
 
-},{}],5:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 /**
  * @file 脏检测器
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -320,7 +366,7 @@ DirtyChecker.prototype.destroy = function () {
 
 module.exports = DirtyChecker;
 
-},{}],6:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 /**
  * @file DOM 更新器
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -381,7 +427,7 @@ DomUpdater.prototype.execute = function (doneFn) {
 
 module.exports = DomUpdater;
 
-},{"./log":12,"./utils":22}],7:[function(require,module,exports){
+},{"./log":16,"./utils":27}],10:[function(require,module,exports){
 var utils = require('./utils');
 
 function Event() {
@@ -431,7 +477,7 @@ Event.prototype.off = function (eventName, fn) {
 
 module.exports = Event;
 
-},{"./utils":22}],8:[function(require,module,exports){
+},{"./utils":27}],11:[function(require,module,exports){
 var utils = require('./utils');
 
 function ExprCalculater() {
@@ -545,7 +591,25 @@ function getVariableNamesFromExpr(me, expr) {
     }
 }
 
-},{"./utils":22}],9:[function(require,module,exports){
+},{"./utils":27}],12:[function(require,module,exports){
+var Tree = require('./Tree');
+var inherit = require('./inherit');
+
+function ForTree(options) {
+    if (!options.config || !options.domUpdater
+        || !options.exprCalculater || !options.treeVars
+    ) {
+        throw new Error('wrong arguments');
+    }
+
+    Tree.call(this, options);
+
+    this.componentChildren = options.componentChildren;
+}
+
+module.exports = inherit(ForTree, Tree);
+
+},{"./Tree":14,"./inherit":15}],13:[function(require,module,exports){
 var utils = require('./utils');
 var Event = require('./Event');
 var inherit = require('./inherit');
@@ -600,7 +664,7 @@ function change(me) {
     });
 }
 
-},{"./Event":7,"./inherit":11,"./utils":22}],10:[function(require,module,exports){
+},{"./Event":10,"./inherit":15,"./utils":27}],14:[function(require,module,exports){
 /**
  * @file 最终的树
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -873,7 +937,7 @@ function createParser(ParserClass, options) {
 
 
 
-},{"./DomUpdater":6,"./ExprCalculater":8,"./ScopeModel":9,"./utils":22}],11:[function(require,module,exports){
+},{"./DomUpdater":9,"./ExprCalculater":11,"./ScopeModel":13,"./utils":27}],15:[function(require,module,exports){
 /**
  * @file 继承
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -905,7 +969,7 @@ function inherit(ChildClass, ParentClass) {
 
 module.exports = inherit;
 
-},{}],12:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 module.exports = {
     warn: function () {
         if (!console || !console.warn) {
@@ -915,7 +979,71 @@ module.exports = {
         console.warn.apply(console, arguments);
     }
 };
-},{}],13:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
+/**
+ * @file children 指令 <!-- children -->
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+var inherit = require('../inherit');
+var DirectiveParser = require('./DirectiveParser');
+var utils = require('../utils');
+var ChildrenTree = require('../ChildrenTree');
+
+function ChildrenDirectiveParser(options) {
+    DirectiveParser.call(this, options);
+}
+
+ChildrenDirectiveParser.prototype.initialize = function (options) {
+    DirectiveParser.prototype.initialize.apply(this, arguments);
+
+    this.node = options.node;
+};
+
+ChildrenDirectiveParser.prototype.collectExprs = function () {
+    var componentChildren = this.tree.componentChildren;
+    if (!componentChildren) {
+        return;
+    }
+
+    var div = document.createElement('div');
+    div.innerHTML = componentChildren.getTplHtml();
+
+    this.childrenTree = new ChildrenTree({
+        startNode: div.firstChild,
+        endNode: div.lastChild,
+        config: this.tree.config,
+        domUpdater: this.tree.domUpdater,
+        exprCalculater: this.tree.exprCalculater,
+        treeVars: this.tree.treeVars
+    });
+    this.childrenTree.traverse();
+
+    this.childrenTree.rootScope.setParent(componentChildren.scope);
+    componentChildren.scope.addChild(this.childrenTree.rootScope);
+
+    while (div.childNodes.length) {
+        this.node.parentNode.insertBefore(div.childNodes[0], this.node);
+    }
+
+    return true;
+};
+
+ChildrenDirectiveParser.prototype.destroy = function () {
+    this.childrenTree.destroy();
+
+    DirectiveParser.prototype.destroy.call(this);
+};
+
+ChildrenDirectiveParser.isProperNode = function (node, config) {
+    return node.nodeType === 8
+        && node.nodeValue.replace(/\s/g, '') === 'children';
+};
+
+module.exports = inherit(ChildrenDirectiveParser, DirectiveParser);
+ChildrenTree.registeParser(module.exports);
+
+},{"../ChildrenTree":2,"../inherit":15,"../utils":27,"./DirectiveParser":19}],18:[function(require,module,exports){
 /**
  * @file 组件解析器
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -998,7 +1126,8 @@ ComponentParser.prototype.setScope = function (scopeModel) {
         treeOptions: {
             exprCalculater: this.tree.exprCalculater,
             domUpdater: this.tree.domUpdater,
-            config: this.tree.config
+            config: this.tree.config,
+            treeVars: this.tree.treeVars
         },
         outScope: this.scopeModel
     });
@@ -1058,7 +1187,7 @@ function getClass(instance) {
     return instance.constructor;
 }
 
-},{"../ComponentManager":3,"../Tree":10,"../inherit":11,"../utils":22,"./Parser":19}],14:[function(require,module,exports){
+},{"../ComponentManager":5,"../Tree":14,"../inherit":15,"../utils":27,"./Parser":24}],19:[function(require,module,exports){
 /**
  * @file 指令解析器抽象类。指令节点一定是注释节点
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1077,7 +1206,7 @@ DirectiveParser.isProperNode = function (node, config) {
 
 module.exports = inherit(DirectiveParser, Parser);
 
-},{"../inherit":11,"./Parser":19}],15:[function(require,module,exports){
+},{"../inherit":15,"./Parser":24}],20:[function(require,module,exports){
 /**
  * @file 处理了事件的 ExprParser
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1152,7 +1281,7 @@ function getEventName(attrName, config) {
 }
 
 
-},{"../ScopeModel":9,"../Tree":10,"../inherit":11,"../utils":22,"./ExprParser":16}],16:[function(require,module,exports){
+},{"../ScopeModel":13,"../Tree":14,"../inherit":15,"../utils":27,"./ExprParser":21}],21:[function(require,module,exports){
 /**
  * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1344,7 +1473,7 @@ function createExprFn(parser, expr) {
     };
 }
 
-},{"../Tree":10,"../inherit":11,"../utils":22,"./Parser":19}],17:[function(require,module,exports){
+},{"../Tree":14,"../inherit":15,"../utils":27,"./Parser":24}],22:[function(require,module,exports){
 /**
  * @file for 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1353,7 +1482,7 @@ function createExprFn(parser, expr) {
 var inherit = require('../inherit');
 var DirectiveParser = require('./DirectiveParser');
 var utils = require('../utils');
-var Tree = require('../Tree');
+var ForTree = require('../ForTree');
 
 function ForDirectiveParser(options) {
     DirectiveParser.call(this, options);
@@ -1446,7 +1575,7 @@ ForDirectiveParser.getNoEndNodeError = function () {
 };
 
 module.exports = inherit(ForDirectiveParser, DirectiveParser);
-Tree.registeParser(module.exports);
+ForTree.registeParser(module.exports);
 
 function isForEndNode(node, config) {
     return node.nodeType === 8 && config.forEndPrefixRegExp.test(node.nodeValue);
@@ -1495,19 +1624,20 @@ function createTree(parser, config) {
         parser.endNode.parentNode.insertBefore(curNode, parser.endNode);
     });
 
-    var tree = new Tree({
+    var tree = new ForTree({
         startNode: startNode,
         endNode: endNode,
         config: config,
         domUpdater: parser.tree.domUpdater,
         exprCalculater: parser.tree.exprCalculater,
-        treeVars: parser.tree.treeVars
+        treeVars: parser.tree.treeVars,
+        componentChildren: parser.tree.componentChildren
     });
     tree.traverse();
     return tree;
 }
 
-},{"../Tree":10,"../inherit":11,"../utils":22,"./DirectiveParser":14}],18:[function(require,module,exports){
+},{"../ForTree":12,"../inherit":15,"../utils":27,"./DirectiveParser":19}],23:[function(require,module,exports){
 /**
  * @file if 指令
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1672,7 +1802,7 @@ function getIfNodeType(node, config) {
     }
 }
 
-},{"../Tree":10,"../inherit":11,"../utils":22,"./DirectiveParser":14}],19:[function(require,module,exports){
+},{"../Tree":14,"../inherit":15,"../utils":27,"./DirectiveParser":19}],24:[function(require,module,exports){
 /**
  * @file 解析器的抽象基类
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1772,7 +1902,7 @@ Parser.prototype.destroy = function () {
 
 module.exports = Parser;
 
-},{}],20:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 var inherit = require('../inherit');
 var DirectiveParser = require('./DirectiveParser');
 var utils = require('../utils');
@@ -1844,7 +1974,7 @@ function isEndNode(node, config) {
         && node.nodeValue.replace(/\s+/g, '') === config.scopeEndName;
 }
 
-},{"../ScopeModel":9,"../Tree":10,"../inherit":11,"../utils":22,"./DirectiveParser":14}],21:[function(require,module,exports){
+},{"../ScopeModel":13,"../Tree":14,"../inherit":15,"../utils":27,"./DirectiveParser":19}],26:[function(require,module,exports){
 /**
  * @file 变量定义指令解析器
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1895,7 +2025,7 @@ module.exports = inherit(VarDirectiveParser, DirectiveParser);
 Tree.registeParser(VarDirectiveParser);
 
 
-},{"../Tree":10,"../inherit":11,"./DirectiveParser":14}],22:[function(require,module,exports){
+},{"../Tree":14,"../inherit":15,"./DirectiveParser":19}],27:[function(require,module,exports){
 /**
  * @file 一堆项目里面常用的方法
  * @author yibuyisheng(yibuyisheng@163.com)

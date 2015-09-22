@@ -80,7 +80,8 @@ ComponentParser.prototype.setScope = function (scopeModel) {
         treeOptions: {
             exprCalculater: this.tree.exprCalculater,
             domUpdater: this.tree.domUpdater,
-            config: this.tree.config
+            config: this.tree.config,
+            treeVars: this.tree.treeVars
         },
         outScope: this.scopeModel
     });

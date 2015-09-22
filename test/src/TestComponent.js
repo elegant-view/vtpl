@@ -5,7 +5,11 @@ require(['/dist/main'], function (main) {
         main.Component.call(this, options);
     }
 
-    TestComponent.prototype.tpl = '<div><!-- children --></div>';
+    TestComponent.prototype.tpl = [
+        '<div>',
+            '<!-- children -->',
+        '</div>'
+    ].join('');
 
     main.inherit(TestComponent, main.Component);
     ComponentManager.registe(TestComponent);
