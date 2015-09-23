@@ -2,7 +2,7 @@ var inherit = require('../inherit');
 var DirectiveParser = require('./DirectiveParser');
 var utils = require('../utils');
 var ScopeModel = require('../ScopeModel');
-var Tree = require('../Tree');
+var Tree = require('../trees/Tree');
 
 function ScopeDirectiveParser(options) {
     DirectiveParser.call(this, options);

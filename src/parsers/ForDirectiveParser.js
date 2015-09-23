@@ -6,7 +6,7 @@
 var inherit = require('../inherit');
 var DirectiveParser = require('./DirectiveParser');
 var utils = require('../utils');
-var ForTree = require('../ForTree');
+var ForTree = require('../trees/ForTree');
 
 function ForDirectiveParser(options) {
     DirectiveParser.call(this, options);

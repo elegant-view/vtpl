@@ -7,11 +7,16 @@ require(['/dist/main'], function (main) {
 
     TestComponent.prototype.tpl = [
         '<div>',
+            '${name}',
             '<!-- for: ${list} as ${item} -->',
             '<!-- children -->',
             '<!-- /for -->',
         '</div>'
     ].join('');
+
+    TestComponent.prototype.afterMount = function () {
+        this.setData('name', '李四');
+    };
 
     main.inherit(TestComponent, main.Component);
     ComponentManager.registe(TestComponent);

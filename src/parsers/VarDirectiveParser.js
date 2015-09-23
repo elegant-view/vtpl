@@ -5,7 +5,7 @@
 
 var DirectiveParser = require('./DirectiveParser');
 var inherit = require('../inherit');
-var Tree = require('../Tree');
+var Tree = require('../trees/Tree');
 
 function VarDirectiveParser(options) {
     DirectiveParser.call(this, options);
@@ -33,10 +33,6 @@ VarDirectiveParser.prototype.setScope = function (scopeModel) {
     DirectiveParser.prototype.setScope.apply(this, arguments);
     this.exprFn(this.scopeModel);
 };
-
-// VarDirectiveParser.prototype.onChange = function () {
-//     this.exprFn(this.scopeModel);
-// };
 
 VarDirectiveParser.isProperNode = function (node, config) {
     return node.nodeType === 8

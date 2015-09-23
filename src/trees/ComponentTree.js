@@ -1,9 +1,10 @@
 var Tree = require('./Tree');
-var inherit = require('./inherit');
+var inherit = require('../inherit');
 
-function ForTree(options) {
+function ComponentTree(options) {
     if (!options.config || !options.domUpdater
         || !options.exprCalculater || !options.treeVars
+        || !options.componentChildren
     ) {
         throw new Error('wrong arguments');
     }
@@ -13,4 +14,4 @@ function ForTree(options) {
     this.componentChildren = options.componentChildren;
 }
 
-module.exports = inherit(ForTree, Tree);
+module.exports = inherit(ComponentTree, Tree);

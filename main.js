@@ -4,7 +4,7 @@ require('./src/parsers/ChildrenDirectiveParser');
 
 var amdExports = {
     Config: require('./src/Config'),
-    Tree: require('./src/Tree'),
+    Tree: require('./src/trees/Tree'),
     DirtyChecker: require('./src/DirtyChecker'),
     Parser: require('./src/parsers/Parser'),
     ForDirectiveParser: require('./src/parsers/ForDirectiveParser'),

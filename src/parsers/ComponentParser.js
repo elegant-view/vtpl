@@ -5,7 +5,7 @@
 
 var inherit = require('../inherit');
 var Parser = require('./Parser');
-var Tree = require('../Tree');
+var Tree = require('../trees/Tree');
 var ComponentManager = require('../ComponentManager');
 var utils = require('../utils');
 

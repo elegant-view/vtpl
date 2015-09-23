@@ -5,7 +5,7 @@ require('./src/parsers/ChildrenDirectiveParser');
 
 var amdExports = {
     Config: require('./src/Config'),
-    Tree: require('./src/Tree'),
+    Tree: require('./src/trees/Tree'),
     DirtyChecker: require('./src/DirtyChecker'),
     Parser: require('./src/parsers/Parser'),
     ForDirectiveParser: require('./src/parsers/ForDirectiveParser'),
@@ -25,26 +25,7 @@ define(function (require, exports, module) {
     module.exports = amdExports;
 });
 
-},{"./src/Component":3,"./src/ComponentManager":5,"./src/Config":7,"./src/DirtyChecker":8,"./src/DomUpdater":9,"./src/ExprCalculater":11,"./src/ScopeModel":13,"./src/Tree":14,"./src/inherit":15,"./src/parsers/ChildrenDirectiveParser":17,"./src/parsers/ComponentParser":18,"./src/parsers/EventExprParser":20,"./src/parsers/ExprParser":21,"./src/parsers/ForDirectiveParser":22,"./src/parsers/IfDirectiveParser":23,"./src/parsers/Parser":24,"./src/parsers/ScopeDirectiveParser":25,"./src/parsers/VarDirectiveParser":26,"./src/utils":27}],2:[function(require,module,exports){
-var Tree = require('./Tree');
-var inherit = require('./inherit');
-
-function ChildrenTree(options) {
-    if (!options.config || !options.domUpdater
-        || !options.exprCalculater || !options.treeVars
-    ) {
-        throw new Error('wrong arguments');
-    }
-
-    options.componentChildren = undefined;
-    delete options.componentChildren;
-
-    Tree.call(this, options);
-}
-
-module.exports = inherit(ChildrenTree, Tree);
-
-},{"./Tree":14,"./inherit":15}],3:[function(require,module,exports){
+},{"./src/Component":2,"./src/ComponentManager":4,"./src/Config":5,"./src/DirtyChecker":6,"./src/DomUpdater":7,"./src/ExprCalculater":9,"./src/ScopeModel":10,"./src/inherit":11,"./src/parsers/ChildrenDirectiveParser":13,"./src/parsers/ComponentParser":14,"./src/parsers/EventExprParser":16,"./src/parsers/ExprParser":17,"./src/parsers/ForDirectiveParser":18,"./src/parsers/IfDirectiveParser":19,"./src/parsers/Parser":20,"./src/parsers/ScopeDirectiveParser":21,"./src/parsers/VarDirectiveParser":22,"./src/trees/Tree":26,"./src/utils":27}],2:[function(require,module,exports){
 /**
  * @file 组件基类
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -52,34 +33,78 @@ module.exports = inherit(ChildrenTree, Tree);
 
 var log = require('./log');
 var utils = require('./utils');
-var ComponentTree = require('./ComponentTree');
+var ComponentTree = require('./trees/ComponentTree');
 var ComponentChildren = require('./ComponentChildren');
 
 function Component(options) {
     this.componentNode = options.componentNode;
     this.treeOptions = options.treeOptions;
     this.outScope = options.outScope;
+
+    this.initialize();
 }
 
+/**
+ * 初始化。子类可以覆盖这个方法，做一些初始化的工作。
+ *
+ * @protected
+ */
+Component.prototype.initialize = function () {};
+
+Component.prototype.beforeMount = function () {};
+
+Component.prototype.afterMount = function () {};
+
+Component.prototype.beforeDestroy = function () {};
+
+Component.prototype.afterDestroy = function () {};
+
+/**
+ * 组件模板。子类可以覆盖这个属性。
+ *
+ * @protected
+ * @type {String}
+ */
 Component.prototype.tpl = '';
 
+/**
+ * 组件模板的 url 地址。子类可以覆盖这个属性。
+ *
+ * @protected
+ * @type {String}
+ */
 Component.prototype.tplUrl = '';
 
+/**
+ * 设置组件属性。假如有如下组件：
+ *
+ * <ui-my-component title="${title}" name="Amy"></ui-my-component>
+ *
+ * 那么属性就有 title 和 name ，其中 name 的属性值不是一个表达式，所以在组件创建完成之后，就会被设置好；
+ * 而 title 属性值是一个表达式，需要监听 ${title} 表达式的值及其变化，然后再设置进来。
+ *
+ * 设置进来的值会被直接放到组件对应的 ComponentTree 实例的 rootScope 上面去。
+ *
+ * @public
+ * @param {string} name  属性名
+ * @param {Any} value 属性值
+ */
 Component.prototype.setAttr = function (name, value) {
     this.tree.rootScope.set(name, value);
 };
 
+/**
+ * 组件挂载到 DOM 树中去。
+ *
+ * @private
+ */
 Component.prototype.mount = function () {
+    this.beforeMount();
+
     var div = document.createElement('div');
     div.innerHTML = this.tpl;
     this.startNode = div.firstChild;
     this.endNode = div.lastChild;
-
-    var parentNode = this.componentNode.parentNode;
-    utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
-        parentNode.insertBefore(curNode, this.componentNode);
-    }, this);
-    parentNode.removeChild(this.componentNode);
 
     // 组件的作用域是和外部的作用域隔开的
     this.tree = new ComponentTree(utils.extend({
@@ -92,8 +117,31 @@ Component.prototype.mount = function () {
         )
     }, this.treeOptions));
     this.tree.traverse();
+
+    // 把组件节点放到 DOM 树中去
+    var parentNode = this.componentNode.parentNode;
+    utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
+        parentNode.insertBefore(curNode, this.componentNode);
+    }, this);
+    parentNode.removeChild(this.componentNode);
+
+    this.afterMount();
 };
 
+Component.prototype.setData = function () {
+    if (!this.tree || !this.tree.rootScope) {
+        throw new Error('component is not ready');
+    }
+    var scope = this.tree.rootScope;
+    scope.set.apply(scope, arguments);
+};
+
+/**
+ * 拿到到组件模板。优先检查 tpl 是否有模板，如果有了，就不再去请求了。
+ *
+ * @public
+ * @param  {function(string)} doneFn 模板就绪后的回调函数
+ */
 Component.prototype.getTpl = function (doneFn) {
     if (this.tpl) {
         doneFn();
@@ -112,14 +160,39 @@ Component.prototype.getTpl = function (doneFn) {
     }
 };
 
+/**
+ * 销毁
+ *
+ * @public
+ */
 Component.prototype.destroy = function () {
+    this.beforeDestroy();
 
+    this.tree.destroy();
+
+    this.componentNode = null;
+    this.treeOptions = null;
+    this.outScope = null;
+    this.startNode = null;
+    this.endNode = null;
+
+    this.afterDestroy();
 };
 
+/**
+ * 隐藏模板
+ *
+ * @public
+ */
 Component.prototype.goDark = function () {
     utils.traverseNoChangeNodes(this.startNode, this.endNode, utils.goDark, this);
 };
 
+/**
+ * 显示模板
+ *
+ * @public
+ */
 Component.prototype.restoreFromDark = function () {
     utils.traverseNoChangeNodes(this.startNode, this.endNode, utils.restoreFromDark, this);
 };
@@ -140,7 +213,7 @@ function findChildrenNodes(startNode, endNode) {
 }
 
 
-},{"./ComponentChildren":4,"./ComponentTree":6,"./log":16,"./utils":27}],4:[function(require,module,exports){
+},{"./ComponentChildren":3,"./log":12,"./trees/ComponentTree":24,"./utils":27}],3:[function(require,module,exports){
 var utils = require('./utils');
 
 function ComponentChildren(startNode, endNode, scope) {
@@ -168,7 +241,7 @@ ComponentChildren.prototype.getTplHtml = function () {
 
 module.exports = ComponentChildren;
 
-},{"./utils":27}],5:[function(require,module,exports){
+},{"./utils":27}],4:[function(require,module,exports){
 /**
  * @file 组件管理
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -192,26 +265,7 @@ function getClassName(klass) {
     return klass.toString().match(/^function\s*(\w+?)(?=\(\w*?\))/)[1];
 }
 
-},{}],6:[function(require,module,exports){
-var Tree = require('./Tree');
-var inherit = require('./inherit');
-
-function ComponentTree(options) {
-    if (!options.config || !options.domUpdater
-        || !options.exprCalculater || !options.treeVars
-        || !options.componentChildren
-    ) {
-        throw new Error('wrong arguments');
-    }
-
-    Tree.call(this, options);
-
-    this.componentChildren = options.componentChildren;
-}
-
-module.exports = inherit(ComponentTree, Tree);
-
-},{"./Tree":14,"./inherit":15}],7:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 /**
  * @file 配置
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -342,7 +396,7 @@ function regExpEncode(str) {
     return '\\' + str.split('').join('\\');
 }
 
-},{}],8:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 /**
  * @file 脏检测器
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -366,7 +420,7 @@ DirtyChecker.prototype.destroy = function () {
 
 module.exports = DirtyChecker;
 
-},{}],9:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 /**
  * @file DOM 更新器
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -427,7 +481,7 @@ DomUpdater.prototype.execute = function (doneFn) {
 
 module.exports = DomUpdater;
 
-},{"./log":16,"./utils":27}],10:[function(require,module,exports){
+},{"./log":12,"./utils":27}],8:[function(require,module,exports){
 var utils = require('./utils');
 
 function Event() {
@@ -477,7 +531,7 @@ Event.prototype.off = function (eventName, fn) {
 
 module.exports = Event;
 
-},{"./utils":27}],11:[function(require,module,exports){
+},{"./utils":27}],9:[function(require,module,exports){
 var utils = require('./utils');
 
 function ExprCalculater() {
@@ -591,25 +645,7 @@ function getVariableNamesFromExpr(me, expr) {
     }
 }
 
-},{"./utils":27}],12:[function(require,module,exports){
-var Tree = require('./Tree');
-var inherit = require('./inherit');
-
-function ForTree(options) {
-    if (!options.config || !options.domUpdater
-        || !options.exprCalculater || !options.treeVars
-    ) {
-        throw new Error('wrong arguments');
-    }
-
-    Tree.call(this, options);
-
-    this.componentChildren = options.componentChildren;
-}
-
-module.exports = inherit(ForTree, Tree);
-
-},{"./Tree":14,"./inherit":15}],13:[function(require,module,exports){
+},{"./utils":27}],10:[function(require,module,exports){
 var utils = require('./utils');
 var Event = require('./Event');
 var inherit = require('./inherit');
@@ -664,16 +700,1160 @@ function change(me) {
     });
 }
 
-},{"./Event":10,"./inherit":15,"./utils":27}],14:[function(require,module,exports){
+},{"./Event":8,"./inherit":11,"./utils":27}],11:[function(require,module,exports){
+/**
+ * @file 继承
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+function inherit(ChildClass, ParentClass) {
+    function Cls() {}
+
+    Cls.prototype = ParentClass.prototype;
+    var childProto = ChildClass.prototype;
+    ChildClass.prototype = new Cls();
+
+    var key;
+    for (key in childProto) {
+        ChildClass.prototype[key] = childProto[key];
+    }
+
+    // 继承静态属性
+    for (key in ParentClass) {
+        if (ParentClass.hasOwnProperty(key)) {
+            if (ChildClass[key] === undefined) {
+                ChildClass[key] = ParentClass[key];
+            }
+        }
+    }
+
+    return ChildClass;
+}
+
+module.exports = inherit;
+
+},{}],12:[function(require,module,exports){
+module.exports = {
+    warn: function () {
+        if (!console || !console.warn) {
+            return;
+        }
+
+        console.warn.apply(console, arguments);
+    }
+};
+},{}],13:[function(require,module,exports){
+/**
+ * @file children 指令 <!-- children --> ，只有组件中才会存在该指令
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+var inherit = require('../inherit');
+var DirectiveParser = require('./DirectiveParser');
+var ChildrenTree = require('../trees/ChildrenTree');
+
+function ChildrenDirectiveParser(options) {
+    DirectiveParser.call(this, options);
+}
+
+ChildrenDirectiveParser.prototype.initialize = function (options) {
+    DirectiveParser.prototype.initialize.apply(this, arguments);
+
+    this.node = options.node;
+};
+
+ChildrenDirectiveParser.prototype.collectExprs = function () {
+    var componentChildren = this.tree.componentChildren;
+    if (!componentChildren) {
+        return;
+    }
+
+    var div = document.createElement('div');
+    div.innerHTML = componentChildren.getTplHtml();
+
+    this.childrenTree = new ChildrenTree({
+        startNode: div.firstChild,
+        endNode: div.lastChild,
+        config: this.tree.config,
+        domUpdater: this.tree.domUpdater,
+        exprCalculater: this.tree.exprCalculater,
+        treeVars: this.tree.treeVars
+    });
+    this.childrenTree.traverse();
+
+    this.childrenTree.rootScope.setParent(componentChildren.scope);
+    componentChildren.scope.addChild(this.childrenTree.rootScope);
+
+    while (div.childNodes.length) {
+        this.node.parentNode.insertBefore(div.childNodes[0], this.node);
+    }
+
+    return true;
+};
+
+ChildrenDirectiveParser.prototype.destroy = function () {
+    this.childrenTree.destroy();
+
+    DirectiveParser.prototype.destroy.call(this);
+};
+
+ChildrenDirectiveParser.isProperNode = function (node, config) {
+    return node.nodeType === 8
+        && node.nodeValue.replace(/\s/g, '') === 'children';
+};
+
+module.exports = inherit(ChildrenDirectiveParser, DirectiveParser);
+ChildrenTree.registeParser(module.exports);
+
+},{"../inherit":11,"../trees/ChildrenTree":23,"./DirectiveParser":15}],14:[function(require,module,exports){
+/**
+ * @file 组件解析器
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+var inherit = require('../inherit');
+var Parser = require('./Parser');
+var Tree = require('../trees/Tree');
+var ComponentManager = require('../ComponentManager');
+var utils = require('../utils');
+
+function ComponentParser(options) {
+    Parser.call(this, options);
+}
+
+ComponentParser.prototype.initialize = function (options) {
+    Parser.prototype.initialize.apply(this, arguments);
+
+    var componentManager = this.tree.getTreeVar('componentManager');
+    if (!componentManager) {
+        componentManager = new ComponentManager();
+        this.tree.setTreeVar('componentManager', componentManager);
+    }
+
+    this.node = options.node;
+
+    this.exprs = [];
+    this.exprFns = {};
+    this.updateFns = {};
+    this.exprOldValues = {};
+};
+
+ComponentParser.prototype.collectExprs = function () {
+    var curNode = this.node;
+
+    var attributes = curNode.attributes;
+    this.setLiteralAttrsFns = [];
+    for (var i = 0, il = attributes.length; i < il; i++) {
+        var attr = attributes[i];
+        var expr = attr.nodeValue;
+        if (this.config.getExprRegExp().test(expr)) {
+            this.exprs.push(expr);
+            if (!this.exprFns[expr]) {
+                var rawExpr = expr.replace(this.config.getExprRegExp(), function () {
+                    return arguments[1];
+                });
+                this.exprCalculater.createExprFn(rawExpr);
+                this.exprFns[expr] = utils.bind(function (rawExpr, exprCalculater, scopeModel) {
+                    return exprCalculater.calculate(rawExpr, false, scopeModel);
+                }, null, rawExpr, this.exprCalculater);
+
+                this.updateFns[expr] = this.updateFns[expr] || [];
+                this.updateFns[expr].push(utils.bind(function (name, exprValue, component) {
+                    component.setAttr(name, exprValue);
+                }, null, attr.nodeName));
+            }
+        }
+        else {
+            this.setLiteralAttrsFns.push(utils.bind(function (attr, component) {
+                component.setAttr(attr.nodeName, attr.nodeValue);
+            }, null, attr));
+        }
+    }
+    return true;
+};
+
+ComponentParser.prototype.setScope = function (scopeModel) {
+    Parser.prototype.setScope.apply(this, arguments);
+
+    var componentName = this.node.tagName.toLowerCase().replace('ui', '')
+        .replace(/-[a-z]/g, function () {
+            return arguments[0][1].toUpperCase();
+        });
+
+    var componentManager = this.tree.getTreeVar('componentManager');
+    var ComponentClass = componentManager.getClass(componentName);
+    if (!ComponentClass) {
+        throw new Error('the component `' + componentName + '` is not registed!');
+    }
+
+    this.component = new ComponentClass({
+        componentNode: this.node,
+        treeOptions: {
+            exprCalculater: this.tree.exprCalculater,
+            domUpdater: this.tree.domUpdater,
+            config: this.tree.config,
+            treeVars: this.tree.treeVars
+        },
+        outScope: this.scopeModel
+    });
+
+    for (var i = 0, il = this.setLiteralAttrsFns.length; i < il; i++) {
+        this.setLiteralAttrsFns[i](this.component);
+    }
+
+    var me = this;
+    this.component.getTpl(function () {
+        me.component.mount();
+    });
+};
+
+ComponentParser.prototype.onChange = function () {
+    if (this.isGoDark) {
+        return;
+    }
+
+    var exprs = this.exprs;
+    var exprOldValues = this.exprOldValues;
+    for (var i = 0, il = exprs.length; i < il; i++) {
+        var expr = exprs[i];
+        var exprValue = this.exprFns[expr](this.scopeModel);
+
+        if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
+            var updateFns = this.updateFns[expr];
+            for (var j = 0, jl = updateFns.length; j < jl; j++) {
+                updateFns[j](exprValue, this.component);
+            }
+        }
+
+        exprOldValues[expr] = exprValue;
+    }
+
+    Parser.prototype.onChange.apply(this, arguments);
+};
+
+ComponentParser.prototype.goDark = function () {
+    this.component.goDark();
+    this.isGoDark = true;
+};
+
+ComponentParser.prototype.restoreFromDark = function () {
+    this.component.restoreFromDark();
+    this.isGoDark = false;
+};
+
+ComponentParser.isProperNode = function (node, config) {
+    return node.nodeType === 1 && node.tagName.toLowerCase().indexOf('ui-') === 0;
+};
+
+module.exports = inherit(ComponentParser, Parser);
+Tree.registeParser(ComponentParser);
+
+function getClass(instance) {
+    return instance.constructor;
+}
+
+},{"../ComponentManager":4,"../inherit":11,"../trees/Tree":26,"../utils":27,"./Parser":20}],15:[function(require,module,exports){
+/**
+ * @file 指令解析器抽象类。指令节点一定是注释节点
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+var inherit = require('../inherit');
+var Parser = require('./Parser');
+
+function DirectiveParser(options) {
+    Parser.call(this, options);
+}
+
+DirectiveParser.isProperNode = function (node, config) {
+    return node.nodeType === 8;
+};
+
+module.exports = inherit(DirectiveParser, Parser);
+
+},{"../inherit":11,"./Parser":20}],16:[function(require,module,exports){
+/**
+ * @file 处理了事件的 ExprParser
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+var ExprParser = require('./ExprParser');
+var inherit = require('../inherit');
+var utils = require('../utils');
+var Tree = require('../trees/Tree');
+var ScopeModel = require('../ScopeModel');
+
+function EventExprParser(options) {
+    ExprParser.call(this, options);
+}
+
+EventExprParser.prototype.initialize = function (options) {
+    ExprParser.prototype.initialize.apply(this, arguments);
+
+    this.events = {};
+};
+
+EventExprParser.prototype.addExpr = function (attr) {
+    if (!attr) {
+        return ExprParser.prototype.addExpr.apply(this, arguments);
+    }
+
+    var eventName = getEventName(attr.name, this.config);
+    if (eventName) {
+        if (this.config.getExprRegExp().test(attr.value)) {
+            this.events[eventName] = attr.value;
+
+            var expr = attr.value.replace(
+                this.config.getExprRegExp(),
+                function () {
+                    return arguments[1];
+                }
+            );
+            this.exprCalculater.createExprFn(expr, true);
+
+            var me = this;
+            this.node['on' + eventName] = function (event) {
+                var localScope = new ScopeModel();
+                localScope.setParent(me.getScope());
+                me.exprCalculater.calculate(expr, true, localScope);
+            };
+        }
+    }
+    else {
+        ExprParser.prototype.addExpr.apply(this, arguments);
+    }
+};
+
+EventExprParser.prototype.destroy = function () {
+    utils.each(this.events, function (attrValue, eventName) {
+        this.node['on' + eventName] = null;
+    }, this);
+    this.events = null;
+
+    ExprParser.prototype.destroy.call(this);
+};
+
+module.exports = inherit(EventExprParser, ExprParser);
+Tree.registeParser(module.exports);
+
+
+function getEventName(attrName, config) {
+    if (attrName.indexOf(config.eventPrefix + '-') === -1) {
+        return;
+    }
+
+    return attrName.replace(config.eventPrefix + '-', '');
+}
+
+
+},{"../ScopeModel":10,"../inherit":11,"../trees/Tree":26,"../utils":27,"./ExprParser":17}],17:[function(require,module,exports){
+/**
+ * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+var Parser = require('./Parser');
+var inherit = require('../inherit');
+var utils = require('../utils');
+var Tree = require('../trees/Tree');
+
+function ExprParser(options) {
+    Parser.call(this, options);
+}
+
+ExprParser.prototype.initialize = function (options) {
+    Parser.prototype.initialize.apply(this, arguments);
+
+    this.node = options.node;
+
+    this.exprs = [];
+    this.exprFns = {};
+    this.updateFns = {};
+    this.restoreFns = {}; // 恢复原貌的函数
+    this.exprOldValues = {};
+};
+
+/**
+ * 搜集过程
+ *
+ * @public
+ * @return {boolean} 返回布尔值
+ */
+ExprParser.prototype.collectExprs = function () {
+    var curNode = this.node;
+
+    // 文本节点
+    if (curNode.nodeType === 3) {
+        this.addExpr();
+        return true;
+    }
+
+    // 元素节点
+    if (curNode.nodeType === 1) {
+        var attributes = curNode.attributes;
+        for (var i = 0, il = attributes.length; i < il; i++) {
+            this.addExpr(attributes[i]);
+        }
+        return true;
+    }
+
+    return false;
+};
+
+/**
+ * 添加表达式
+ *
+ * @protected
+ * @param {Attr} attr 如果当前是元素节点，则要传入遍历到的属性
+ */
+ExprParser.prototype.addExpr = function (attr) {
+    var expr = attr ? attr.value : this.node.nodeValue;
+    if (!this.config.getExprRegExp().test(expr)) {
+        return;
+    }
+    addExpr(
+        this,
+        expr,
+        attr ? createAttrUpdateFn(attr, this.domUpdater) : (function (me, curNode) {
+            var taskId = me.domUpdater.generateTaskId();
+            return function (exprValue) {
+                me.domUpdater.addTaskFn(
+                    taskId,
+                    utils.bind(function (curNode, exprValue) {
+                        curNode.nodeValue = exprValue;
+                    }, null, curNode, exprValue)
+                );
+            };
+        })(this, this.node)
+    );
+
+    this.restoreFns[expr] = this.restoreFns[expr] || [];
+    if (attr) {
+        this.restoreFns[expr].push(utils.bind(function (curNode, attrName, attrValue) {
+            curNode.setAttribute(attrName, attrValue);
+        }, null, this.node, attr.name, attr.value));
+    }
+    else {
+        this.restoreFns[expr].push(utils.bind(function (curNode, nodeValue) {
+            curNode.nodeValue = nodeValue;
+        }, null, this.node, this.node.nodeValue));
+    }
+};
+
+ExprParser.prototype.destroy = function () {
+    utils.each(this.exprs, function (expr) {
+        utils.each(this.restoreFns[expr], function (restoreFn) {
+            restoreFn();
+        }, this);
+    }, this);
+
+    this.node = null;
+    this.exprs = null;
+    this.exprFns = null;
+    this.updateFns = null;
+    this.exprOldValues = null;
+    this.restoreFns = null;
+
+    Parser.prototype.destroy.call(this);
+};
+
+/**
+ * 节点“隐藏”起来
+ *
+ * @public
+ */
+ExprParser.prototype.goDark = function () {
+    utils.goDark(this.node);
+    this.isGoDark = true;
+};
+
+ExprParser.prototype.onChange = function () {
+    if (this.isGoDark) {
+        return;
+    }
+
+    var exprs = this.exprs;
+    var exprOldValues = this.exprOldValues;
+    for (var i = 0, il = exprs.length; i < il; i++) {
+        var expr = exprs[i];
+        var exprValue = this.exprFns[expr](this.scopeModel);
+
+        if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
+            var updateFns = this.updateFns[expr];
+            for (var j = 0, jl = updateFns.length; j < jl; j++) {
+                updateFns[j](exprValue);
+            }
+        }
+
+        exprOldValues[expr] = exprValue;
+    }
+
+    Parser.prototype.onChange.apply(this, arguments);
+};
+
+/**
+ * 节点“显示”出来
+ *
+ * @public
+ */
+ExprParser.prototype.restoreFromDark = function () {
+    utils.restoreFromDark(this.node);
+    this.isGoDark = false;
+};
+
+ExprParser.isProperNode = function (node) {
+    return node.nodeType === 1 || node.nodeType === 3;
+};
+
+module.exports = inherit(ExprParser, Parser);
+Tree.registeParser(module.exports);
+
+function createAttrUpdateFn(attr, domUpdater) {
+    var taskId = domUpdater.generateTaskId();
+    return function (exprValue) {
+        domUpdater.addTaskFn(
+            taskId,
+            utils.bind(function (attr, exprValue) {
+                attr.value = exprValue;
+            }, null, attr, exprValue)
+        );
+    };
+}
+
+function addExpr(parser, expr, updateFn) {
+    parser.exprs.push(expr);
+    if (!parser.exprFns[expr]) {
+        parser.exprFns[expr] = createExprFn(parser, expr);
+    }
+    parser.updateFns[expr] = parser.updateFns[expr] || [];
+    parser.updateFns[expr].push(updateFn);
+}
+
+function createExprFn(parser, expr) {
+    return function (scopeModel) {
+        return expr.replace(parser.config.getExprRegExp(), function () {
+            parser.exprCalculater.createExprFn(arguments[1]);
+            return parser.exprCalculater.calculate(arguments[1], false, scopeModel);
+        });
+    };
+}
+
+},{"../inherit":11,"../trees/Tree":26,"../utils":27,"./Parser":20}],18:[function(require,module,exports){
+/**
+ * @file for 指令
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+var inherit = require('../inherit');
+var DirectiveParser = require('./DirectiveParser');
+var utils = require('../utils');
+var ForTree = require('../trees/ForTree');
+
+function ForDirectiveParser(options) {
+    DirectiveParser.call(this, options);
+}
+
+ForDirectiveParser.prototype.initialize = function (options) {
+    DirectiveParser.prototype.initialize.apply(this, arguments);
+
+    this.startNode = options.startNode;
+    this.endNode = options.endNode;
+};
+
+ForDirectiveParser.prototype.collectExprs = function () {
+    if (this.startNode.nextSibling === this.endNode) {
+        return;
+    }
+
+    var tplSeg = document.createElement('div');
+    utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
+        if (curNode === this.startNode || curNode === this.endNode) {
+            return;
+        }
+
+        tplSeg.appendChild(curNode);
+    }, this);
+    this.tplSeg = tplSeg;
+
+    this.expr = this.startNode.nodeValue.match(this.config.getForExprsRegExp())[1];
+    this.exprFn = utils.createExprFn(this.config.getExprRegExp(), this.expr, this.exprCalculater);
+    this.updateFn = createUpdateFn(
+        this,
+        this.startNode.nextSibling,
+        this.endNode.previousSibling,
+        this.config,
+        this.startNode.nodeValue
+    );
+
+    return true;
+};
+
+ForDirectiveParser.prototype.onChange = function () {
+    if (!this.expr) {
+        return;
+    }
+
+    var exprValue = this.exprFn(this.scopeModel);
+    if (this.dirtyCheck(this.expr, exprValue, this.exprOldValue)) {
+        this.updateFn(exprValue, this.scopeModel);
+    }
+
+    this.exprOldValue = exprValue;
+
+    DirectiveParser.prototype.onChange.apply(this, arguments);
+};
+
+ForDirectiveParser.prototype.destroy = function () {
+    utils.traverseNodes(this.tplSeg.firstChild, this.tplSeg.lastChild, function (curNode) {
+        this.endNode.parentNode.insertBefore(curNode, this.endNode);
+    }, this);
+
+    utils.each(this.trees, function (tree) {
+        tree.destroy();
+    });
+
+    this.tplSeg = null;
+    this.expr = null;
+    this.exprFn = null;
+    this.updateFn = null;
+    this.startNode = null;
+    this.endNode = null;
+    DirectiveParser.prototype.destroy.call(this);
+};
+
+ForDirectiveParser.isProperNode = function (node, config) {
+    return DirectiveParser.isProperNode(node, config)
+        && config.forPrefixRegExp.test(node.nodeValue);
+};
+
+ForDirectiveParser.findEndNode = function (forStartNode, config) {
+    var curNode = forStartNode;
+    while ((curNode = curNode.nextSibling)) {
+        if (isForEndNode(curNode, config)) {
+            return curNode;
+        }
+    }
+};
+
+ForDirectiveParser.getNoEndNodeError = function () {
+    return new Error('the for directive is not properly ended!');
+};
+
+module.exports = inherit(ForDirectiveParser, DirectiveParser);
+ForTree.registeParser(module.exports);
+
+function isForEndNode(node, config) {
+    return node.nodeType === 8 && config.forEndPrefixRegExp.test(node.nodeValue);
+}
+
+function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
+    var trees = [];
+    parser.trees = trees;
+    var itemVariableName = fullExpr.match(parser.config.getForItemValueNameRegExp())[1];
+    var taskId = parser.domUpdater.generateTaskId();
+    return function (exprValue, scopeModel) {
+        var index = 0;
+        for (var k in exprValue) {
+            if (!trees[index]) {
+                trees[index] = createTree(parser, config);
+            }
+
+            trees[index].restoreFromDark();
+            trees[index].setDirtyChecker(parser.dirtyChecker);
+
+            var local = {
+                key: k,
+                index: index
+            };
+            local[itemVariableName] = exprValue[k];
+
+            trees[index].rootScope.setParent(scopeModel);
+            scopeModel.addChild(trees[index].rootScope);
+
+            trees[index].setData(local);
+
+            index++;
+        }
+
+        parser.domUpdater.addTaskFn(taskId, utils.bind(function (trees, index) {
+            for (var i = index, il = trees.length; i < il; i++) {
+                trees[i].goDark();
+            }
+        }, null, trees, index));
+    };
+}
+
+function createTree(parser, config) {
+    var copySeg = parser.tplSeg.cloneNode(true);
+    var startNode = copySeg.firstChild;
+    var endNode = copySeg.lastChild;
+    utils.traverseNodes(startNode, endNode, function (curNode) {
+        parser.endNode.parentNode.insertBefore(curNode, parser.endNode);
+    });
+
+    var tree = new ForTree({
+        startNode: startNode,
+        endNode: endNode,
+        config: config,
+        domUpdater: parser.tree.domUpdater,
+        exprCalculater: parser.tree.exprCalculater,
+        treeVars: parser.tree.treeVars,
+        componentChildren: parser.tree.componentChildren
+    });
+    tree.traverse();
+    return tree;
+}
+
+},{"../inherit":11,"../trees/ForTree":25,"../utils":27,"./DirectiveParser":15}],19:[function(require,module,exports){
+/**
+ * @file if 指令
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+var DirectiveParser = require('./DirectiveParser');
+var inherit = require('../inherit');
+var utils = require('../utils');
+var Tree = require('../trees/Tree');
+
+function IfDirectiveParser(options) {
+    DirectiveParser.call(this, options);
+}
+
+IfDirectiveParser.prototype.initialize = function (options) {
+    DirectiveParser.prototype.initialize.apply(this, arguments);
+
+    this.startNode = options.startNode;
+    this.endNode = options.endNode;
+    this.config = options.config;
+
+    this.exprs = [];
+    this.exprFns = {};
+
+    this.handleBranchesTaskId = this.domUpdater.generateTaskId();
+};
+
+IfDirectiveParser.prototype.collectExprs = function () {
+    var branches = [];
+    var branchIndex = -1;
+
+    utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
+        var nodeType = getIfNodeType(curNode, this.config);
+
+        if (nodeType) {
+            setEndNode(curNode, branches, branchIndex);
+
+            branchIndex++;
+            branches[branchIndex] = branches[branchIndex] || {};
+
+            // 是 if 节点或者 elif 节点，搜集表达式
+            if (nodeType < 3) {
+                var expr = curNode.nodeValue.replace(this.config.getAllIfRegExp(), '');
+                this.exprs.push(expr);
+
+                if (!this.exprFns[expr]) {
+                    this.exprFns[expr] = utils.createExprFn(this.config.getExprRegExp(), expr, this.exprCalculater);
+                }
+            }
+            else if (nodeType === 3) {
+                this.hasElseBranch = true;
+            }
+        }
+        else {
+            if (!branches[branchIndex].startNode) {
+                branches[branchIndex].startNode = curNode;
+            }
+        }
+
+        curNode = curNode.nextSibling;
+        if (!curNode || curNode === this.endNode) {
+            setEndNode(curNode, branches, branchIndex);
+            return true;
+        }
+    }, this);
+
+    this.branches = branches;
+    return branches;
+
+    function setEndNode(curNode, branches, branchIndex) {
+        if (branchIndex + 1 && branches[branchIndex].startNode) {
+            branches[branchIndex].endNode = curNode.previousSibling;
+        }
+    }
+};
+
+IfDirectiveParser.prototype.onChange = function () {
+    var exprs = this.exprs;
+    for (var i = 0, il = exprs.length; i < il; i++) {
+        var expr = exprs[i];
+        var exprValue = this.exprFns[expr](this.scopeModel);
+        if (exprValue) {
+            this.domUpdater.addTaskFn(
+                this.handleBranchesTaskId,
+                utils.bind(handleBranches, null, this.branches, i)
+            );
+            return;
+        }
+    }
+
+    if (this.hasElseBranch) {
+        this.domUpdater.addTaskFn(
+            this.handleBranchesTaskId,
+            utils.bind(handleBranches, null, this.branches, i)
+        );
+        return;
+    }
+};
+
+IfDirectiveParser.prototype.destroy = function () {
+    this.startNode = null;
+    this.endNode = null;
+    this.config = null;
+    this.exprs = null;
+    this.exprFns = null;
+
+    DirectiveParser.prototype.destroy.call(this);
+};
+
+IfDirectiveParser.isProperNode = function (node, config) {
+    return getIfNodeType(node, config) === 1;
+};
+
+IfDirectiveParser.findEndNode = function (ifStartNode, config) {
+    var curNode = ifStartNode;
+    while ((curNode = curNode.nextSibling)) {
+        if (isIfEndNode(curNode, config)) {
+            return curNode;
+        }
+    }
+};
+
+IfDirectiveParser.getNoEndNodeError = function () {
+    return new Error('the if directive is not properly ended!');
+};
+
+module.exports = inherit(IfDirectiveParser, DirectiveParser);
+Tree.registeParser(module.exports);
+
+function handleBranches(branches, showIndex) {
+    utils.each(branches, function (branch, j) {
+        var fn = j === showIndex ? 'restoreFromDark' : 'goDark';
+        utils.each(branch, function (parserObj) {
+            parserObj.parser[fn]();
+        });
+    });
+}
+
+function isIfEndNode(node, config) {
+    return getIfNodeType(node, config) === 4;
+}
+
+function getIfNodeType(node, config) {
+    if (node.nodeType !== 8) {
+        return;
+    }
+
+    if (config.ifPrefixRegExp.test(node.nodeValue)) {
+        return 1;
+    }
+
+    if (config.elifPrefixRegExp.test(node.nodeValue)) {
+        return 2;
+    }
+
+    if (config.elsePrefixRegExp.test(node.nodeValue)) {
+        return 3;
+    }
+
+    if (config.ifEndPrefixRegExp.test(node.nodeValue)) {
+        return 4;
+    }
+}
+
+},{"../inherit":11,"../trees/Tree":26,"../utils":27,"./DirectiveParser":15}],20:[function(require,module,exports){
+/**
+ * @file 解析器的抽象基类
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+/**
+ * 构造函数
+ *
+ * @constructor
+ * @param {Object} options 配置参数，一般可能会有如下内容：
+ *                         {
+ *                             startNode: ...,
+ *                             endNode: ...,
+ *                             node: ...,
+ *                             config: ...
+ *                         }
+ *                         具体是啥可以参加具体的子类
+ */
+function Parser(options) {
+    this.initialize(options);
+}
+
+/**
+ * 初始化
+ *
+ * @protectedß
+ * @param {Object} options 来自于构造函数
+ */
+Parser.prototype.initialize = function (options) {
+    this.exprCalculater = options.exprCalculater;
+    this.config = options.config;
+    this.domUpdater = options.domUpdater;
+    this.tree = options.tree;
+};
+
+Parser.prototype.setScope = function (scopeModel) {
+    this.scopeModel = scopeModel;
+
+    this.scopeModel.on('change', this.onChange, this);
+    this.scopeModel.on('parentchange', this.onChange, this);
+};
+
+Parser.prototype.onChange = function () {
+    this.domUpdater.execute();
+};
+
+Parser.prototype.getScope = function () {
+    return this.scopeModel;
+};
+
+Parser.prototype.setData = function (data) {
+    this.scopeModel.set(data);
+};
+
+/**
+ * 隐藏相关元素
+ *
+ * @public
+ */
+Parser.prototype.goDark = function () {};
+
+/**
+ * 显示相关元素
+ *
+ * @public
+ */
+Parser.prototype.restoreFromDark = function () {};
+
+/**
+ * 搜集表达式，生成表达式函数和 DOM 更新函数
+ *
+ * @abstract
+ * @public
+ */
+Parser.prototype.collectExprs = function () {};
+
+Parser.prototype.dirtyCheck = function (expr, exprValue, exprOldValue) {
+    var dirtyCheckerFn = this.dirtyChecker ? this.dirtyChecker.getChecker(expr) : null;
+    return (dirtyCheckerFn && dirtyCheckerFn(expr, exprValue, exprOldValue))
+            || (!dirtyCheckerFn && exprValue !== exprOldValue);
+};
+
+Parser.prototype.setDirtyChecker = function (dirtyChecker) {
+    this.dirtyChecker = dirtyChecker;
+};
+
+/**
+ * 销毁解析器，将界面恢复成原样
+ */
+Parser.prototype.destroy = function () {
+    this.exprCalculater = null;
+    this.config = null;
+    this.domUpdater = null;
+    this.tree = null;
+    this.dirtyChecker = null;
+};
+
+module.exports = Parser;
+
+},{}],21:[function(require,module,exports){
+var inherit = require('../inherit');
+var DirectiveParser = require('./DirectiveParser');
+var utils = require('../utils');
+var ScopeModel = require('../ScopeModel');
+var Tree = require('../trees/Tree');
+
+function ScopeDirectiveParser(options) {
+    DirectiveParser.call(this, options);
+}
+
+ScopeDirectiveParser.prototype.initialize = function (options) {
+    DirectiveParser.prototype.initialize.call(this, options);
+
+    this.startNode = options.startNode;
+    this.endNode = options.endNode;
+
+    if (!this.tree.getTreeVar('scopes')) {
+        this.tree.setTreeVar('scopes', {});
+    }
+};
+
+ScopeDirectiveParser.prototype.setScope = function (scopeModel) {
+    this.scopeModel.setParent(scopeModel);
+    scopeModel.addChild(this.scopeModel);
+};
+
+ScopeDirectiveParser.prototype.collectExprs = function () {
+    var scopeName = this.startNode.nodeValue
+        .replace(/\s+/g, '')
+        .replace(this.config.scopeName + ':', '');
+    if (scopeName) {
+        var scopes = this.tree.getTreeVar('scopes');
+        this.scopeModel = new ScopeModel();
+        scopes[scopeName] = scopes[scopeName] || [];
+        scopes[scopeName].push(this.scopeModel);
+    }
+
+    return [
+        {
+            startNode: this.startNode.nextSibling,
+            endNode: this.endNode.previousSibling
+        }
+    ];
+};
+
+ScopeDirectiveParser.isProperNode = function (node, config) {
+    return DirectiveParser.isProperNode(node, config)
+        && node.nodeValue.replace(/\s+/, '').indexOf(config.scopeName + ':') === 0;
+};
+
+ScopeDirectiveParser.findEndNode = function (startNode, config) {
+    var curNode = startNode;
+    while ((curNode = curNode.nextSibling)) {
+        if (isEndNode(curNode, config)) {
+            return curNode;
+        }
+    }
+};
+
+ScopeDirectiveParser.getNoEndNodeError = function () {
+    return new Error('the scope directive is not properly ended!');
+};
+
+module.exports = inherit(ScopeDirectiveParser, DirectiveParser);
+Tree.registeParser(module.exports);
+
+function isEndNode(node, config) {
+    return node.nodeType === 8
+        && node.nodeValue.replace(/\s+/g, '') === config.scopeEndName;
+}
+
+},{"../ScopeModel":10,"../inherit":11,"../trees/Tree":26,"../utils":27,"./DirectiveParser":15}],22:[function(require,module,exports){
+/**
+ * @file 变量定义指令解析器
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+var DirectiveParser = require('./DirectiveParser');
+var inherit = require('../inherit');
+var Tree = require('../trees/Tree');
+
+function VarDirectiveParser(options) {
+    DirectiveParser.call(this, options);
+
+    this.node = options.node;
+}
+
+VarDirectiveParser.prototype.collectExprs = function () {
+    var expr = this.node.nodeValue.replace(this.config.varName + ':', '');
+    this.exprCalculater.createExprFn(expr);
+
+    var leftValueName = expr.match(/\s*.+(?=\=)/)[0].replace(/\s+/g, '');
+
+    var me = this;
+    this.exprFn = function (scopeModel) {
+        var oldValue = scopeModel.get(leftValueName);
+        var newValue = me.exprCalculater.calculate(expr, false, scopeModel);
+        if (oldValue !== newValue) {
+            scopeModel.set(leftValueName, newValue);
+        }
+    };
+};
+
+VarDirectiveParser.prototype.setScope = function (scopeModel) {
+    DirectiveParser.prototype.setScope.apply(this, arguments);
+    this.exprFn(this.scopeModel);
+};
+
+VarDirectiveParser.isProperNode = function (node, config) {
+    return node.nodeType === 8
+        && node.nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;
+};
+
+
+module.exports = inherit(VarDirectiveParser, DirectiveParser);
+Tree.registeParser(VarDirectiveParser);
+
+
+},{"../inherit":11,"../trees/Tree":26,"./DirectiveParser":15}],23:[function(require,module,exports){
+var Tree = require('./Tree');
+var inherit = require('../inherit');
+
+function ChildrenTree(options) {
+    if (!options.config || !options.domUpdater
+        || !options.exprCalculater || !options.treeVars
+    ) {
+        throw new Error('wrong arguments');
+    }
+
+    options.componentChildren = undefined;
+    delete options.componentChildren;
+
+    Tree.call(this, options);
+}
+
+module.exports = inherit(ChildrenTree, Tree);
+
+},{"../inherit":11,"./Tree":26}],24:[function(require,module,exports){
+var Tree = require('./Tree');
+var inherit = require('../inherit');
+
+function ComponentTree(options) {
+    if (!options.config || !options.domUpdater
+        || !options.exprCalculater || !options.treeVars
+        || !options.componentChildren
+    ) {
+        throw new Error('wrong arguments');
+    }
+
+    Tree.call(this, options);
+
+    this.componentChildren = options.componentChildren;
+}
+
+module.exports = inherit(ComponentTree, Tree);
+
+},{"../inherit":11,"./Tree":26}],25:[function(require,module,exports){
+var Tree = require('./Tree');
+var inherit = require('../inherit');
+
+function ForTree(options) {
+    if (!options.config || !options.domUpdater
+        || !options.exprCalculater || !options.treeVars
+    ) {
+        throw new Error('wrong arguments');
+    }
+
+    Tree.call(this, options);
+
+    this.componentChildren = options.componentChildren;
+}
+
+module.exports = inherit(ForTree, Tree);
+
+},{"../inherit":11,"./Tree":26}],26:[function(require,module,exports){
 /**
  * @file 最终的树
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var utils = require('./utils');
-var ExprCalculater = require('./ExprCalculater');
-var DomUpdater = require('./DomUpdater');
-var ScopeModel = require('./ScopeModel');
+var utils = require('../utils');
+var ExprCalculater = require('../ExprCalculater');
+var DomUpdater = require('../DomUpdater');
+var ScopeModel = require('../ScopeModel');
 
 function Tree(options) {
     this.startNode = options.startNode;
@@ -682,6 +1862,7 @@ function Tree(options) {
 
     this.exprCalculater = options.exprCalculater || new ExprCalculater();
     this.domUpdater = options.domUpdater || new DomUpdater();
+    this.dirtyChecker = options.dirtyChecker;
 
     this.tree = [];
     this.treeVars = options.treeVars || {};
@@ -937,1100 +2118,7 @@ function createParser(ParserClass, options) {
 
 
 
-},{"./DomUpdater":9,"./ExprCalculater":11,"./ScopeModel":13,"./utils":27}],15:[function(require,module,exports){
-/**
- * @file 继承
- * @author yibuyisheng(yibuyisheng@163.com)
- */
-
-function inherit(ChildClass, ParentClass) {
-    function Cls() {}
-
-    Cls.prototype = ParentClass.prototype;
-    var childProto = ChildClass.prototype;
-    ChildClass.prototype = new Cls();
-
-    var key;
-    for (key in childProto) {
-        ChildClass.prototype[key] = childProto[key];
-    }
-
-    // 继承静态属性
-    for (key in ParentClass) {
-        if (ParentClass.hasOwnProperty(key)) {
-            if (ChildClass[key] === undefined) {
-                ChildClass[key] = ParentClass[key];
-            }
-        }
-    }
-
-    return ChildClass;
-}
-
-module.exports = inherit;
-
-},{}],16:[function(require,module,exports){
-module.exports = {
-    warn: function () {
-        if (!console || !console.warn) {
-            return;
-        }
-
-        console.warn.apply(console, arguments);
-    }
-};
-},{}],17:[function(require,module,exports){
-/**
- * @file children 指令 <!-- children -->
- * @author yibuyisheng(yibuyisheng@163.com)
- */
-
-var inherit = require('../inherit');
-var DirectiveParser = require('./DirectiveParser');
-var utils = require('../utils');
-var ChildrenTree = require('../ChildrenTree');
-
-function ChildrenDirectiveParser(options) {
-    DirectiveParser.call(this, options);
-}
-
-ChildrenDirectiveParser.prototype.initialize = function (options) {
-    DirectiveParser.prototype.initialize.apply(this, arguments);
-
-    this.node = options.node;
-};
-
-ChildrenDirectiveParser.prototype.collectExprs = function () {
-    var componentChildren = this.tree.componentChildren;
-    if (!componentChildren) {
-        return;
-    }
-
-    var div = document.createElement('div');
-    div.innerHTML = componentChildren.getTplHtml();
-
-    this.childrenTree = new ChildrenTree({
-        startNode: div.firstChild,
-        endNode: div.lastChild,
-        config: this.tree.config,
-        domUpdater: this.tree.domUpdater,
-        exprCalculater: this.tree.exprCalculater,
-        treeVars: this.tree.treeVars
-    });
-    this.childrenTree.traverse();
-
-    this.childrenTree.rootScope.setParent(componentChildren.scope);
-    componentChildren.scope.addChild(this.childrenTree.rootScope);
-
-    while (div.childNodes.length) {
-        this.node.parentNode.insertBefore(div.childNodes[0], this.node);
-    }
-
-    return true;
-};
-
-ChildrenDirectiveParser.prototype.destroy = function () {
-    this.childrenTree.destroy();
-
-    DirectiveParser.prototype.destroy.call(this);
-};
-
-ChildrenDirectiveParser.isProperNode = function (node, config) {
-    return node.nodeType === 8
-        && node.nodeValue.replace(/\s/g, '') === 'children';
-};
-
-module.exports = inherit(ChildrenDirectiveParser, DirectiveParser);
-ChildrenTree.registeParser(module.exports);
-
-},{"../ChildrenTree":2,"../inherit":15,"../utils":27,"./DirectiveParser":19}],18:[function(require,module,exports){
-/**
- * @file 组件解析器
- * @author yibuyisheng(yibuyisheng@163.com)
- */
-
-var inherit = require('../inherit');
-var Parser = require('./Parser');
-var Tree = require('../Tree');
-var ComponentManager = require('../ComponentManager');
-var utils = require('../utils');
-
-function ComponentParser(options) {
-    Parser.call(this, options);
-}
-
-ComponentParser.prototype.initialize = function (options) {
-    Parser.prototype.initialize.apply(this, arguments);
-
-    var componentManager = this.tree.getTreeVar('componentManager');
-    if (!componentManager) {
-        componentManager = new ComponentManager();
-        this.tree.setTreeVar('componentManager', componentManager);
-    }
-
-    this.node = options.node;
-
-    this.exprs = [];
-    this.exprFns = {};
-    this.updateFns = {};
-    this.exprOldValues = {};
-};
-
-ComponentParser.prototype.collectExprs = function () {
-    var curNode = this.node;
-
-    var attributes = curNode.attributes;
-    this.setLiteralAttrsFns = [];
-    for (var i = 0, il = attributes.length; i < il; i++) {
-        var attr = attributes[i];
-        var expr = attr.nodeValue;
-        if (this.config.getExprRegExp().test(expr)) {
-            this.exprs.push(expr);
-            if (!this.exprFns[expr]) {
-                var rawExpr = expr.replace(this.config.getExprRegExp(), function () {
-                    return arguments[1];
-                });
-                this.exprCalculater.createExprFn(rawExpr);
-                this.exprFns[expr] = utils.bind(function (rawExpr, exprCalculater, scopeModel) {
-                    return exprCalculater.calculate(rawExpr, false, scopeModel);
-                }, null, rawExpr, this.exprCalculater);
-
-                this.updateFns[expr] = this.updateFns[expr] || [];
-                this.updateFns[expr].push(utils.bind(function (name, exprValue, component) {
-                    component.setAttr(name, exprValue);
-                }, null, attr.nodeName));
-            }
-        }
-        else {
-            this.setLiteralAttrsFns.push(utils.bind(function (attr, component) {
-                component.setAttr(attr.nodeName, attr.nodeValue);
-            }, null, attr));
-        }
-    }
-    return true;
-};
-
-ComponentParser.prototype.setScope = function (scopeModel) {
-    Parser.prototype.setScope.apply(this, arguments);
-
-    var componentName = this.node.tagName.toLowerCase().replace('ui', '')
-        .replace(/-[a-z]/g, function () {
-            return arguments[0][1].toUpperCase();
-        });
-
-    var componentManager = this.tree.getTreeVar('componentManager');
-    var ComponentClass = componentManager.getClass(componentName);
-    if (!ComponentClass) {
-        throw new Error('the component `' + componentName + '` is not registed!');
-    }
-
-    this.component = new ComponentClass({
-        componentNode: this.node,
-        treeOptions: {
-            exprCalculater: this.tree.exprCalculater,
-            domUpdater: this.tree.domUpdater,
-            config: this.tree.config,
-            treeVars: this.tree.treeVars
-        },
-        outScope: this.scopeModel
-    });
-
-    for (var i = 0, il = this.setLiteralAttrsFns.length; i < il; i++) {
-        this.setLiteralAttrsFns[i](this.component);
-    }
-
-    var me = this;
-    this.component.getTpl(function () {
-        me.component.mount();
-    });
-};
-
-ComponentParser.prototype.onChange = function () {
-    if (this.isGoDark) {
-        return;
-    }
-
-    var exprs = this.exprs;
-    var exprOldValues = this.exprOldValues;
-    for (var i = 0, il = exprs.length; i < il; i++) {
-        var expr = exprs[i];
-        var exprValue = this.exprFns[expr](this.scopeModel);
-
-        if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
-            var updateFns = this.updateFns[expr];
-            for (var j = 0, jl = updateFns.length; j < jl; j++) {
-                updateFns[j](exprValue, this.component);
-            }
-        }
-
-        exprOldValues[expr] = exprValue;
-    }
-
-    Parser.prototype.onChange.apply(this, arguments);
-};
-
-ComponentParser.prototype.goDark = function () {
-    this.component.goDark();
-    this.isGoDark = true;
-};
-
-ComponentParser.prototype.restoreFromDark = function () {
-    this.component.restoreFromDark();
-    this.isGoDark = false;
-};
-
-ComponentParser.isProperNode = function (node, config) {
-    return node.nodeType === 1 && node.tagName.toLowerCase().indexOf('ui-') === 0;
-};
-
-module.exports = inherit(ComponentParser, Parser);
-Tree.registeParser(ComponentParser);
-
-function getClass(instance) {
-    return instance.constructor;
-}
-
-},{"../ComponentManager":5,"../Tree":14,"../inherit":15,"../utils":27,"./Parser":24}],19:[function(require,module,exports){
-/**
- * @file 指令解析器抽象类。指令节点一定是注释节点
- * @author yibuyisheng(yibuyisheng@163.com)
- */
-
-var inherit = require('../inherit');
-var Parser = require('./Parser');
-
-function DirectiveParser(options) {
-    Parser.call(this, options);
-}
-
-DirectiveParser.isProperNode = function (node, config) {
-    return node.nodeType === 8;
-};
-
-module.exports = inherit(DirectiveParser, Parser);
-
-},{"../inherit":15,"./Parser":24}],20:[function(require,module,exports){
-/**
- * @file 处理了事件的 ExprParser
- * @author yibuyisheng(yibuyisheng@163.com)
- */
-
-var ExprParser = require('./ExprParser');
-var inherit = require('../inherit');
-var utils = require('../utils');
-var Tree = require('../Tree');
-var ScopeModel = require('../ScopeModel');
-
-function EventExprParser(options) {
-    ExprParser.call(this, options);
-}
-
-EventExprParser.prototype.initialize = function (options) {
-    ExprParser.prototype.initialize.apply(this, arguments);
-
-    this.events = {};
-};
-
-EventExprParser.prototype.addExpr = function (attr) {
-    if (!attr) {
-        return ExprParser.prototype.addExpr.apply(this, arguments);
-    }
-
-    var eventName = getEventName(attr.name, this.config);
-    if (eventName) {
-        if (this.config.getExprRegExp().test(attr.value)) {
-            this.events[eventName] = attr.value;
-
-            var expr = attr.value.replace(
-                this.config.getExprRegExp(),
-                function () {
-                    return arguments[1];
-                }
-            );
-            this.exprCalculater.createExprFn(expr, true);
-
-            var me = this;
-            this.node['on' + eventName] = function (event) {
-                var localScope = new ScopeModel();
-                localScope.setParent(me.getScope());
-                me.exprCalculater.calculate(expr, true, localScope);
-            };
-        }
-    }
-    else {
-        ExprParser.prototype.addExpr.apply(this, arguments);
-    }
-};
-
-EventExprParser.prototype.destroy = function () {
-    utils.each(this.events, function (attrValue, eventName) {
-        this.node['on' + eventName] = null;
-    }, this);
-    this.events = null;
-
-    ExprParser.prototype.destroy.call(this);
-};
-
-module.exports = inherit(EventExprParser, ExprParser);
-Tree.registeParser(module.exports);
-
-
-function getEventName(attrName, config) {
-    if (attrName.indexOf(config.eventPrefix + '-') === -1) {
-        return;
-    }
-
-    return attrName.replace(config.eventPrefix + '-', '');
-}
-
-
-},{"../ScopeModel":13,"../Tree":14,"../inherit":15,"../utils":27,"./ExprParser":21}],21:[function(require,module,exports){
-/**
- * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例
- * @author yibuyisheng(yibuyisheng@163.com)
- */
-
-var Parser = require('./Parser');
-var inherit = require('../inherit');
-var utils = require('../utils');
-var Tree = require('../Tree');
-
-function ExprParser(options) {
-    Parser.call(this, options);
-}
-
-ExprParser.prototype.initialize = function (options) {
-    Parser.prototype.initialize.apply(this, arguments);
-
-    this.node = options.node;
-
-    this.exprs = [];
-    this.exprFns = {};
-    this.updateFns = {};
-    this.restoreFns = {}; // 恢复原貌的函数
-    this.exprOldValues = {};
-};
-
-/**
- * 搜集过程
- *
- * @public
- * @return {boolean} 返回布尔值
- */
-ExprParser.prototype.collectExprs = function () {
-    var curNode = this.node;
-
-    // 文本节点
-    if (curNode.nodeType === 3) {
-        this.addExpr();
-        return true;
-    }
-
-    // 元素节点
-    if (curNode.nodeType === 1) {
-        var attributes = curNode.attributes;
-        for (var i = 0, il = attributes.length; i < il; i++) {
-            this.addExpr(attributes[i]);
-        }
-        return true;
-    }
-
-    return false;
-};
-
-/**
- * 添加表达式
- *
- * @protected
- * @param {Attr} attr 如果当前是元素节点，则要传入遍历到的属性
- */
-ExprParser.prototype.addExpr = function (attr) {
-    var expr = attr ? attr.value : this.node.nodeValue;
-    if (!this.config.getExprRegExp().test(expr)) {
-        return;
-    }
-    addExpr(
-        this,
-        expr,
-        attr ? createAttrUpdateFn(attr, this.domUpdater) : (function (me, curNode) {
-            var taskId = me.domUpdater.generateTaskId();
-            return function (exprValue) {
-                me.domUpdater.addTaskFn(
-                    taskId,
-                    utils.bind(function (curNode, exprValue) {
-                        curNode.nodeValue = exprValue;
-                    }, null, curNode, exprValue)
-                );
-            };
-        })(this, this.node)
-    );
-
-    this.restoreFns[expr] = this.restoreFns[expr] || [];
-    if (attr) {
-        this.restoreFns[expr].push(utils.bind(function (curNode, attrName, attrValue) {
-            curNode.setAttribute(attrName, attrValue);
-        }, null, this.node, attr.name, attr.value));
-    }
-    else {
-        this.restoreFns[expr].push(utils.bind(function (curNode, nodeValue) {
-            curNode.nodeValue = nodeValue;
-        }, null, this.node, this.node.nodeValue));
-    }
-};
-
-ExprParser.prototype.destroy = function () {
-    utils.each(this.exprs, function (expr) {
-        utils.each(this.restoreFns[expr], function (restoreFn) {
-            restoreFn();
-        }, this);
-    }, this);
-
-    this.node = null;
-    this.exprs = null;
-    this.exprFns = null;
-    this.updateFns = null;
-    this.exprOldValues = null;
-    this.restoreFns = null;
-
-    Parser.prototype.destroy.call(this);
-};
-
-/**
- * 节点“隐藏”起来
- *
- * @public
- */
-ExprParser.prototype.goDark = function () {
-    utils.goDark(this.node);
-    this.isGoDark = true;
-};
-
-ExprParser.prototype.onChange = function () {
-    if (this.isGoDark) {
-        return;
-    }
-
-    var exprs = this.exprs;
-    var exprOldValues = this.exprOldValues;
-    for (var i = 0, il = exprs.length; i < il; i++) {
-        var expr = exprs[i];
-        var exprValue = this.exprFns[expr](this.scopeModel);
-
-        if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
-            var updateFns = this.updateFns[expr];
-            for (var j = 0, jl = updateFns.length; j < jl; j++) {
-                updateFns[j](exprValue);
-            }
-        }
-
-        exprOldValues[expr] = exprValue;
-    }
-
-    Parser.prototype.onChange.apply(this, arguments);
-};
-
-/**
- * 节点“显示”出来
- *
- * @public
- */
-ExprParser.prototype.restoreFromDark = function () {
-    utils.restoreFromDark(this.node);
-    this.isGoDark = false;
-};
-
-ExprParser.isProperNode = function (node) {
-    return node.nodeType === 1 || node.nodeType === 3;
-};
-
-module.exports = inherit(ExprParser, Parser);
-Tree.registeParser(module.exports);
-
-function createAttrUpdateFn(attr, domUpdater) {
-    var taskId = domUpdater.generateTaskId();
-    return function (exprValue) {
-        domUpdater.addTaskFn(
-            taskId,
-            utils.bind(function (attr, exprValue) {
-                attr.value = exprValue;
-            }, null, attr, exprValue)
-        );
-    };
-}
-
-function addExpr(parser, expr, updateFn) {
-    parser.exprs.push(expr);
-    if (!parser.exprFns[expr]) {
-        parser.exprFns[expr] = createExprFn(parser, expr);
-    }
-    parser.updateFns[expr] = parser.updateFns[expr] || [];
-    parser.updateFns[expr].push(updateFn);
-}
-
-function createExprFn(parser, expr) {
-    return function (scopeModel) {
-        return expr.replace(parser.config.getExprRegExp(), function () {
-            parser.exprCalculater.createExprFn(arguments[1]);
-            return parser.exprCalculater.calculate(arguments[1], false, scopeModel);
-        });
-    };
-}
-
-},{"../Tree":14,"../inherit":15,"../utils":27,"./Parser":24}],22:[function(require,module,exports){
-/**
- * @file for 指令
- * @author yibuyisheng(yibuyisheng@163.com)
- */
-
-var inherit = require('../inherit');
-var DirectiveParser = require('./DirectiveParser');
-var utils = require('../utils');
-var ForTree = require('../ForTree');
-
-function ForDirectiveParser(options) {
-    DirectiveParser.call(this, options);
-}
-
-ForDirectiveParser.prototype.initialize = function (options) {
-    DirectiveParser.prototype.initialize.apply(this, arguments);
-
-    this.startNode = options.startNode;
-    this.endNode = options.endNode;
-};
-
-ForDirectiveParser.prototype.collectExprs = function () {
-    if (this.startNode.nextSibling === this.endNode) {
-        return;
-    }
-
-    var tplSeg = document.createElement('div');
-    utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
-        if (curNode === this.startNode || curNode === this.endNode) {
-            return;
-        }
-
-        tplSeg.appendChild(curNode);
-    }, this);
-    this.tplSeg = tplSeg;
-
-    this.expr = this.startNode.nodeValue.match(this.config.getForExprsRegExp())[1];
-    this.exprFn = utils.createExprFn(this.config.getExprRegExp(), this.expr, this.exprCalculater);
-    this.updateFn = createUpdateFn(
-        this,
-        this.startNode.nextSibling,
-        this.endNode.previousSibling,
-        this.config,
-        this.startNode.nodeValue
-    );
-
-    return true;
-};
-
-ForDirectiveParser.prototype.onChange = function () {
-    if (!this.expr) {
-        return;
-    }
-
-    var exprValue = this.exprFn(this.scopeModel);
-    if (this.dirtyCheck(this.expr, exprValue, this.exprOldValue)) {
-        this.updateFn(exprValue, this.scopeModel);
-    }
-
-    this.exprOldValue = exprValue;
-
-    DirectiveParser.prototype.onChange.apply(this, arguments);
-};
-
-ForDirectiveParser.prototype.destroy = function () {
-    utils.traverseNodes(this.tplSeg.firstChild, this.tplSeg.lastChild, function (curNode) {
-        this.endNode.parentNode.insertBefore(curNode, this.endNode);
-    }, this);
-
-    utils.each(this.trees, function (tree) {
-        tree.destroy();
-    });
-
-    this.tplSeg = null;
-    this.expr = null;
-    this.exprFn = null;
-    this.updateFn = null;
-    this.startNode = null;
-    this.endNode = null;
-    DirectiveParser.prototype.destroy.call(this);
-};
-
-ForDirectiveParser.isProperNode = function (node, config) {
-    return DirectiveParser.isProperNode(node, config)
-        && config.forPrefixRegExp.test(node.nodeValue);
-};
-
-ForDirectiveParser.findEndNode = function (forStartNode, config) {
-    var curNode = forStartNode;
-    while ((curNode = curNode.nextSibling)) {
-        if (isForEndNode(curNode, config)) {
-            return curNode;
-        }
-    }
-};
-
-ForDirectiveParser.getNoEndNodeError = function () {
-    return new Error('the for directive is not properly ended!');
-};
-
-module.exports = inherit(ForDirectiveParser, DirectiveParser);
-ForTree.registeParser(module.exports);
-
-function isForEndNode(node, config) {
-    return node.nodeType === 8 && config.forEndPrefixRegExp.test(node.nodeValue);
-}
-
-function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
-    var trees = [];
-    parser.trees = trees;
-    var itemVariableName = fullExpr.match(parser.config.getForItemValueNameRegExp())[1];
-    var taskId = parser.domUpdater.generateTaskId();
-    return function (exprValue, scopeModel) {
-        var index = 0;
-        for (var k in exprValue) {
-            if (!trees[index]) {
-                trees[index] = createTree(parser, config);
-            }
-
-            trees[index].restoreFromDark();
-            trees[index].setDirtyChecker(parser.dirtyChecker);
-
-            var local = {
-                key: k,
-                index: index
-            };
-            local[itemVariableName] = exprValue[k];
-
-            trees[index].rootScope.setParent(scopeModel);
-            scopeModel.addChild(trees[index].rootScope);
-
-            trees[index].setData(local);
-
-            index++;
-        }
-
-        parser.domUpdater.addTaskFn(taskId, utils.bind(function (trees, index) {
-            for (var i = index, il = trees.length; i < il; i++) {
-                trees[i].goDark();
-            }
-        }, null, trees, index));
-    };
-}
-
-function createTree(parser, config) {
-    var copySeg = parser.tplSeg.cloneNode(true);
-    var startNode = copySeg.firstChild;
-    var endNode = copySeg.lastChild;
-    utils.traverseNodes(startNode, endNode, function (curNode) {
-        parser.endNode.parentNode.insertBefore(curNode, parser.endNode);
-    });
-
-    var tree = new ForTree({
-        startNode: startNode,
-        endNode: endNode,
-        config: config,
-        domUpdater: parser.tree.domUpdater,
-        exprCalculater: parser.tree.exprCalculater,
-        treeVars: parser.tree.treeVars,
-        componentChildren: parser.tree.componentChildren
-    });
-    tree.traverse();
-    return tree;
-}
-
-},{"../ForTree":12,"../inherit":15,"../utils":27,"./DirectiveParser":19}],23:[function(require,module,exports){
-/**
- * @file if 指令
- * @author yibuyisheng(yibuyisheng@163.com)
- */
-
-var DirectiveParser = require('./DirectiveParser');
-var inherit = require('../inherit');
-var utils = require('../utils');
-var Tree = require('../Tree');
-
-function IfDirectiveParser(options) {
-    DirectiveParser.call(this, options);
-}
-
-IfDirectiveParser.prototype.initialize = function (options) {
-    DirectiveParser.prototype.initialize.apply(this, arguments);
-
-    this.startNode = options.startNode;
-    this.endNode = options.endNode;
-    this.config = options.config;
-
-    this.exprs = [];
-    this.exprFns = {};
-
-    this.handleBranchesTaskId = this.domUpdater.generateTaskId();
-};
-
-IfDirectiveParser.prototype.collectExprs = function () {
-    var branches = [];
-    var branchIndex = -1;
-
-    utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
-        var nodeType = getIfNodeType(curNode, this.config);
-
-        if (nodeType) {
-            setEndNode(curNode, branches, branchIndex);
-
-            branchIndex++;
-            branches[branchIndex] = branches[branchIndex] || {};
-
-            // 是 if 节点或者 elif 节点，搜集表达式
-            if (nodeType < 3) {
-                var expr = curNode.nodeValue.replace(this.config.getAllIfRegExp(), '');
-                this.exprs.push(expr);
-
-                if (!this.exprFns[expr]) {
-                    this.exprFns[expr] = utils.createExprFn(this.config.getExprRegExp(), expr, this.exprCalculater);
-                }
-            }
-            else if (nodeType === 3) {
-                this.hasElseBranch = true;
-            }
-        }
-        else {
-            if (!branches[branchIndex].startNode) {
-                branches[branchIndex].startNode = curNode;
-            }
-        }
-
-        curNode = curNode.nextSibling;
-        if (!curNode || curNode === this.endNode) {
-            setEndNode(curNode, branches, branchIndex);
-            return true;
-        }
-    }, this);
-
-    this.branches = branches;
-    return branches;
-
-    function setEndNode(curNode, branches, branchIndex) {
-        if (branchIndex + 1 && branches[branchIndex].startNode) {
-            branches[branchIndex].endNode = curNode.previousSibling;
-        }
-    }
-};
-
-IfDirectiveParser.prototype.onChange = function () {
-    var exprs = this.exprs;
-    for (var i = 0, il = exprs.length; i < il; i++) {
-        var expr = exprs[i];
-        var exprValue = this.exprFns[expr](this.scopeModel);
-        if (exprValue) {
-            this.domUpdater.addTaskFn(
-                this.handleBranchesTaskId,
-                utils.bind(handleBranches, null, this.branches, i)
-            );
-            return;
-        }
-    }
-
-    if (this.hasElseBranch) {
-        this.domUpdater.addTaskFn(
-            this.handleBranchesTaskId,
-            utils.bind(handleBranches, null, this.branches, i)
-        );
-        return;
-    }
-};
-
-IfDirectiveParser.prototype.destroy = function () {
-    this.startNode = null;
-    this.endNode = null;
-    this.config = null;
-    this.exprs = null;
-    this.exprFns = null;
-
-    DirectiveParser.prototype.destroy.call(this);
-};
-
-IfDirectiveParser.isProperNode = function (node, config) {
-    return getIfNodeType(node, config) === 1;
-};
-
-IfDirectiveParser.findEndNode = function (ifStartNode, config) {
-    var curNode = ifStartNode;
-    while ((curNode = curNode.nextSibling)) {
-        if (isIfEndNode(curNode, config)) {
-            return curNode;
-        }
-    }
-};
-
-IfDirectiveParser.getNoEndNodeError = function () {
-    return new Error('the if directive is not properly ended!');
-};
-
-module.exports = inherit(IfDirectiveParser, DirectiveParser);
-Tree.registeParser(module.exports);
-
-function handleBranches(branches, showIndex) {
-    utils.each(branches, function (branch, j) {
-        var fn = j === showIndex ? 'restoreFromDark' : 'goDark';
-        utils.each(branch, function (parserObj) {
-            parserObj.parser[fn]();
-        });
-    });
-}
-
-function isIfEndNode(node, config) {
-    return getIfNodeType(node, config) === 4;
-}
-
-function getIfNodeType(node, config) {
-    if (node.nodeType !== 8) {
-        return;
-    }
-
-    if (config.ifPrefixRegExp.test(node.nodeValue)) {
-        return 1;
-    }
-
-    if (config.elifPrefixRegExp.test(node.nodeValue)) {
-        return 2;
-    }
-
-    if (config.elsePrefixRegExp.test(node.nodeValue)) {
-        return 3;
-    }
-
-    if (config.ifEndPrefixRegExp.test(node.nodeValue)) {
-        return 4;
-    }
-}
-
-},{"../Tree":14,"../inherit":15,"../utils":27,"./DirectiveParser":19}],24:[function(require,module,exports){
-/**
- * @file 解析器的抽象基类
- * @author yibuyisheng(yibuyisheng@163.com)
- */
-
-/**
- * 构造函数
- *
- * @constructor
- * @param {Object} options 配置参数，一般可能会有如下内容：
- *                         {
- *                             startNode: ...,
- *                             endNode: ...,
- *                             node: ...,
- *                             config: ...
- *                         }
- *                         具体是啥可以参加具体的子类
- */
-function Parser(options) {
-    this.initialize(options);
-}
-
-/**
- * 初始化
- *
- * @protectedß
- * @param {Object} options 来自于构造函数
- */
-Parser.prototype.initialize = function (options) {
-    this.exprCalculater = options.exprCalculater;
-    this.config = options.config;
-    this.domUpdater = options.domUpdater;
-    this.tree = options.tree;
-};
-
-Parser.prototype.setScope = function (scopeModel) {
-    this.scopeModel = scopeModel;
-
-    this.scopeModel.on('change', this.onChange, this);
-    this.scopeModel.on('parentchange', this.onChange, this);
-};
-
-Parser.prototype.onChange = function () {
-    this.domUpdater.execute();
-};
-
-Parser.prototype.getScope = function () {
-    return this.scopeModel;
-};
-
-Parser.prototype.setData = function (data) {
-    this.scopeModel.set(data);
-};
-
-/**
- * 隐藏相关元素
- *
- * @public
- */
-Parser.prototype.goDark = function () {};
-
-/**
- * 显示相关元素
- *
- * @public
- */
-Parser.prototype.restoreFromDark = function () {};
-
-/**
- * 搜集表达式，生成表达式函数和 DOM 更新函数
- *
- * @abstract
- * @public
- */
-Parser.prototype.collectExprs = function () {};
-
-Parser.prototype.dirtyCheck = function (expr, exprValue, exprOldValue) {
-    var dirtyCheckerFn = this.dirtyChecker ? this.dirtyChecker.getChecker(expr) : null;
-    return (dirtyCheckerFn && dirtyCheckerFn(expr, exprValue, exprOldValue))
-            || (!dirtyCheckerFn && exprValue !== exprOldValue);
-};
-
-Parser.prototype.setDirtyChecker = function (dirtyChecker) {
-    this.dirtyChecker = dirtyChecker;
-};
-
-/**
- * 销毁解析器，将界面恢复成原样
- */
-Parser.prototype.destroy = function () {
-    this.exprCalculater = null;
-    this.config = null;
-    this.domUpdater = null;
-    this.tree = null;
-    this.dirtyChecker = null;
-};
-
-module.exports = Parser;
-
-},{}],25:[function(require,module,exports){
-var inherit = require('../inherit');
-var DirectiveParser = require('./DirectiveParser');
-var utils = require('../utils');
-var ScopeModel = require('../ScopeModel');
-var Tree = require('../Tree');
-
-function ScopeDirectiveParser(options) {
-    DirectiveParser.call(this, options);
-}
-
-ScopeDirectiveParser.prototype.initialize = function (options) {
-    DirectiveParser.prototype.initialize.call(this, options);
-
-    this.startNode = options.startNode;
-    this.endNode = options.endNode;
-
-    if (!this.tree.getTreeVar('scopes')) {
-        this.tree.setTreeVar('scopes', {});
-    }
-};
-
-ScopeDirectiveParser.prototype.setScope = function (scopeModel) {
-    this.scopeModel.setParent(scopeModel);
-    scopeModel.addChild(this.scopeModel);
-};
-
-ScopeDirectiveParser.prototype.collectExprs = function () {
-    var scopeName = this.startNode.nodeValue
-        .replace(/\s+/g, '')
-        .replace(this.config.scopeName + ':', '');
-    if (scopeName) {
-        var scopes = this.tree.getTreeVar('scopes');
-        this.scopeModel = new ScopeModel();
-        scopes[scopeName] = scopes[scopeName] || [];
-        scopes[scopeName].push(this.scopeModel);
-    }
-
-    return [
-        {
-            startNode: this.startNode.nextSibling,
-            endNode: this.endNode.previousSibling
-        }
-    ];
-};
-
-ScopeDirectiveParser.isProperNode = function (node, config) {
-    return DirectiveParser.isProperNode(node, config)
-        && node.nodeValue.replace(/\s+/, '').indexOf(config.scopeName + ':') === 0;
-};
-
-ScopeDirectiveParser.findEndNode = function (startNode, config) {
-    var curNode = startNode;
-    while ((curNode = curNode.nextSibling)) {
-        if (isEndNode(curNode, config)) {
-            return curNode;
-        }
-    }
-};
-
-ScopeDirectiveParser.getNoEndNodeError = function () {
-    return new Error('the scope directive is not properly ended!');
-};
-
-module.exports = inherit(ScopeDirectiveParser, DirectiveParser);
-Tree.registeParser(module.exports);
-
-function isEndNode(node, config) {
-    return node.nodeType === 8
-        && node.nodeValue.replace(/\s+/g, '') === config.scopeEndName;
-}
-
-},{"../ScopeModel":13,"../Tree":14,"../inherit":15,"../utils":27,"./DirectiveParser":19}],26:[function(require,module,exports){
-/**
- * @file 变量定义指令解析器
- * @author yibuyisheng(yibuyisheng@163.com)
- */
-
-var DirectiveParser = require('./DirectiveParser');
-var inherit = require('../inherit');
-var Tree = require('../Tree');
-
-function VarDirectiveParser(options) {
-    DirectiveParser.call(this, options);
-
-    this.node = options.node;
-}
-
-VarDirectiveParser.prototype.collectExprs = function () {
-    var expr = this.node.nodeValue.replace(this.config.varName + ':', '');
-    this.exprCalculater.createExprFn(expr);
-
-    var leftValueName = expr.match(/\s*.+(?=\=)/)[0].replace(/\s+/g, '');
-
-    var me = this;
-    this.exprFn = function (scopeModel) {
-        var oldValue = scopeModel.get(leftValueName);
-        var newValue = me.exprCalculater.calculate(expr, false, scopeModel);
-        if (oldValue !== newValue) {
-            scopeModel.set(leftValueName, newValue);
-        }
-    };
-};
-
-VarDirectiveParser.prototype.setScope = function (scopeModel) {
-    DirectiveParser.prototype.setScope.apply(this, arguments);
-    this.exprFn(this.scopeModel);
-};
-
-// VarDirectiveParser.prototype.onChange = function () {
-//     this.exprFn(this.scopeModel);
-// };
-
-VarDirectiveParser.isProperNode = function (node, config) {
-    return node.nodeType === 8
-        && node.nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;
-};
-
-
-module.exports = inherit(VarDirectiveParser, DirectiveParser);
-Tree.registeParser(VarDirectiveParser);
-
-
-},{"../Tree":14,"../inherit":15,"./DirectiveParser":19}],27:[function(require,module,exports){
+},{"../DomUpdater":7,"../ExprCalculater":9,"../ScopeModel":10,"../utils":27}],27:[function(require,module,exports){
 /**
  * @file 一堆项目里面常用的方法
  * @author yibuyisheng(yibuyisheng@163.com)

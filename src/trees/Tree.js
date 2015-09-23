@@ -3,10 +3,10 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var utils = require('./utils');
-var ExprCalculater = require('./ExprCalculater');
-var DomUpdater = require('./DomUpdater');
-var ScopeModel = require('./ScopeModel');
+var utils = require('../utils');
+var ExprCalculater = require('../ExprCalculater');
+var DomUpdater = require('../DomUpdater');
+var ScopeModel = require('../ScopeModel');
 
 function Tree(options) {
     this.startNode = options.startNode;
@@ -15,6 +15,7 @@ function Tree(options) {
 
     this.exprCalculater = options.exprCalculater || new ExprCalculater();
     this.domUpdater = options.domUpdater || new DomUpdater();
+    this.dirtyChecker = options.dirtyChecker;
 
     this.tree = [];
     this.treeVars = options.treeVars || {};

@@ -128,7 +128,3 @@ This is a template library. Unlike those traditional templates (such as [Jade](h
     });
     </script>
     ```
-
-
-
-

@@ -1,12 +1,11 @@
 /**
- * @file children 指令 <!-- children -->
+ * @file children 指令 <!-- children --> ，只有组件中才会存在该指令
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
 var inherit = require('../inherit');
 var DirectiveParser = require('./DirectiveParser');
-var utils = require('../utils');
-var ChildrenTree = require('../ChildrenTree');
+var ChildrenTree = require('../trees/ChildrenTree');
 
 function ChildrenDirectiveParser(options) {
     DirectiveParser.call(this, options);

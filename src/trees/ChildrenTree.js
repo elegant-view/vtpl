@@ -1,5 +1,5 @@
 var Tree = require('./Tree');
-var inherit = require('./inherit');
+var inherit = require('../inherit');
 
 function ChildrenTree(options) {
     if (!options.config || !options.domUpdater
