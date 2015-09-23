@@ -7,7 +7,9 @@ require(['/dist/main'], function (main) {
 
     TestComponent.prototype.tpl = [
         '<div>',
+            '<!-- for: ${list} as ${item} -->',
             '<!-- children -->',
+            '<!-- /for -->',
         '</div>'
     ].join('');
 
@@ -23,6 +25,7 @@ require(['/dist/main'], function (main) {
     tree.traverse();
 
     tree.setData({
-        name: '张三'
+        name: '张三',
+        list: [1,2,3]
     });
 });

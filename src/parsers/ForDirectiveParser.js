@@ -125,9 +125,11 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
                 index: index
             };
             local[itemVariableName] = exprValue[k];
-            trees[index].setData(local);
+
             trees[index].rootScope.setParent(scopeModel);
             scopeModel.addChild(trees[index].rootScope);
+
+            trees[index].setData(local);
 
             index++;
         }

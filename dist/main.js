@@ -149,7 +149,7 @@ function ComponentChildren(startNode, endNode, scope) {
         this.div.innerHTML = '';
     }
     else {
-        utils.traverseNoChangeNodes(
+        utils.traverseNodes(
             startNode,
             endNode,
             function (curNode) {
@@ -1087,15 +1087,18 @@ ComponentParser.prototype.collectExprs = function () {
         if (this.config.getExprRegExp().test(expr)) {
             this.exprs.push(expr);
             if (!this.exprFns[expr]) {
-                this.exprCalculater.createExprFn(expr);
-                this.exprFns[expr] = utils.bind(function (expr, exprCalculater, scopeModel) {
-                    exprCalculater.calculate(expr, false, scopeModel);
-                }, null, expr, this.exprCalculater);
+                var rawExpr = expr.replace(this.config.getExprRegExp(), function () {
+                    return arguments[1];
+                });
+                this.exprCalculater.createExprFn(rawExpr);
+                this.exprFns[expr] = utils.bind(function (rawExpr, exprCalculater, scopeModel) {
+                    return exprCalculater.calculate(rawExpr, false, scopeModel);
+                }, null, rawExpr, this.exprCalculater);
 
                 this.updateFns[expr] = this.updateFns[expr] || [];
                 this.updateFns[expr].push(utils.bind(function (name, exprValue, component) {
                     component.setAttr(name, exprValue);
-                }), null, attr.nodeName);
+                }, null, attr.nodeName));
             }
         }
         else {
@@ -1601,9 +1604,11 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
                 index: index
             };
             local[itemVariableName] = exprValue[k];
-            trees[index].setData(local);
+
             trees[index].rootScope.setParent(scopeModel);
             scopeModel.addChild(trees[index].rootScope);
+
+            trees[index].setData(local);
 
             index++;
         }

@@ -6,7 +6,7 @@ function ComponentChildren(startNode, endNode, scope) {
         this.div.innerHTML = '';
     }
     else {
-        utils.traverseNoChangeNodes(
+        utils.traverseNodes(
             startNode,
             endNode,
             function (curNode) {
