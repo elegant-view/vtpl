@@ -16,11 +16,7 @@ function ComponentParser(options) {
 ComponentParser.prototype.initialize = function (options) {
     Parser.prototype.initialize.apply(this, arguments);
 
-    var componentManager = this.tree.getTreeVar('componentManager');
-    if (!componentManager) {
-        componentManager = new ComponentManager();
-        this.tree.setTreeVar('componentManager', componentManager);
-    }
+    this.componentManager = this.tree.componentManager;
 
     this.node = options.node;
 
@@ -34,6 +30,7 @@ ComponentParser.prototype.collectExprs = function () {
     var curNode = this.node;
 
     var attributes = curNode.attributes;
+    // 搜集不含有表达式的属性，然后在组件类创建好之后设置进组件
     this.setLiteralAttrsFns = [];
     for (var i = 0, il = attributes.length; i < il; i++) {
         var attr = attributes[i];
@@ -41,61 +38,70 @@ ComponentParser.prototype.collectExprs = function () {
         if (this.config.getExprRegExp().test(expr)) {
             this.exprs.push(expr);
             if (!this.exprFns[expr]) {
-                var rawExpr = expr.replace(this.config.getExprRegExp(), function () {
-                    return arguments[1];
-                });
+                var rawExpr = getRawExpr(expr, this.config);
                 this.exprCalculater.createExprFn(rawExpr);
-                this.exprFns[expr] = utils.bind(function (rawExpr, exprCalculater, scopeModel) {
-                    return exprCalculater.calculate(rawExpr, false, scopeModel);
-                }, null, rawExpr, this.exprCalculater);
+                this.exprFns[expr] = utils.bind(calculateExpr, null, rawExpr, this.exprCalculater);
 
                 this.updateFns[expr] = this.updateFns[expr] || [];
-                this.updateFns[expr].push(utils.bind(function (name, exprValue, component) {
-                    component.setAttr(name, exprValue);
-                }, null, attr.nodeName));
+                this.updateFns[expr].push(utils.bind(updateAttr, null, attr.nodeName));
             }
         }
         else {
-            this.setLiteralAttrsFns.push(utils.bind(function (attr, component) {
-                component.setAttr(attr.nodeName, attr.nodeValue);
-            }, null, attr));
+            this.setLiteralAttrsFns.push(utils.bind(literalAttrFn, null, attr));
         }
     }
-    return true;
-};
 
-ComponentParser.prototype.setScope = function (scopeModel) {
-    Parser.prototype.setScope.apply(this, arguments);
-
-    var componentName = this.node.tagName.toLowerCase().replace('ui', '')
+    var componentName = this.node.tagName.toLowerCase()
+        .replace('ui', '')
         .replace(/-[a-z]/g, function () {
             return arguments[0][1].toUpperCase();
         });
 
-    var componentManager = this.tree.getTreeVar('componentManager');
-    var ComponentClass = componentManager.getClass(componentName);
+    var ComponentClass = this.componentManager.getClass(componentName);
     if (!ComponentClass) {
         throw new Error('the component `' + componentName + '` is not registed!');
     }
 
     this.component = new ComponentClass({
         componentNode: this.node,
-        treeOptions: {
-            exprCalculater: this.tree.exprCalculater,
-            domUpdater: this.tree.domUpdater,
-            config: this.tree.config,
-            treeVars: this.tree.treeVars
-        },
-        outScope: this.scopeModel
+        tree: this.tree
     });
 
-    for (var i = 0, il = this.setLiteralAttrsFns.length; i < il; i++) {
-        this.setLiteralAttrsFns[i](this.component);
+    return true;
+
+    function literalAttrFn(attr, component) {
+        component.setAttr(attr.nodeName, attr.nodeValue);
     }
+
+    function updateAttr(name, exprValue, component) {
+        component.setAttr(name, exprValue);
+    }
+
+    function calculateExpr(rawExpr, exprCalculater, scopeModel) {
+        return exprCalculater.calculate(rawExpr, false, scopeModel);
+    }
+
+    function getRawExpr(expr, config) {
+        return expr.replace(config.getExprRegExp(), function () {
+            return arguments[1];
+        });
+    }
+};
+
+ComponentParser.prototype.setScope = function (scopeModel) {
+    Parser.prototype.setScope.apply(this, arguments);
+
+    this.component.setOutScope(this.scopeModel);
 
     var me = this;
     this.component.getTpl(function () {
         me.component.mount();
+
+        for (var i = 0, il = me.setLiteralAttrsFns.length; i < il; i++) {
+            me.setLiteralAttrsFns[i](me.component);
+        }
+
+        me.component.literalAttrReady();
     });
 };
 

@@ -4,15 +4,15 @@
  */
 
 function ComponentManager() {
+    this.components = {};
 }
 
-var components = {};
-ComponentManager.registe = function (ComponentClass) {
-    components[getClassName(ComponentClass)] = ComponentClass;
+ComponentManager.prototype.registe = function (ComponentClass) {
+    this.components[getClassName(ComponentClass)] = ComponentClass;
 };
 
 ComponentManager.prototype.getClass = function (name) {
-    return components[name];
+    return this.components[name];
 };
 
 module.exports = ComponentManager;

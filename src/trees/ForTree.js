@@ -4,6 +4,7 @@ var inherit = require('../inherit');
 function ForTree(options) {
     if (!options.config || !options.domUpdater
         || !options.exprCalculater || !options.treeVars
+        || !options.componentManager
     ) {
         throw new Error('wrong arguments');
     }

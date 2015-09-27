@@ -10,11 +10,14 @@ var ComponentChildren = require('./ComponentChildren');
 
 function Component(options) {
     this.componentNode = options.componentNode;
-    this.treeOptions = options.treeOptions;
-    this.outScope = options.outScope;
+    this.tree = options.tree;
 
     this.initialize();
 }
+
+Component.prototype.setOutScope = function (outScope) {
+    this.outScope = outScope;
+};
 
 /**
  * 初始化。子类可以覆盖这个方法，做一些初始化的工作。
@@ -30,6 +33,8 @@ Component.prototype.afterMount = function () {};
 Component.prototype.beforeDestroy = function () {};
 
 Component.prototype.afterDestroy = function () {};
+
+Component.prototype.literalAttrReady = function () {};
 
 /**
  * 组件模板。子类可以覆盖这个属性。
@@ -79,15 +84,21 @@ Component.prototype.mount = function () {
     this.endNode = div.lastChild;
 
     // 组件的作用域是和外部的作用域隔开的
-    this.tree = new ComponentTree(utils.extend({
+    this.tree = new ComponentTree({
         startNode: this.startNode,
         endNode: this.endNode,
+        config: this.tree.config,
+        domUpdater: this.tree.domUpdater,
+        exprCalculater: this.tree.exprCalculater,
+        treeVars: this.tree.treeVars,
+        componentManager: this.tree.componentManager,
         componentChildren: new ComponentChildren(
             this.componentNode.firstChild,
             this.componentNode.lastChild,
-            this.outScope
+            this.outScope,
+            this
         )
-    }, this.treeOptions));
+    });
     this.tree.traverse();
 
     // 把组件节点放到 DOM 树中去
@@ -143,7 +154,7 @@ Component.prototype.destroy = function () {
     this.tree.destroy();
 
     this.componentNode = null;
-    this.treeOptions = null;
+    this.tree = null;
     this.outScope = null;
     this.startNode = null;
     this.endNode = null;
@@ -170,17 +181,4 @@ Component.prototype.restoreFromDark = function () {
 };
 
 module.exports = Component;
-
-function findChildrenNodes(startNode, endNode) {
-    var childrenNodes = [];
-    utils.traverseNoChangeNodes(startNode, endNode, function (curNode) {
-        if (curNode.nodeType === 8 && curNode.nodeValue.replace(/\s+/g, '') === 'children') {
-            childrenNodes.push(curNode);
-        }
-        else if (curNode.nodeType === 1 && curNode.childNodes.length) {
-            Array.prototype.push.apply(childrenNodes, findChildrenNodes(curNode.firstChild, curNode.lastChild));
-        }
-    });
-    return childrenNodes;
-}
 

@@ -33,6 +33,8 @@ Parser.prototype.initialize = function (options) {
     this.tree = options.tree;
 };
 
+Parser.prototype.initTree = function (tree) {};
+
 Parser.prototype.setScope = function (scopeModel) {
     this.scopeModel = scopeModel;
 

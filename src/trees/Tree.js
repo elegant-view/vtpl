@@ -7,6 +7,7 @@ var utils = require('../utils');
 var ExprCalculater = require('../ExprCalculater');
 var DomUpdater = require('../DomUpdater');
 var ScopeModel = require('../ScopeModel');
+var ComponentManager = require('../ComponentManager');
 
 function Tree(options) {
     this.startNode = options.startNode;
@@ -15,6 +16,7 @@ function Tree(options) {
 
     this.exprCalculater = options.exprCalculater || new ExprCalculater();
     this.domUpdater = options.domUpdater || new DomUpdater();
+    this.componentManager = options.componentManager || new ComponentManager();
     this.dirtyChecker = options.dirtyChecker;
 
     this.tree = [];
@@ -22,6 +24,10 @@ function Tree(options) {
 
     this.rootScope = new ScopeModel();
 }
+
+Tree.prototype.registeComponent = function (componentClass) {
+    this.componentManager.registe(componentClass);
+};
 
 Tree.prototype.setTreeVar = function (name, value) {
     if (this.treeVars[name] !== undefined) {

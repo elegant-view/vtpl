@@ -1,6 +1,11 @@
+/**
+ * @file 组件的 <!-- children --> 实例，记录相关信息，方便后续 ChildrenDirectiveParser 解析
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
 var utils = require('./utils');
 
-function ComponentChildren(startNode, endNode, scope) {
+function ComponentChildren(startNode, endNode, scope, component) {
     this.div = document.createElement('div');
     if (!startNode || !endNode) {
         this.div.innerHTML = '';
@@ -17,6 +22,7 @@ function ComponentChildren(startNode, endNode, scope) {
     }
 
     this.scope = scope;
+    this.component = component;
 }
 
 ComponentChildren.prototype.getTplHtml = function () {

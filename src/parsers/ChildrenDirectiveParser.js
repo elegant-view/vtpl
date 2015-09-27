@@ -32,7 +32,8 @@ ChildrenDirectiveParser.prototype.collectExprs = function () {
         config: this.tree.config,
         domUpdater: this.tree.domUpdater,
         exprCalculater: this.tree.exprCalculater,
-        treeVars: this.tree.treeVars
+        treeVars: this.tree.treeVars,
+        componentManager: this.tree.componentManager
     });
     this.childrenTree.traverse();
 
@@ -48,6 +49,9 @@ ChildrenDirectiveParser.prototype.collectExprs = function () {
 
 ChildrenDirectiveParser.prototype.destroy = function () {
     this.childrenTree.destroy();
+
+    this.node = null;
+    this.childrenTree = null;
 
     DirectiveParser.prototype.destroy.call(this);
 };

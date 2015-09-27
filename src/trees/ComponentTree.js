@@ -5,6 +5,7 @@ function ComponentTree(options) {
     if (!options.config || !options.domUpdater
         || !options.exprCalculater || !options.treeVars
         || !options.componentChildren
+        || !options.componentManager
     ) {
         throw new Error('wrong arguments');
     }

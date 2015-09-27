@@ -157,7 +157,8 @@ function createTree(parser, config) {
         domUpdater: parser.tree.domUpdater,
         exprCalculater: parser.tree.exprCalculater,
         treeVars: parser.tree.treeVars,
-        componentChildren: parser.tree.componentChildren
+        componentChildren: parser.tree.componentChildren,
+        componentManager: parser.tree.componentManager
     });
     tree.traverse();
     return tree;
