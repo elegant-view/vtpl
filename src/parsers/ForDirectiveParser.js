@@ -3,102 +3,101 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var inherit = require('../inherit');
 var DirectiveParser = require('./DirectiveParser');
 var utils = require('../utils');
 var ForTree = require('../trees/ForTree');
 
-function ForDirectiveParser(options) {
-    DirectiveParser.call(this, options);
-}
+module.exports = DirectiveParser.extends(
+    {
+        initialize: function (options) {
+            this.$super.initialize(arguments);
 
-ForDirectiveParser.prototype.initialize = function (options) {
-    DirectiveParser.prototype.initialize.apply(this, arguments);
+            this.startNode = options.startNode;
+            this.endNode = options.endNode;
+        },
 
-    this.startNode = options.startNode;
-    this.endNode = options.endNode;
-};
+        collectExprs: function () {
+            if (this.startNode.nextSibling === this.endNode) {
+                return;
+            }
 
-ForDirectiveParser.prototype.collectExprs = function () {
-    if (this.startNode.nextSibling === this.endNode) {
-        return;
-    }
+            var tplSeg = document.createElement('div');
+            utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
+                if (curNode === this.startNode || curNode === this.endNode) {
+                    return;
+                }
 
-    var tplSeg = document.createElement('div');
-    utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
-        if (curNode === this.startNode || curNode === this.endNode) {
-            return;
+                tplSeg.appendChild(curNode);
+            }, this);
+            this.tplSeg = tplSeg;
+
+            this.expr = this.startNode.nodeValue.match(this.config.getForExprsRegExp())[1];
+            this.exprFn = utils.createExprFn(this.config.getExprRegExp(), this.expr, this.exprCalculater);
+            this.updateFn = createUpdateFn(
+                this,
+                this.startNode.nextSibling,
+                this.endNode.previousSibling,
+                this.config,
+                this.startNode.nodeValue
+            );
+
+            return true;
+        },
+
+        onChange: function () {
+            if (!this.expr) {
+                return;
+            }
+
+            var exprValue = this.exprFn(this.scopeModel);
+            if (this.dirtyCheck(this.expr, exprValue, this.exprOldValue)) {
+                this.updateFn(exprValue, this.scopeModel);
+            }
+
+            this.exprOldValue = exprValue;
+
+            this.$super.onChange(arguments);
+        },
+
+        destroy: function () {
+            utils.traverseNodes(this.tplSeg.firstChild, this.tplSeg.lastChild, function (curNode) {
+                this.endNode.parentNode.insertBefore(curNode, this.endNode);
+            }, this);
+
+            utils.each(this.trees, function (tree) {
+                tree.destroy();
+            });
+
+            this.tplSeg = null;
+            this.expr = null;
+            this.exprFn = null;
+            this.updateFn = null;
+            this.startNode = null;
+            this.endNode = null;
+            this.$super.destroy(this);
         }
+    },
+    {
+        isProperNode: function (node, config) {
+            return DirectiveParser.isProperNode(node, config)
+                && config.forPrefixRegExp.test(node.nodeValue);
+        },
 
-        tplSeg.appendChild(curNode);
-    }, this);
-    this.tplSeg = tplSeg;
+        findEndNode: function (forStartNode, config) {
+            var curNode = forStartNode;
+            while ((curNode = curNode.nextSibling)) {
+                if (isForEndNode(curNode, config)) {
+                    return curNode;
+                }
+            }
+        },
 
-    this.expr = this.startNode.nodeValue.match(this.config.getForExprsRegExp())[1];
-    this.exprFn = utils.createExprFn(this.config.getExprRegExp(), this.expr, this.exprCalculater);
-    this.updateFn = createUpdateFn(
-        this,
-        this.startNode.nextSibling,
-        this.endNode.previousSibling,
-        this.config,
-        this.startNode.nodeValue
-    );
-
-    return true;
-};
-
-ForDirectiveParser.prototype.onChange = function () {
-    if (!this.expr) {
-        return;
-    }
-
-    var exprValue = this.exprFn(this.scopeModel);
-    if (this.dirtyCheck(this.expr, exprValue, this.exprOldValue)) {
-        this.updateFn(exprValue, this.scopeModel);
-    }
-
-    this.exprOldValue = exprValue;
-
-    DirectiveParser.prototype.onChange.apply(this, arguments);
-};
-
-ForDirectiveParser.prototype.destroy = function () {
-    utils.traverseNodes(this.tplSeg.firstChild, this.tplSeg.lastChild, function (curNode) {
-        this.endNode.parentNode.insertBefore(curNode, this.endNode);
-    }, this);
-
-    utils.each(this.trees, function (tree) {
-        tree.destroy();
-    });
-
-    this.tplSeg = null;
-    this.expr = null;
-    this.exprFn = null;
-    this.updateFn = null;
-    this.startNode = null;
-    this.endNode = null;
-    DirectiveParser.prototype.destroy.call(this);
-};
-
-ForDirectiveParser.isProperNode = function (node, config) {
-    return DirectiveParser.isProperNode(node, config)
-        && config.forPrefixRegExp.test(node.nodeValue);
-};
-
-ForDirectiveParser.findEndNode = function (forStartNode, config) {
-    var curNode = forStartNode;
-    while ((curNode = curNode.nextSibling)) {
-        if (isForEndNode(curNode, config)) {
-            return curNode;
+        getNoEndNodeError: function () {
+            return new Error('the `for` directive is not properly ended!');
         }
     }
-};
+);
 
-ForDirectiveParser.getNoEndNodeError = function () {
-    return new Error('the for directive is not properly ended!');
-};
-
-module.exports = inherit(ForDirectiveParser, DirectiveParser);
 ForTree.registeParser(module.exports);
 
 function isForEndNode(node, config) {

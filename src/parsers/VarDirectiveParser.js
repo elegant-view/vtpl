@@ -4,64 +4,66 @@
  */
 
 var DirectiveParser = require('./DirectiveParser');
-var inherit = require('../inherit');
 var Tree = require('../trees/Tree');
 
-function VarDirectiveParser(options) {
-    DirectiveParser.call(this, options);
+module.exports = DirectiveParser.extends(
+    {
+        initialize: function (options) {
+            this.$super.initialize(options);
 
-    this.node = options.node;
-}
+            this.node = options.node;
+        },
 
-VarDirectiveParser.prototype.collectExprs = function () {
-    var expr = this.node.nodeValue.replace(this.config.varName + ':', '');
-    this.exprCalculater.createExprFn(expr);
+        collectExprs: function () {
+            var expr = this.node.nodeValue.replace(this.config.varName + ':', '');
+            this.exprCalculater.createExprFn(expr);
 
-    var leftValueName = expr.match(/\s*.+(?=\=)/)[0].replace(/\s+/g, '');
+            var leftValueName = expr.match(/\s*.+(?=\=)/)[0].replace(/\s+/g, '');
 
-    var me = this;
-    this.exprFn = function (scopeModel) {
-        var oldValue = scopeModel.get(leftValueName);
-        var newValue = me.exprCalculater.calculate(expr, false, scopeModel);
-        if (oldValue !== newValue) {
-            scopeModel.set(leftValueName, newValue);
+            var me = this;
+            this.exprFn = function (scopeModel) {
+                var oldValue = scopeModel.get(leftValueName);
+                var newValue = me.exprCalculater.calculate(expr, false, scopeModel);
+                if (oldValue !== newValue) {
+                    scopeModel.set(leftValueName, newValue);
+                }
+            };
+        },
+
+        setScope: function (scopeModel) {
+            DirectiveParser.prototype.setScope.apply(this, arguments);
+            this.exprFn(this.scopeModel);
+        },
+
+        /**
+         * 获取开始节点
+         *
+         * @protected
+         * @inheritDoc
+         * @return {Node}
+         */
+        getStartNode: function () {
+            return this.node;
+        },
+
+        /**
+         * 获取结束节点
+         *
+         * @protected
+         * @inheritDoc
+         * @return {Node}
+         */
+        getEndNode: function () {
+            return this.node;
         }
-    };
-};
+    },
+    {
+        isProperNode: function (node, config) {
+            return node.nodeType === 8
+                && node.nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;
+        }
+    }
+);
 
-VarDirectiveParser.prototype.setScope = function (scopeModel) {
-    DirectiveParser.prototype.setScope.apply(this, arguments);
-    this.exprFn(this.scopeModel);
-};
-
-/**
- * 获取开始节点
- *
- * @protected
- * @inheritDoc
- * @return {Node}
- */
-VarDirectiveParser.prototype.getStartNode = function () {
-    return this.node;
-};
-
-/**
- * 获取结束节点
- *
- * @protected
- * @inheritDoc
- * @return {Node}
- */
-VarDirectiveParser.prototype.getEndNode = function () {
-    return this.node;
-};
-
-VarDirectiveParser.isProperNode = function (node, config) {
-    return node.nodeType === 8
-        && node.nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;
-};
-
-
-module.exports = inherit(VarDirectiveParser, DirectiveParser);
-Tree.registeParser(VarDirectiveParser);
+Tree.registeParser(module.exports);
 

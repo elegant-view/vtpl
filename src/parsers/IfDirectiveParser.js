@@ -4,127 +4,130 @@
  */
 
 var DirectiveParser = require('./DirectiveParser');
-var inherit = require('../inherit');
 var utils = require('../utils');
 var Tree = require('../trees/Tree');
 
-function IfDirectiveParser(options) {
-    DirectiveParser.call(this, options);
-}
+module.exports = DirectiveParser.extends(
+    {
+        initialize: function (options) {
+            this.$super.initialize(options);
 
-IfDirectiveParser.prototype.initialize = function (options) {
-    DirectiveParser.prototype.initialize.apply(this, arguments);
+            this.startNode = options.startNode;
+            this.endNode = options.endNode;
+            this.config = options.config;
 
-    this.startNode = options.startNode;
-    this.endNode = options.endNode;
-    this.config = options.config;
+            this.exprs = [];
+            this.exprFns = {};
 
-    this.exprs = [];
-    this.exprFns = {};
+            this.handleBranchesTaskId = this.domUpdater.generateTaskId();
+        },
 
-    this.handleBranchesTaskId = this.domUpdater.generateTaskId();
-};
+        collectExprs: function () {
+            var branches = [];
+            var branchIndex = -1;
 
-IfDirectiveParser.prototype.collectExprs = function () {
-    var branches = [];
-    var branchIndex = -1;
+            utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
+                var nodeType = getIfNodeType(curNode, this.config);
 
-    utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
-        var nodeType = getIfNodeType(curNode, this.config);
+                if (nodeType) {
+                    setEndNode(curNode, branches, branchIndex);
 
-        if (nodeType) {
-            setEndNode(curNode, branches, branchIndex);
+                    branchIndex++;
+                    branches[branchIndex] = branches[branchIndex] || {};
 
-            branchIndex++;
-            branches[branchIndex] = branches[branchIndex] || {};
+                    // 是 if 节点或者 elif 节点，搜集表达式
+                    if (nodeType < 3) {
+                        var expr = curNode.nodeValue.replace(this.config.getAllIfRegExp(), '');
+                        this.exprs.push(expr);
 
-            // 是 if 节点或者 elif 节点，搜集表达式
-            if (nodeType < 3) {
-                var expr = curNode.nodeValue.replace(this.config.getAllIfRegExp(), '');
-                this.exprs.push(expr);
+                        if (!this.exprFns[expr]) {
+                            this.exprFns[expr] = utils.createExprFn(
+                                this.config.getExprRegExp(),
+                                expr,
+                                this.exprCalculater
+                            );
+                        }
+                    }
+                    else if (nodeType === 3) {
+                        this.hasElseBranch = true;
+                    }
+                }
+                else {
+                    if (!branches[branchIndex].startNode) {
+                        branches[branchIndex].startNode = curNode;
+                    }
+                }
 
-                if (!this.exprFns[expr]) {
-                    this.exprFns[expr] = utils.createExprFn(this.config.getExprRegExp(), expr, this.exprCalculater);
+                curNode = curNode.nextSibling;
+                if (!curNode || curNode === this.endNode) {
+                    setEndNode(curNode, branches, branchIndex);
+                    return true;
+                }
+            }, this);
+
+            this.branches = branches;
+            return branches;
+
+            function setEndNode(curNode, branches, branchIndex) {
+                if (branchIndex + 1 && branches[branchIndex].startNode) {
+                    branches[branchIndex].endNode = curNode.previousSibling;
                 }
             }
-            else if (nodeType === 3) {
-                this.hasElseBranch = true;
+        },
+
+        onChange: function () {
+            var exprs = this.exprs;
+            for (var i = 0, il = exprs.length; i < il; i++) {
+                var expr = exprs[i];
+                var exprValue = this.exprFns[expr](this.scopeModel);
+                if (exprValue) {
+                    this.domUpdater.addTaskFn(
+                        this.handleBranchesTaskId,
+                        utils.bind(handleBranches, null, this.branches, i)
+                    );
+                    return;
+                }
             }
-        }
-        else {
-            if (!branches[branchIndex].startNode) {
-                branches[branchIndex].startNode = curNode;
+
+            if (this.hasElseBranch) {
+                this.domUpdater.addTaskFn(
+                    this.handleBranchesTaskId,
+                    utils.bind(handleBranches, null, this.branches, i)
+                );
+                return;
             }
+        },
+
+        destroy: function () {
+            this.startNode = null;
+            this.endNode = null;
+            this.config = null;
+            this.exprs = null;
+            this.exprFns = null;
+
+            DirectiveParser.prototype.destroy.call(this);
         }
+    },
+    {
+        isProperNode: function (node, config) {
+            return getIfNodeType(node, config) === 1;
+        },
 
-        curNode = curNode.nextSibling;
-        if (!curNode || curNode === this.endNode) {
-            setEndNode(curNode, branches, branchIndex);
-            return true;
-        }
-    }, this);
+        findEndNode: function (ifStartNode, config) {
+            var curNode = ifStartNode;
+            while ((curNode = curNode.nextSibling)) {
+                if (isIfEndNode(curNode, config)) {
+                    return curNode;
+                }
+            }
+        },
 
-    this.branches = branches;
-    return branches;
-
-    function setEndNode(curNode, branches, branchIndex) {
-        if (branchIndex + 1 && branches[branchIndex].startNode) {
-            branches[branchIndex].endNode = curNode.previousSibling;
-        }
-    }
-};
-
-IfDirectiveParser.prototype.onChange = function () {
-    var exprs = this.exprs;
-    for (var i = 0, il = exprs.length; i < il; i++) {
-        var expr = exprs[i];
-        var exprValue = this.exprFns[expr](this.scopeModel);
-        if (exprValue) {
-            this.domUpdater.addTaskFn(
-                this.handleBranchesTaskId,
-                utils.bind(handleBranches, null, this.branches, i)
-            );
-            return;
+        getNoEndNodeError: function () {
+            return new Error('the if directive is not properly ended!');
         }
     }
+);
 
-    if (this.hasElseBranch) {
-        this.domUpdater.addTaskFn(
-            this.handleBranchesTaskId,
-            utils.bind(handleBranches, null, this.branches, i)
-        );
-        return;
-    }
-};
-
-IfDirectiveParser.prototype.destroy = function () {
-    this.startNode = null;
-    this.endNode = null;
-    this.config = null;
-    this.exprs = null;
-    this.exprFns = null;
-
-    DirectiveParser.prototype.destroy.call(this);
-};
-
-IfDirectiveParser.isProperNode = function (node, config) {
-    return getIfNodeType(node, config) === 1;
-};
-
-IfDirectiveParser.findEndNode = function (ifStartNode, config) {
-    var curNode = ifStartNode;
-    while ((curNode = curNode.nextSibling)) {
-        if (isIfEndNode(curNode, config)) {
-            return curNode;
-        }
-    }
-};
-
-IfDirectiveParser.getNoEndNodeError = function () {
-    return new Error('the if directive is not properly ended!');
-};
-
-module.exports = inherit(IfDirectiveParser, DirectiveParser);
 Tree.registeParser(module.exports);
 
 function handleBranches(branches, showIndex) {

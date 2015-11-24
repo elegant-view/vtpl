@@ -4,62 +4,81 @@
  */
 
 var ExprParser = require('./ExprParser');
-var inherit = require('../inherit');
 var utils = require('../utils');
 var Tree = require('../trees/Tree');
 var ScopeModel = require('../ScopeModel');
 
-function EventExprParser(options) {
-    ExprParser.call(this, options);
-}
+module.exports = ExprParser.extends(
+    {
 
-EventExprParser.prototype.initialize = function (options) {
-    ExprParser.prototype.initialize.apply(this, arguments);
+        /**
+         * 初始化
+         *
+         * @protected
+         */
+        initialize: function () {
+            this.$super.initialize.apply(this, arguments);
 
-    this.events = {};
-};
+            this.events = {};
+        },
 
-EventExprParser.prototype.addExpr = function (attr) {
-    if (!attr) {
-        return ExprParser.prototype.addExpr.apply(this, arguments);
-    }
+        /**
+         * 添加表达式
+         *
+         * @inherit
+         * @protected
+         * @param {Attr} attr 如果当前是元素节点，则要传入遍历到的属性，
+         *                    所以attr存在与否是判断当前元素是否是文本节点的一个依据
+         * @return {undefined}
+         */
+        addExpr: function (attr) {
+            if (!attr) {
+                return this.$super.addExpr(arguments);
+            }
 
-    var eventName = getEventName(attr.name, this.config);
-    if (eventName) {
-        if (this.config.getExprRegExp().test(attr.value)) {
-            this.events[eventName] = attr.value;
+            var eventName = getEventName(attr.name, this.config);
+            if (eventName) {
+                if (this.config.getExprRegExp().test(attr.value)) {
+                    this.events[eventName] = attr.value;
 
-            var expr = attr.value.replace(
-                this.config.getExprRegExp(),
-                function () {
-                    return arguments[1];
+                    var expr = attr.value.replace(
+                        this.config.getExprRegExp(),
+                        function () {
+                            return arguments[1];
+                        }
+                    );
+                    this.exprCalculater.createExprFn(expr, true);
+
+                    var me = this;
+                    this.node['on' + eventName] = function (event) {
+                        var localScope = new ScopeModel();
+                        localScope.setParent(me.getScope());
+                        me.exprCalculater.calculate(expr, true, localScope);
+                    };
                 }
-            );
-            this.exprCalculater.createExprFn(expr, true);
+            }
+            else {
+                this.$super.addExpr(arguments);
+            }
+        },
 
-            var me = this;
-            this.node['on' + eventName] = function (event) {
-                var localScope = new ScopeModel();
-                localScope.setParent(me.getScope());
-                me.exprCalculater.calculate(expr, true, localScope);
-            };
+        /**
+         * 销毁
+         *
+         * @inherit
+         * @public
+         */
+        destroy: function () {
+            utils.each(this.events, function (attrValue, eventName) {
+                this.node['on' + eventName] = null;
+            }, this);
+            this.events = null;
+
+            this.$super.destroy(this);
         }
     }
-    else {
-        ExprParser.prototype.addExpr.apply(this, arguments);
-    }
-};
+);
 
-EventExprParser.prototype.destroy = function () {
-    utils.each(this.events, function (attrValue, eventName) {
-        this.node['on' + eventName] = null;
-    }, this);
-    this.events = null;
-
-    ExprParser.prototype.destroy.call(this);
-};
-
-module.exports = inherit(EventExprParser, ExprParser);
 Tree.registeParser(module.exports);
 
 
