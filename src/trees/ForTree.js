@@ -4,7 +4,6 @@
  */
 
 var Tree = require('./Tree');
-var inherit = require('../inherit');
 
 module.exports = Tree.extends(
     {
