@@ -7,7 +7,6 @@ var utils = require('../utils');
 var ExprCalculater = require('../ExprCalculater');
 var DomUpdater = require('../DomUpdater');
 var ScopeModel = require('../ScopeModel');
-var ComponentManager = require('../ComponentManager');
 var Base = require('../Base');
 
 var ParserClasses = [];
@@ -23,35 +22,25 @@ module.exports = Base.extends(
 
             this.exprCalculater = options.exprCalculater || new ExprCalculater();
             this.domUpdater = options.domUpdater || new DomUpdater();
-            this.componentManager = options.componentManager || new ComponentManager();
             this.dirtyChecker = options.dirtyChecker;
 
             this.tree = [];
-            this.treeVars = options.treeVars || {};
+            this.treeVars = {};
 
             this.rootScope = new ScopeModel();
         },
 
         /**
-         * 注册组件类
+         * 设置绑定在树上面的额外变量。这些变量有如下特性：
+         * 1、无法覆盖；
+         * 2、在获取treeVars上面某个变量的时候，如果当前树取出来是undefined，那么就会到父级树的treeVars上去找，以此类推。
          *
          * @public
-         * @param  {Map.<string, Component>} componentClasses 组件名和组件类的映射
+         * @param {string} name  变量名
+         * @param {*} value 变量值
+         * @return {boolean} 是否设置成功
          */
-        registeComponents = function (componentClasses) {
-            if (!utils.isPureObject(componentClasses)) {
-                return;
-            }
-
-            for (var name in componentClasses) {
-                var componentClass = componentClasses[name];
-                // 此处占用了组件类上的name属性，外部不要用这个属性
-                componentClass.$name = name;
-                this.componentManager.registe(componentClass);
-            }
-        },
-
-        setTreeVar = function (name, value) {
+        setTreeVar: function (name, value) {
             if (this.treeVars[name] !== undefined) {
                 return false;
             }
@@ -59,15 +48,23 @@ module.exports = Base.extends(
             return true;
         },
 
-        unsetTreeVar = function (name) {
+        unsetTreeVar: function (name) {
             this.treeVars[name] = undefined;
         },
 
-        getTreeVar = function (name) {
-            return this.treeVars[name];
+        getTreeVar: function (name) {
+            var val = this.treeVars[name];
+            if (val === undefined && this.$parent !== undefined) {
+                val = this.$parent.getTreeVar(name);
+            }
+            return val;
         },
 
-        getScopeByName = function (name) {
+        setParent: function (parent) {
+            this.$parent = parent;
+        },
+
+        getScopeByName: function (name) {
             var scopes = this.getTreeVar('scopes');
             if (!scopes) {
                 return;
@@ -75,16 +72,16 @@ module.exports = Base.extends(
             return scopes[name];
         },
 
-        traverse = function () {
+        traverse: function () {
             walkDom(this, this.startNode, this.endNode, this.tree, this.rootScope);
         },
 
-        setData = function (data) {
+        setData: function (data) {
             data = data || {};
             this.rootScope.set(data);
         },
 
-        goDark = function () {
+        goDark: function () {
             utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
                 if (curNode.nodeType === 1 || curNode.nodeType === 3) {
                     utils.goDark(curNode);
@@ -92,7 +89,7 @@ module.exports = Base.extends(
             }, this);
         },
 
-        restoreFromDark = function () {
+        restoreFromDark: function () {
             utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
                 if (curNode.nodeType === 1 || curNode.nodeType === 3) {
                     utils.restoreFromDark(curNode);
@@ -100,7 +97,7 @@ module.exports = Base.extends(
             }, this);
         },
 
-        setDirtyChecker = function (dirtyChecker) {
+        setDirtyChecker: function (dirtyChecker) {
             this.dirtyChecker = dirtyChecker;
         },
 

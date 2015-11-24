@@ -154,11 +154,9 @@ function createTree(parser, config) {
         endNode: endNode,
         config: config,
         domUpdater: parser.tree.domUpdater,
-        exprCalculater: parser.tree.exprCalculater,
-        treeVars: parser.tree.treeVars,
-        componentChildren: parser.tree.componentChildren,
-        componentManager: parser.tree.componentManager
+        exprCalculater: parser.tree.exprCalculater
     });
+    tree.setParent(parser.tree);
     tree.traverse();
     return tree;
 }

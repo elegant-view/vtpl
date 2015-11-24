@@ -1,6 +1,4 @@
 require('./src/parsers/ScopeDirectiveParser');
-require('./src/parsers/ComponentParser');
-require('./src/parsers/ChildrenDirectiveParser');
 
 var amdExports = {
     Config: require('./src/Config'),
@@ -16,9 +14,7 @@ var amdExports = {
     inherit: require('./src/inherit'),
     utils: require('./src/utils'),
     DomUpdater: require('./src/DomUpdater'),
-    ScopeModel: require('./src/ScopeModel'),
-    Component: require('./src/Component'),
-    ComponentManager: require('./src/ComponentManager')
+    ScopeModel: require('./src/ScopeModel')
 };
 define(function (require, exports, module) {
     module.exports = amdExports;

@@ -1,7 +1,5 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 require('./src/parsers/ScopeDirectiveParser');
-require('./src/parsers/ComponentParser');
-require('./src/parsers/ChildrenDirectiveParser');
 
 var amdExports = {
     Config: require('./src/Config'),
@@ -17,259 +15,50 @@ var amdExports = {
     inherit: require('./src/inherit'),
     utils: require('./src/utils'),
     DomUpdater: require('./src/DomUpdater'),
-    ScopeModel: require('./src/ScopeModel'),
-    Component: require('./src/Component'),
-    ComponentManager: require('./src/ComponentManager')
+    ScopeModel: require('./src/ScopeModel')
 };
 define(function (require, exports, module) {
     module.exports = amdExports;
 });
 
-},{"./src/Component":2,"./src/ComponentManager":4,"./src/Config":5,"./src/DirtyChecker":6,"./src/DomUpdater":7,"./src/ExprCalculater":9,"./src/ScopeModel":10,"./src/inherit":11,"./src/parsers/ChildrenDirectiveParser":13,"./src/parsers/ComponentParser":14,"./src/parsers/EventExprParser":16,"./src/parsers/ExprParser":17,"./src/parsers/ForDirectiveParser":18,"./src/parsers/IfDirectiveParser":19,"./src/parsers/Parser":20,"./src/parsers/ScopeDirectiveParser":21,"./src/parsers/VarDirectiveParser":22,"./src/trees/Tree":26,"./src/utils":27}],2:[function(require,module,exports){
+},{"./src/Config":3,"./src/DirtyChecker":4,"./src/DomUpdater":5,"./src/ExprCalculater":7,"./src/ScopeModel":8,"./src/inherit":9,"./src/parsers/EventExprParser":12,"./src/parsers/ExprParser":13,"./src/parsers/ForDirectiveParser":14,"./src/parsers/IfDirectiveParser":15,"./src/parsers/Parser":16,"./src/parsers/ScopeDirectiveParser":17,"./src/parsers/VarDirectiveParser":18,"./src/trees/Tree":20,"./src/utils":21}],2:[function(require,module,exports){
 /**
- * @file 组件基类
+ * @file 所有类的基类
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var log = require('./log');
-var utils = require('./utils');
-var ComponentTree = require('./trees/ComponentTree');
-var ComponentChildren = require('./ComponentChildren');
-
-function Component(options) {
-    this.componentNode = options.componentNode;
-    this.tree = options.tree;
-
-    this.initialize();
-}
-
-Component.prototype.setOutScope = function (outScope) {
-    this.outScope = outScope;
-};
-
-/**
- * 初始化。子类可以覆盖这个方法，做一些初始化的工作。
- *
- * @protected
- */
-Component.prototype.initialize = function () {};
-
-Component.prototype.beforeMount = function () {};
-
-Component.prototype.afterMount = function () {};
-
-Component.prototype.beforeDestroy = function () {};
-
-Component.prototype.afterDestroy = function () {};
-
-Component.prototype.literalAttrReady = function () {};
-
-/**
- * 组件模板。子类可以覆盖这个属性。
- *
- * @protected
- * @type {String}
- */
-Component.prototype.tpl = '';
-
-/**
- * 组件模板的 url 地址。子类可以覆盖这个属性。
- *
- * @protected
- * @type {String}
- */
-Component.prototype.tplUrl = '';
-
-/**
- * 设置组件属性。假如有如下组件：
- *
- * <ui-my-component title="${title}" name="Amy"></ui-my-component>
- *
- * 那么属性就有 title 和 name ，其中 name 的属性值不是一个表达式，所以在组件创建完成之后，就会被设置好；
- * 而 title 属性值是一个表达式，需要监听 ${title} 表达式的值及其变化，然后再设置进来。
- *
- * 设置进来的值会被直接放到组件对应的 ComponentTree 实例的 rootScope 上面去。
- *
- * @public
- * @param {string} name  属性名
- * @param {Any} value 属性值
- */
-Component.prototype.setAttr = function (name, value) {
-    this.tree.rootScope.set(name, value);
-};
-
-/**
- * 组件挂载到 DOM 树中去。
- *
- * @private
- */
-Component.prototype.mount = function () {
-    this.beforeMount();
-
-    var div = document.createElement('div');
-    div.innerHTML = this.tpl;
-    this.startNode = div.firstChild;
-    this.endNode = div.lastChild;
-
-    // 组件的作用域是和外部的作用域隔开的
-    this.tree = new ComponentTree({
-        startNode: this.startNode,
-        endNode: this.endNode,
-        config: this.tree.config,
-        domUpdater: this.tree.domUpdater,
-        exprCalculater: this.tree.exprCalculater,
-        treeVars: this.tree.treeVars,
-        componentManager: this.tree.componentManager,
-        componentChildren: new ComponentChildren(
-            this.componentNode.firstChild,
-            this.componentNode.lastChild,
-            this.outScope,
-            this
-        )
-    });
-    this.tree.traverse();
-
-    // 把组件节点放到 DOM 树中去
-    var parentNode = this.componentNode.parentNode;
-    utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
-        parentNode.insertBefore(curNode, this.componentNode);
-    }, this);
-    parentNode.removeChild(this.componentNode);
-
-    this.afterMount();
-};
-
-Component.prototype.setData = function () {
-    if (!this.tree || !this.tree.rootScope) {
-        throw new Error('component is not ready');
-    }
-    var scope = this.tree.rootScope;
-    scope.set.apply(scope, arguments);
-};
-
-/**
- * 拿到到组件模板。优先检查 tpl 是否有模板，如果有了，就不再去请求了。
- *
- * @public
- * @param  {function(string)} doneFn 模板就绪后的回调函数
- */
-Component.prototype.getTpl = function (doneFn) {
-    if (this.tpl) {
-        doneFn();
-    }
-    else if (this.tplUrl) {
-        var me = this;
-        utils.xhr({
-            url: this.tplUrl
-        }, function (data) {
-            me.tpl = data.responseText;
-            doneFn();
-        }, function () {
-            log.warn('load tpl:', me.tplUrl, 'failed!');
-            doneFn();
-        });
-    }
-};
-
-/**
- * 销毁
- *
- * @public
- */
-Component.prototype.destroy = function () {
-    this.beforeDestroy();
-
-    this.tree.destroy();
-
-    this.componentNode = null;
-    this.tree = null;
-    this.outScope = null;
-    this.startNode = null;
-    this.endNode = null;
-
-    this.afterDestroy();
-};
-
-/**
- * 隐藏模板
- *
- * @public
- */
-Component.prototype.goDark = function () {
-    utils.traverseNoChangeNodes(this.startNode, this.endNode, utils.goDark, this);
-};
-
-/**
- * 显示模板
- *
- * @public
- */
-Component.prototype.restoreFromDark = function () {
-    utils.traverseNoChangeNodes(this.startNode, this.endNode, utils.restoreFromDark, this);
-};
-
-module.exports = Component;
-
-
-},{"./ComponentChildren":3,"./log":12,"./trees/ComponentTree":24,"./utils":27}],3:[function(require,module,exports){
-/**
- * @file 组件的 <!-- children --> 实例，记录相关信息，方便后续 ChildrenDirectiveParser 解析
- * @author yibuyisheng(yibuyisheng@163.com)
- */
-
+var inherit = require('./inherit');
 var utils = require('./utils');
 
-function ComponentChildren(startNode, endNode, scope, component) {
-    this.div = document.createElement('div');
-    if (!startNode || !endNode) {
-        this.div.innerHTML = '';
-    }
-    else {
-        utils.traverseNodes(
-            startNode,
-            endNode,
-            function (curNode) {
-                this.div.appendChild(curNode);
-            },
-            this
-        );
-    }
-
-    this.scope = scope;
-    this.component = component;
+function Base() {
+    this.initialize.apply(this, arguments);
 }
 
-ComponentChildren.prototype.getTplHtml = function () {
-    return this.div.innerHTML;
-};
+Base.prototype.initialize = function () {};
 
-module.exports = ComponentChildren;
-
-},{"./utils":27}],4:[function(require,module,exports){
 /**
- * @file 组件管理
- * @author yibuyisheng(yibuyisheng@163.com)
+ * 继承
+ *
+ * @static
+ * @param  {Object} props       普通属性
+ * @param  {Object} staticProps 静态属性
+ * @return {Class}             子类
  */
+Base.extends = function (props, staticProps) {
+    var baseCls = this;
 
-function ComponentManager() {
-    this.components = {};
-}
+    var cls = function () {
+        baseCls.apply(this, arguments);
+    };
+    utils.extend(cls.prototype, props, {$super: baseCls.prototype});
+    utils.extend(cls, staticProps);
 
-ComponentManager.prototype.registe = function (ComponentClass) {
-    this.components[getClassName(ComponentClass)] = ComponentClass;
+    return inherit(cls, baseCls);
 };
 
-ComponentManager.prototype.getClass = function (name) {
-    return this.components[name];
-};
+module.exports = Base;
 
-module.exports = ComponentManager;
-
-function getClassName(klass) {
-    return klass.toString().match(/^function\s*(\w+?)(?=\(\w*?\))/)[1];
-}
-
-},{}],5:[function(require,module,exports){
+},{"./inherit":9,"./utils":21}],3:[function(require,module,exports){
 /**
  * @file 配置
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -400,7 +189,7 @@ function regExpEncode(str) {
     return '\\' + str.split('').join('\\');
 }
 
-},{}],6:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 /**
  * @file 脏检测器
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -424,7 +213,7 @@ DirtyChecker.prototype.destroy = function () {
 
 module.exports = DirtyChecker;
 
-},{}],7:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 /**
  * @file DOM 更新器
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -483,9 +272,39 @@ DomUpdater.prototype.execute = function (doneFn) {
     }
 };
 
+/**
+ * 给指定节点的指定属性设置值
+ *
+ * TODO: 完善
+ *
+ * @static
+ * @param {Node} node  DOM节点
+ * @param {string} name  节点属性名
+ * @param {Object} value 节点属性值
+ * @return {*}
+ */
+DomUpdater.setAttr = function (node, name, value) {
+    // 目前仅处理元素节点，以后是否处理其他类型的节点，以后再说
+    if (node.nodeType !== 1) {
+        return;
+    }
+
+    if (name === 'style' && utils.isPureObject(value)) {
+        return DomUpdater.setStyle(node, value);
+    }
+
+    node.setAttribute(name, value);
+};
+
+DomUpdater.setStyle = function (node, styleObj) {
+    for (var k in styleObj) {
+        node.style[k] = styleObj[k];
+    }
+};
+
 module.exports = DomUpdater;
 
-},{"./log":12,"./utils":27}],8:[function(require,module,exports){
+},{"./log":10,"./utils":21}],6:[function(require,module,exports){
 var utils = require('./utils');
 
 function Event() {
@@ -535,7 +354,7 @@ Event.prototype.off = function (eventName, fn) {
 
 module.exports = Event;
 
-},{"./utils":27}],9:[function(require,module,exports){
+},{"./utils":21}],7:[function(require,module,exports){
 var utils = require('./utils');
 
 function ExprCalculater() {
@@ -649,7 +468,7 @@ function getVariableNamesFromExpr(me, expr) {
     }
 }
 
-},{"./utils":27}],10:[function(require,module,exports){
+},{"./utils":21}],8:[function(require,module,exports){
 var utils = require('./utils');
 var Event = require('./Event');
 var inherit = require('./inherit');
@@ -675,7 +494,7 @@ ScopeModel.prototype.set = function (name, value) {
         this.store[name] = value;
         change(this);
     }
-    else if (utils.isClass(name, 'Object')) {
+    else if (utils.isPureObject(name)) {
         utils.extend(this.store, name);
         change(this);
     }
@@ -704,7 +523,7 @@ function change(me) {
     });
 }
 
-},{"./Event":8,"./inherit":11,"./utils":27}],11:[function(require,module,exports){
+},{"./Event":6,"./inherit":9,"./utils":21}],9:[function(require,module,exports){
 /**
  * @file 继承
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -716,6 +535,7 @@ function inherit(ChildClass, ParentClass) {
     Cls.prototype = ParentClass.prototype;
     var childProto = ChildClass.prototype;
     ChildClass.prototype = new Cls();
+    ChildClass.prototype.constructor = ChildClass;
 
     var key;
     for (key in childProto) {
@@ -736,7 +556,7 @@ function inherit(ChildClass, ParentClass) {
 
 module.exports = inherit;
 
-},{}],12:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 module.exports = {
     warn: function () {
         if (!console || !console.warn) {
@@ -746,308 +566,105 @@ module.exports = {
         console.warn.apply(console, arguments);
     }
 };
-},{}],13:[function(require,module,exports){
-/**
- * @file children 指令 <!-- children --> ，只有组件中才会存在该指令
- * @author yibuyisheng(yibuyisheng@163.com)
- */
-
-var inherit = require('../inherit');
-var DirectiveParser = require('./DirectiveParser');
-var ChildrenTree = require('../trees/ChildrenTree');
-
-function ChildrenDirectiveParser(options) {
-    DirectiveParser.call(this, options);
-}
-
-ChildrenDirectiveParser.prototype.initialize = function (options) {
-    DirectiveParser.prototype.initialize.apply(this, arguments);
-
-    this.node = options.node;
-};
-
-ChildrenDirectiveParser.prototype.collectExprs = function () {
-    var componentChildren = this.tree.componentChildren;
-    if (!componentChildren) {
-        return;
-    }
-
-    var div = document.createElement('div');
-    div.innerHTML = componentChildren.getTplHtml();
-
-    this.childrenTree = new ChildrenTree({
-        startNode: div.firstChild,
-        endNode: div.lastChild,
-        config: this.tree.config,
-        domUpdater: this.tree.domUpdater,
-        exprCalculater: this.tree.exprCalculater,
-        treeVars: this.tree.treeVars,
-        componentManager: this.tree.componentManager
-    });
-    this.childrenTree.traverse();
-
-    this.childrenTree.rootScope.setParent(componentChildren.scope);
-    componentChildren.scope.addChild(this.childrenTree.rootScope);
-
-    while (div.childNodes.length) {
-        this.node.parentNode.insertBefore(div.childNodes[0], this.node);
-    }
-
-    return true;
-};
-
-ChildrenDirectiveParser.prototype.destroy = function () {
-    this.childrenTree.destroy();
-
-    this.node = null;
-    this.childrenTree = null;
-
-    DirectiveParser.prototype.destroy.call(this);
-};
-
-ChildrenDirectiveParser.isProperNode = function (node, config) {
-    return node.nodeType === 8
-        && node.nodeValue.replace(/\s/g, '') === 'children';
-};
-
-module.exports = inherit(ChildrenDirectiveParser, DirectiveParser);
-ChildrenTree.registeParser(module.exports);
-
-},{"../inherit":11,"../trees/ChildrenTree":23,"./DirectiveParser":15}],14:[function(require,module,exports){
-/**
- * @file 组件解析器
- * @author yibuyisheng(yibuyisheng@163.com)
- */
-
-var inherit = require('../inherit');
-var Parser = require('./Parser');
-var Tree = require('../trees/Tree');
-var ComponentManager = require('../ComponentManager');
-var utils = require('../utils');
-
-function ComponentParser(options) {
-    Parser.call(this, options);
-}
-
-ComponentParser.prototype.initialize = function (options) {
-    Parser.prototype.initialize.apply(this, arguments);
-
-    this.componentManager = this.tree.componentManager;
-
-    this.node = options.node;
-
-    this.exprs = [];
-    this.exprFns = {};
-    this.updateFns = {};
-    this.exprOldValues = {};
-};
-
-ComponentParser.prototype.collectExprs = function () {
-    var curNode = this.node;
-
-    var attributes = curNode.attributes;
-    // 搜集不含有表达式的属性，然后在组件类创建好之后设置进组件
-    this.setLiteralAttrsFns = [];
-    for (var i = 0, il = attributes.length; i < il; i++) {
-        var attr = attributes[i];
-        var expr = attr.nodeValue;
-        if (this.config.getExprRegExp().test(expr)) {
-            this.exprs.push(expr);
-            if (!this.exprFns[expr]) {
-                var rawExpr = getRawExpr(expr, this.config);
-                this.exprCalculater.createExprFn(rawExpr);
-                this.exprFns[expr] = utils.bind(calculateExpr, null, rawExpr, this.exprCalculater);
-
-                this.updateFns[expr] = this.updateFns[expr] || [];
-                this.updateFns[expr].push(utils.bind(updateAttr, null, attr.nodeName));
-            }
-        }
-        else {
-            this.setLiteralAttrsFns.push(utils.bind(literalAttrFn, null, attr));
-        }
-    }
-
-    var componentName = this.node.tagName.toLowerCase()
-        .replace('ui', '')
-        .replace(/-[a-z]/g, function () {
-            return arguments[0][1].toUpperCase();
-        });
-
-    var ComponentClass = this.componentManager.getClass(componentName);
-    if (!ComponentClass) {
-        throw new Error('the component `' + componentName + '` is not registed!');
-    }
-
-    this.component = new ComponentClass({
-        componentNode: this.node,
-        tree: this.tree
-    });
-
-    return true;
-
-    function literalAttrFn(attr, component) {
-        component.setAttr(attr.nodeName, attr.nodeValue);
-    }
-
-    function updateAttr(name, exprValue, component) {
-        component.setAttr(name, exprValue);
-    }
-
-    function calculateExpr(rawExpr, exprCalculater, scopeModel) {
-        return exprCalculater.calculate(rawExpr, false, scopeModel);
-    }
-
-    function getRawExpr(expr, config) {
-        return expr.replace(config.getExprRegExp(), function () {
-            return arguments[1];
-        });
-    }
-};
-
-ComponentParser.prototype.setScope = function (scopeModel) {
-    Parser.prototype.setScope.apply(this, arguments);
-
-    this.component.setOutScope(this.scopeModel);
-
-    var me = this;
-    this.component.getTpl(function () {
-        me.component.mount();
-
-        for (var i = 0, il = me.setLiteralAttrsFns.length; i < il; i++) {
-            me.setLiteralAttrsFns[i](me.component);
-        }
-
-        me.component.literalAttrReady();
-    });
-};
-
-ComponentParser.prototype.onChange = function () {
-    if (this.isGoDark) {
-        return;
-    }
-
-    var exprs = this.exprs;
-    var exprOldValues = this.exprOldValues;
-    for (var i = 0, il = exprs.length; i < il; i++) {
-        var expr = exprs[i];
-        var exprValue = this.exprFns[expr](this.scopeModel);
-
-        if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
-            var updateFns = this.updateFns[expr];
-            for (var j = 0, jl = updateFns.length; j < jl; j++) {
-                updateFns[j](exprValue, this.component);
-            }
-        }
-
-        exprOldValues[expr] = exprValue;
-    }
-
-    Parser.prototype.onChange.apply(this, arguments);
-};
-
-ComponentParser.prototype.goDark = function () {
-    this.component.goDark();
-    this.isGoDark = true;
-};
-
-ComponentParser.prototype.restoreFromDark = function () {
-    this.component.restoreFromDark();
-    this.isGoDark = false;
-};
-
-ComponentParser.isProperNode = function (node, config) {
-    return node.nodeType === 1 && node.tagName.toLowerCase().indexOf('ui-') === 0;
-};
-
-module.exports = inherit(ComponentParser, Parser);
-Tree.registeParser(ComponentParser);
-
-function getClass(instance) {
-    return instance.constructor;
-}
-
-},{"../ComponentManager":4,"../inherit":11,"../trees/Tree":26,"../utils":27,"./Parser":20}],15:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 /**
  * @file 指令解析器抽象类。指令节点一定是注释节点
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var inherit = require('../inherit');
 var Parser = require('./Parser');
 
-function DirectiveParser(options) {
-    Parser.call(this, options);
-}
+module.exports = Parser.extends(
+    {},
+    {
+        isProperNode: function (node, config) {
+            return node.nodeType === 8;
+        }
+    }
+);
 
-DirectiveParser.isProperNode = function (node, config) {
-    return node.nodeType === 8;
-};
-
-module.exports = inherit(DirectiveParser, Parser);
-
-},{"../inherit":11,"./Parser":20}],16:[function(require,module,exports){
+},{"./Parser":16}],12:[function(require,module,exports){
 /**
  * @file 处理了事件的 ExprParser
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
 var ExprParser = require('./ExprParser');
-var inherit = require('../inherit');
 var utils = require('../utils');
 var Tree = require('../trees/Tree');
 var ScopeModel = require('../ScopeModel');
 
-function EventExprParser(options) {
-    ExprParser.call(this, options);
-}
+module.exports = ExprParser.extends(
+    {
 
-EventExprParser.prototype.initialize = function (options) {
-    ExprParser.prototype.initialize.apply(this, arguments);
+        /**
+         * 初始化
+         *
+         * @protected
+         */
+        initialize: function () {
+            this.$super.initialize.apply(this, arguments);
 
-    this.events = {};
-};
+            this.events = {};
+        },
 
-EventExprParser.prototype.addExpr = function (attr) {
-    if (!attr) {
-        return ExprParser.prototype.addExpr.apply(this, arguments);
-    }
+        /**
+         * 添加表达式
+         *
+         * @inherit
+         * @protected
+         * @param {Attr} attr 如果当前是元素节点，则要传入遍历到的属性，
+         *                    所以attr存在与否是判断当前元素是否是文本节点的一个依据
+         * @return {undefined}
+         */
+        addExpr: function (attr) {
+            if (!attr) {
+                return this.$super.addExpr(arguments);
+            }
 
-    var eventName = getEventName(attr.name, this.config);
-    if (eventName) {
-        if (this.config.getExprRegExp().test(attr.value)) {
-            this.events[eventName] = attr.value;
+            var eventName = getEventName(attr.name, this.config);
+            if (eventName) {
+                if (this.config.getExprRegExp().test(attr.value)) {
+                    this.events[eventName] = attr.value;
 
-            var expr = attr.value.replace(
-                this.config.getExprRegExp(),
-                function () {
-                    return arguments[1];
+                    var expr = attr.value.replace(
+                        this.config.getExprRegExp(),
+                        function () {
+                            return arguments[1];
+                        }
+                    );
+                    this.exprCalculater.createExprFn(expr, true);
+
+                    var me = this;
+                    this.node['on' + eventName] = function (event) {
+                        var localScope = new ScopeModel();
+                        localScope.setParent(me.getScope());
+                        me.exprCalculater.calculate(expr, true, localScope);
+                    };
                 }
-            );
-            this.exprCalculater.createExprFn(expr, true);
+            }
+            else {
+                this.$super.addExpr(arguments);
+            }
+        },
 
-            var me = this;
-            this.node['on' + eventName] = function (event) {
-                var localScope = new ScopeModel();
-                localScope.setParent(me.getScope());
-                me.exprCalculater.calculate(expr, true, localScope);
-            };
+        /**
+         * 销毁
+         *
+         * @inherit
+         * @public
+         */
+        destroy: function () {
+            utils.each(this.events, function (attrValue, eventName) {
+                this.node['on' + eventName] = null;
+            }, this);
+            this.events = null;
+
+            this.$super.destroy(this);
         }
     }
-    else {
-        ExprParser.prototype.addExpr.apply(this, arguments);
-    }
-};
+);
 
-EventExprParser.prototype.destroy = function () {
-    utils.each(this.events, function (attrValue, eventName) {
-        this.node['on' + eventName] = null;
-    }, this);
-    this.events = null;
-
-    ExprParser.prototype.destroy.call(this);
-};
-
-module.exports = inherit(EventExprParser, ExprParser);
 Tree.registeParser(module.exports);
 
 
@@ -1060,176 +677,235 @@ function getEventName(attrName, config) {
 }
 
 
-},{"../ScopeModel":10,"../inherit":11,"../trees/Tree":26,"../utils":27,"./ExprParser":17}],17:[function(require,module,exports){
+},{"../ScopeModel":8,"../trees/Tree":20,"../utils":21,"./ExprParser":13}],13:[function(require,module,exports){
 /**
  * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
 var Parser = require('./Parser');
-var inherit = require('../inherit');
 var utils = require('../utils');
 var Tree = require('../trees/Tree');
+var DomUpdater = require('../DomUpdater');
 
-function ExprParser(options) {
-    Parser.call(this, options);
-}
+module.exports = Parser.extends(
+    {
 
-ExprParser.prototype.initialize = function (options) {
-    Parser.prototype.initialize.apply(this, arguments);
+        /**
+         * 初始化
+         *
+         * @inheritDoc
+         * @param  {Object} options 参数
+         * @param  {Node} options.node DOM节点
+         */
+        initialize: function (options) {
+            this.$super.initialize(options);
 
-    this.node = options.node;
+            this.node = options.node;
 
-    this.exprs = [];
-    this.exprFns = {};
-    this.updateFns = {};
-    this.restoreFns = {}; // 恢复原貌的函数
-    this.exprOldValues = {};
-};
+            this.exprs = [];
+            this.exprFns = {};
+            this.updateFns = {};
+            // 恢复原貌的函数
+            this.restoreFns = {};
+            this.exprOldValues = {};
+        },
 
-/**
- * 搜集过程
- *
- * @public
- * @return {boolean} 返回布尔值
- */
-ExprParser.prototype.collectExprs = function () {
-    var curNode = this.node;
+        /**
+         * 搜集过程
+         *
+         * @public
+         * @return {boolean} 返回布尔值
+         */
+        collectExprs: function () {
+            var curNode = this.node;
 
-    // 文本节点
-    if (curNode.nodeType === 3) {
-        this.addExpr();
-        return true;
-    }
-
-    // 元素节点
-    if (curNode.nodeType === 1) {
-        var attributes = curNode.attributes;
-        for (var i = 0, il = attributes.length; i < il; i++) {
-            this.addExpr(attributes[i]);
-        }
-        return true;
-    }
-
-    return false;
-};
-
-/**
- * 添加表达式
- *
- * @protected
- * @param {Attr} attr 如果当前是元素节点，则要传入遍历到的属性
- */
-ExprParser.prototype.addExpr = function (attr) {
-    var expr = attr ? attr.value : this.node.nodeValue;
-    if (!this.config.getExprRegExp().test(expr)) {
-        return;
-    }
-    addExpr(
-        this,
-        expr,
-        attr ? createAttrUpdateFn(attr, this.domUpdater) : (function (me, curNode) {
-            var taskId = me.domUpdater.generateTaskId();
-            return function (exprValue) {
-                me.domUpdater.addTaskFn(
-                    taskId,
-                    utils.bind(function (curNode, exprValue) {
-                        curNode.nodeValue = exprValue;
-                    }, null, curNode, exprValue)
-                );
-            };
-        })(this, this.node)
-    );
-
-    this.restoreFns[expr] = this.restoreFns[expr] || [];
-    if (attr) {
-        this.restoreFns[expr].push(utils.bind(function (curNode, attrName, attrValue) {
-            curNode.setAttribute(attrName, attrValue);
-        }, null, this.node, attr.name, attr.value));
-    }
-    else {
-        this.restoreFns[expr].push(utils.bind(function (curNode, nodeValue) {
-            curNode.nodeValue = nodeValue;
-        }, null, this.node, this.node.nodeValue));
-    }
-};
-
-ExprParser.prototype.destroy = function () {
-    utils.each(this.exprs, function (expr) {
-        utils.each(this.restoreFns[expr], function (restoreFn) {
-            restoreFn();
-        }, this);
-    }, this);
-
-    this.node = null;
-    this.exprs = null;
-    this.exprFns = null;
-    this.updateFns = null;
-    this.exprOldValues = null;
-    this.restoreFns = null;
-
-    Parser.prototype.destroy.call(this);
-};
-
-/**
- * 节点“隐藏”起来
- *
- * @public
- */
-ExprParser.prototype.goDark = function () {
-    utils.goDark(this.node);
-    this.isGoDark = true;
-};
-
-ExprParser.prototype.onChange = function () {
-    if (this.isGoDark) {
-        return;
-    }
-
-    var exprs = this.exprs;
-    var exprOldValues = this.exprOldValues;
-    for (var i = 0, il = exprs.length; i < il; i++) {
-        var expr = exprs[i];
-        var exprValue = this.exprFns[expr](this.scopeModel);
-
-        if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
-            var updateFns = this.updateFns[expr];
-            for (var j = 0, jl = updateFns.length; j < jl; j++) {
-                updateFns[j](exprValue);
+            // 文本节点
+            if (curNode.nodeType === 3) {
+                this.addExpr();
+                return true;
             }
+
+            // 元素节点
+            if (curNode.nodeType === 1) {
+                var attributes = curNode.attributes;
+                for (var i = 0, il = attributes.length; i < il; i++) {
+                    this.addExpr(attributes[i]);
+                }
+                return true;
+            }
+
+            return false;
+        },
+
+        /**
+         * 添加表达式
+         *
+         * @protected
+         * @param {Attr} attr 如果当前是元素节点，则要传入遍历到的属性，
+         *                    所以attr存在与否是判断当前元素是否是文本节点的一个依据
+         */
+        addExpr: function (attr) {
+            var expr = attr ? attr.value : this.node.nodeValue;
+            if (!this.config.getExprRegExp().test(expr)) {
+                return;
+            }
+            addExpr(
+                this,
+                expr,
+                attr ? createAttrUpdateFn(this.node, attr.name, this.domUpdater) : (function (me, curNode) {
+                    var taskId = me.domUpdater.generateTaskId();
+                    return function (exprValue) {
+                        me.domUpdater.addTaskFn(
+                            taskId,
+                            utils.bind(function (curNode, exprValue) {
+                                curNode.nodeValue = exprValue;
+                            }, null, curNode, exprValue)
+                        );
+                    };
+                })(this, this.node)
+            );
+
+            this.restoreFns[expr] = this.restoreFns[expr] || [];
+            if (attr) {
+                this.restoreFns[expr].push(utils.bind(function (curNode, attrName, attrValue) {
+                    curNode.setAttribute(attrName, attrValue);
+                }, null, this.node, attr.name, attr.value));
+            }
+            else {
+                this.restoreFns[expr].push(utils.bind(function (curNode, nodeValue) {
+                    curNode.nodeValue = nodeValue;
+                }, null, this.node, this.node.nodeValue));
+            }
+        },
+
+        /**
+         * 获取开始节点
+         *
+         * @protected
+         * @inheritDoc
+         * @return {Node}
+         */
+        getStartNode: function () {
+            return this.node;
+        },
+
+        /**
+         * 获取结束节点
+         *
+         * @protected
+         * @inheritDoc
+         * @return {Node}
+         */
+        getEndNode: function () {
+            return this.node;
+        },
+
+        /**
+         * 销毁
+         *
+         * @inheritDoc
+         */
+        destroy: function () {
+            utils.each(this.exprs, function (expr) {
+                utils.each(this.restoreFns[expr], function (restoreFn) {
+                    restoreFn();
+                }, this);
+            }, this);
+
+            this.node = null;
+            this.exprs = null;
+            this.exprFns = null;
+            this.updateFns = null;
+            this.exprOldValues = null;
+            this.restoreFns = null;
+
+            Parser.prototype.destroy.call(this);
+        },
+
+        /**
+         * 节点“隐藏”起来
+         *
+         * @public
+         */
+        goDark: function () {
+            utils.goDark(this.node);
+            this.isGoDark = true;
+        },
+
+        /**
+         * 在model发生改变的时候计算一下表达式的值->脏检测->更新界面。
+         *
+         * @protected
+         */
+        onChange: function () {
+            if (this.isGoDark) {
+                return;
+            }
+
+            var exprs = this.exprs;
+            var exprOldValues = this.exprOldValues;
+            for (var i = 0, il = exprs.length; i < il; i++) {
+                var expr = exprs[i];
+                var exprValue = this.exprFns[expr](this.scopeModel);
+
+                if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
+                    var updateFns = this.updateFns[expr];
+                    for (var j = 0, jl = updateFns.length; j < jl; j++) {
+                        updateFns[j](exprValue);
+                    }
+                }
+
+                exprOldValues[expr] = exprValue;
+            }
+
+            this.$super.onChange();
+        },
+
+        /**
+         * 节点“显示”出来
+         *
+         * @public
+         */
+        restoreFromDark: function () {
+            utils.restoreFromDark(this.node);
+            this.isGoDark = false;
         }
+    },
+    {
 
-        exprOldValues[expr] = exprValue;
+        /**
+         * 判断节点是否是应该由当前处理器来处理
+         *
+         * @static
+         * @param  {Node}  node 节点
+         * @return {boolean}
+         */
+        isProperNode: function (node) {
+            return node.nodeType === 1 || node.nodeType === 3;
+        }
     }
+);
 
-    Parser.prototype.onChange.apply(this, arguments);
-};
-
-/**
- * 节点“显示”出来
- *
- * @public
- */
-ExprParser.prototype.restoreFromDark = function () {
-    utils.restoreFromDark(this.node);
-    this.isGoDark = false;
-};
-
-ExprParser.isProperNode = function (node) {
-    return node.nodeType === 1 || node.nodeType === 3;
-};
-
-module.exports = inherit(ExprParser, Parser);
 Tree.registeParser(module.exports);
 
-function createAttrUpdateFn(attr, domUpdater) {
+/**
+ * 创建DOM节点属性更新函数
+ *
+ * @inner
+ * @param  {Node} node    DOM中的节点
+ * @param {string} name 要更新的属性名
+ * @param  {DomUpdater} domUpdater DOM更新器
+ * @return {function(Object)}      更新函数
+ */
+function createAttrUpdateFn(node, name, domUpdater) {
     var taskId = domUpdater.generateTaskId();
     return function (exprValue) {
         domUpdater.addTaskFn(
             taskId,
-            utils.bind(function (attr, exprValue) {
-                attr.value = exprValue;
-            }, null, attr, exprValue)
+            utils.bind(function (node, name, exprValue) {
+                DomUpdater.setAttr(node, name, exprValue);
+            }, null, node, name, exprValue)
         );
     };
 }
@@ -1243,117 +919,143 @@ function addExpr(parser, expr, updateFn) {
     parser.updateFns[expr].push(updateFn);
 }
 
+/**
+ * 创建根据scopeModel计算表达式值的函数
+ *
+ * @inner
+ * @param  {Parser} parser 解析器实例
+ * @param  {string} expr   含有表达式的字符串
+ * @return {function(Scope):*}
+ */
 function createExprFn(parser, expr) {
     return function (scopeModel) {
-        return expr.replace(parser.config.getExprRegExp(), function () {
-            parser.exprCalculater.createExprFn(arguments[1]);
-            return parser.exprCalculater.calculate(arguments[1], false, scopeModel);
-        });
+        // 此处要分两种情况：
+        // 1、expr并不是纯正的表达式，如`==${name}==`。
+        // 2、expr是纯正的表达式，如`${name}`。
+        // 对于不纯正表达式的情况，此处的返回值肯定是字符串；
+        // 而对于纯正的表达式，此处就不要将其转换成字符串形式了。
+
+        var regExp = parser.config.getExprRegExp();
+
+        var possibleExprCount = expr.match(new RegExp(utils.regExpEncode(parser.config.exprPrefix), 'g'));
+        possibleExprCount = possibleExprCount ? possibleExprCount.length : 0;
+
+        // 不纯正
+        if (possibleExprCount !== 1 || expr.replace(regExp, '')) {
+            return expr.replace(regExp, function () {
+                parser.exprCalculater.createExprFn(arguments[1]);
+                return parser.exprCalculater.calculate(arguments[1], false, scopeModel);
+            });
+        }
+
+        // 纯正
+        var pureExpr = expr.slice(parser.config.exprPrefix.length, -parser.config.exprSuffix.length);
+        parser.exprCalculater.createExprFn(pureExpr);
+        return parser.exprCalculater.calculate(pureExpr, false, scopeModel);
     };
 }
 
-},{"../inherit":11,"../trees/Tree":26,"../utils":27,"./Parser":20}],18:[function(require,module,exports){
+},{"../DomUpdater":5,"../trees/Tree":20,"../utils":21,"./Parser":16}],14:[function(require,module,exports){
 /**
  * @file for 指令
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var inherit = require('../inherit');
 var DirectiveParser = require('./DirectiveParser');
 var utils = require('../utils');
 var ForTree = require('../trees/ForTree');
 
-function ForDirectiveParser(options) {
-    DirectiveParser.call(this, options);
-}
+module.exports = DirectiveParser.extends(
+    {
+        initialize: function (options) {
+            this.$super.initialize(arguments);
 
-ForDirectiveParser.prototype.initialize = function (options) {
-    DirectiveParser.prototype.initialize.apply(this, arguments);
+            this.startNode = options.startNode;
+            this.endNode = options.endNode;
+        },
 
-    this.startNode = options.startNode;
-    this.endNode = options.endNode;
-};
+        collectExprs: function () {
+            if (this.startNode.nextSibling === this.endNode) {
+                return;
+            }
 
-ForDirectiveParser.prototype.collectExprs = function () {
-    if (this.startNode.nextSibling === this.endNode) {
-        return;
-    }
+            var tplSeg = document.createElement('div');
+            utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
+                if (curNode === this.startNode || curNode === this.endNode) {
+                    return;
+                }
 
-    var tplSeg = document.createElement('div');
-    utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
-        if (curNode === this.startNode || curNode === this.endNode) {
-            return;
+                tplSeg.appendChild(curNode);
+            }, this);
+            this.tplSeg = tplSeg;
+
+            this.expr = this.startNode.nodeValue.match(this.config.getForExprsRegExp())[1];
+            this.exprFn = utils.createExprFn(this.config.getExprRegExp(), this.expr, this.exprCalculater);
+            this.updateFn = createUpdateFn(
+                this,
+                this.startNode.nextSibling,
+                this.endNode.previousSibling,
+                this.config,
+                this.startNode.nodeValue
+            );
+
+            return true;
+        },
+
+        onChange: function () {
+            if (!this.expr) {
+                return;
+            }
+
+            var exprValue = this.exprFn(this.scopeModel);
+            if (this.dirtyCheck(this.expr, exprValue, this.exprOldValue)) {
+                this.updateFn(exprValue, this.scopeModel);
+            }
+
+            this.exprOldValue = exprValue;
+
+            this.$super.onChange(arguments);
+        },
+
+        destroy: function () {
+            utils.traverseNodes(this.tplSeg.firstChild, this.tplSeg.lastChild, function (curNode) {
+                this.endNode.parentNode.insertBefore(curNode, this.endNode);
+            }, this);
+
+            utils.each(this.trees, function (tree) {
+                tree.destroy();
+            });
+
+            this.tplSeg = null;
+            this.expr = null;
+            this.exprFn = null;
+            this.updateFn = null;
+            this.startNode = null;
+            this.endNode = null;
+            this.$super.destroy(this);
         }
+    },
+    {
+        isProperNode: function (node, config) {
+            return DirectiveParser.isProperNode(node, config)
+                && config.forPrefixRegExp.test(node.nodeValue);
+        },
 
-        tplSeg.appendChild(curNode);
-    }, this);
-    this.tplSeg = tplSeg;
+        findEndNode: function (forStartNode, config) {
+            var curNode = forStartNode;
+            while ((curNode = curNode.nextSibling)) {
+                if (isForEndNode(curNode, config)) {
+                    return curNode;
+                }
+            }
+        },
 
-    this.expr = this.startNode.nodeValue.match(this.config.getForExprsRegExp())[1];
-    this.exprFn = utils.createExprFn(this.config.getExprRegExp(), this.expr, this.exprCalculater);
-    this.updateFn = createUpdateFn(
-        this,
-        this.startNode.nextSibling,
-        this.endNode.previousSibling,
-        this.config,
-        this.startNode.nodeValue
-    );
-
-    return true;
-};
-
-ForDirectiveParser.prototype.onChange = function () {
-    if (!this.expr) {
-        return;
-    }
-
-    var exprValue = this.exprFn(this.scopeModel);
-    if (this.dirtyCheck(this.expr, exprValue, this.exprOldValue)) {
-        this.updateFn(exprValue, this.scopeModel);
-    }
-
-    this.exprOldValue = exprValue;
-
-    DirectiveParser.prototype.onChange.apply(this, arguments);
-};
-
-ForDirectiveParser.prototype.destroy = function () {
-    utils.traverseNodes(this.tplSeg.firstChild, this.tplSeg.lastChild, function (curNode) {
-        this.endNode.parentNode.insertBefore(curNode, this.endNode);
-    }, this);
-
-    utils.each(this.trees, function (tree) {
-        tree.destroy();
-    });
-
-    this.tplSeg = null;
-    this.expr = null;
-    this.exprFn = null;
-    this.updateFn = null;
-    this.startNode = null;
-    this.endNode = null;
-    DirectiveParser.prototype.destroy.call(this);
-};
-
-ForDirectiveParser.isProperNode = function (node, config) {
-    return DirectiveParser.isProperNode(node, config)
-        && config.forPrefixRegExp.test(node.nodeValue);
-};
-
-ForDirectiveParser.findEndNode = function (forStartNode, config) {
-    var curNode = forStartNode;
-    while ((curNode = curNode.nextSibling)) {
-        if (isForEndNode(curNode, config)) {
-            return curNode;
+        getNoEndNodeError: function () {
+            return new Error('the `for` directive is not properly ended!');
         }
     }
-};
+);
 
-ForDirectiveParser.getNoEndNodeError = function () {
-    return new Error('the for directive is not properly ended!');
-};
-
-module.exports = inherit(ForDirectiveParser, DirectiveParser);
 ForTree.registeParser(module.exports);
 
 function isForEndNode(node, config) {
@@ -1410,143 +1112,144 @@ function createTree(parser, config) {
         endNode: endNode,
         config: config,
         domUpdater: parser.tree.domUpdater,
-        exprCalculater: parser.tree.exprCalculater,
-        treeVars: parser.tree.treeVars,
-        componentChildren: parser.tree.componentChildren,
-        componentManager: parser.tree.componentManager
+        exprCalculater: parser.tree.exprCalculater
     });
+    tree.setParent(parser.tree);
     tree.traverse();
     return tree;
 }
 
-},{"../inherit":11,"../trees/ForTree":25,"../utils":27,"./DirectiveParser":15}],19:[function(require,module,exports){
+},{"../trees/ForTree":19,"../utils":21,"./DirectiveParser":11}],15:[function(require,module,exports){
 /**
  * @file if 指令
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
 var DirectiveParser = require('./DirectiveParser');
-var inherit = require('../inherit');
 var utils = require('../utils');
 var Tree = require('../trees/Tree');
 
-function IfDirectiveParser(options) {
-    DirectiveParser.call(this, options);
-}
+module.exports = DirectiveParser.extends(
+    {
+        initialize: function (options) {
+            this.$super.initialize(options);
 
-IfDirectiveParser.prototype.initialize = function (options) {
-    DirectiveParser.prototype.initialize.apply(this, arguments);
+            this.startNode = options.startNode;
+            this.endNode = options.endNode;
+            this.config = options.config;
 
-    this.startNode = options.startNode;
-    this.endNode = options.endNode;
-    this.config = options.config;
+            this.exprs = [];
+            this.exprFns = {};
 
-    this.exprs = [];
-    this.exprFns = {};
+            this.handleBranchesTaskId = this.domUpdater.generateTaskId();
+        },
 
-    this.handleBranchesTaskId = this.domUpdater.generateTaskId();
-};
+        collectExprs: function () {
+            var branches = [];
+            var branchIndex = -1;
 
-IfDirectiveParser.prototype.collectExprs = function () {
-    var branches = [];
-    var branchIndex = -1;
+            utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
+                var nodeType = getIfNodeType(curNode, this.config);
 
-    utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
-        var nodeType = getIfNodeType(curNode, this.config);
+                if (nodeType) {
+                    setEndNode(curNode, branches, branchIndex);
 
-        if (nodeType) {
-            setEndNode(curNode, branches, branchIndex);
+                    branchIndex++;
+                    branches[branchIndex] = branches[branchIndex] || {};
 
-            branchIndex++;
-            branches[branchIndex] = branches[branchIndex] || {};
+                    // 是 if 节点或者 elif 节点，搜集表达式
+                    if (nodeType < 3) {
+                        var expr = curNode.nodeValue.replace(this.config.getAllIfRegExp(), '');
+                        this.exprs.push(expr);
 
-            // 是 if 节点或者 elif 节点，搜集表达式
-            if (nodeType < 3) {
-                var expr = curNode.nodeValue.replace(this.config.getAllIfRegExp(), '');
-                this.exprs.push(expr);
+                        if (!this.exprFns[expr]) {
+                            this.exprFns[expr] = utils.createExprFn(
+                                this.config.getExprRegExp(),
+                                expr,
+                                this.exprCalculater
+                            );
+                        }
+                    }
+                    else if (nodeType === 3) {
+                        this.hasElseBranch = true;
+                    }
+                }
+                else {
+                    if (!branches[branchIndex].startNode) {
+                        branches[branchIndex].startNode = curNode;
+                    }
+                }
 
-                if (!this.exprFns[expr]) {
-                    this.exprFns[expr] = utils.createExprFn(this.config.getExprRegExp(), expr, this.exprCalculater);
+                curNode = curNode.nextSibling;
+                if (!curNode || curNode === this.endNode) {
+                    setEndNode(curNode, branches, branchIndex);
+                    return true;
+                }
+            }, this);
+
+            this.branches = branches;
+            return branches;
+
+            function setEndNode(curNode, branches, branchIndex) {
+                if (branchIndex + 1 && branches[branchIndex].startNode) {
+                    branches[branchIndex].endNode = curNode.previousSibling;
                 }
             }
-            else if (nodeType === 3) {
-                this.hasElseBranch = true;
+        },
+
+        onChange: function () {
+            var exprs = this.exprs;
+            for (var i = 0, il = exprs.length; i < il; i++) {
+                var expr = exprs[i];
+                var exprValue = this.exprFns[expr](this.scopeModel);
+                if (exprValue) {
+                    this.domUpdater.addTaskFn(
+                        this.handleBranchesTaskId,
+                        utils.bind(handleBranches, null, this.branches, i)
+                    );
+                    return;
+                }
             }
-        }
-        else {
-            if (!branches[branchIndex].startNode) {
-                branches[branchIndex].startNode = curNode;
+
+            if (this.hasElseBranch) {
+                this.domUpdater.addTaskFn(
+                    this.handleBranchesTaskId,
+                    utils.bind(handleBranches, null, this.branches, i)
+                );
+                return;
             }
+        },
+
+        destroy: function () {
+            this.startNode = null;
+            this.endNode = null;
+            this.config = null;
+            this.exprs = null;
+            this.exprFns = null;
+
+            DirectiveParser.prototype.destroy.call(this);
         }
+    },
+    {
+        isProperNode: function (node, config) {
+            return getIfNodeType(node, config) === 1;
+        },
 
-        curNode = curNode.nextSibling;
-        if (!curNode || curNode === this.endNode) {
-            setEndNode(curNode, branches, branchIndex);
-            return true;
-        }
-    }, this);
+        findEndNode: function (ifStartNode, config) {
+            var curNode = ifStartNode;
+            while ((curNode = curNode.nextSibling)) {
+                if (isIfEndNode(curNode, config)) {
+                    return curNode;
+                }
+            }
+        },
 
-    this.branches = branches;
-    return branches;
-
-    function setEndNode(curNode, branches, branchIndex) {
-        if (branchIndex + 1 && branches[branchIndex].startNode) {
-            branches[branchIndex].endNode = curNode.previousSibling;
-        }
-    }
-};
-
-IfDirectiveParser.prototype.onChange = function () {
-    var exprs = this.exprs;
-    for (var i = 0, il = exprs.length; i < il; i++) {
-        var expr = exprs[i];
-        var exprValue = this.exprFns[expr](this.scopeModel);
-        if (exprValue) {
-            this.domUpdater.addTaskFn(
-                this.handleBranchesTaskId,
-                utils.bind(handleBranches, null, this.branches, i)
-            );
-            return;
+        getNoEndNodeError: function () {
+            return new Error('the if directive is not properly ended!');
         }
     }
+);
 
-    if (this.hasElseBranch) {
-        this.domUpdater.addTaskFn(
-            this.handleBranchesTaskId,
-            utils.bind(handleBranches, null, this.branches, i)
-        );
-        return;
-    }
-};
-
-IfDirectiveParser.prototype.destroy = function () {
-    this.startNode = null;
-    this.endNode = null;
-    this.config = null;
-    this.exprs = null;
-    this.exprFns = null;
-
-    DirectiveParser.prototype.destroy.call(this);
-};
-
-IfDirectiveParser.isProperNode = function (node, config) {
-    return getIfNodeType(node, config) === 1;
-};
-
-IfDirectiveParser.findEndNode = function (ifStartNode, config) {
-    var curNode = ifStartNode;
-    while ((curNode = curNode.nextSibling)) {
-        if (isIfEndNode(curNode, config)) {
-            return curNode;
-        }
-    }
-};
-
-IfDirectiveParser.getNoEndNodeError = function () {
-    return new Error('the if directive is not properly ended!');
-};
-
-module.exports = inherit(IfDirectiveParser, DirectiveParser);
 Tree.registeParser(module.exports);
 
 function handleBranches(branches, showIndex) {
@@ -1584,7 +1287,7 @@ function getIfNodeType(node, config) {
     }
 }
 
-},{"../inherit":11,"../trees/Tree":26,"../utils":27,"./DirectiveParser":15}],20:[function(require,module,exports){
+},{"../trees/Tree":20,"../utils":21,"./DirectiveParser":11}],16:[function(require,module,exports){
 /**
  * @file 解析器的抽象基类
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1603,154 +1306,221 @@ function getIfNodeType(node, config) {
  *                         }
  *                         具体是啥可以参加具体的子类
  */
-function Parser(options) {
-    this.initialize(options);
-}
 
+var Base = require('../Base');
+module.exports = Base.extends(
+    {
+
+        /**
+         * 初始化
+         *
+         * @protected
+         * @param {Object} options 来自于构造函数
+         */
+        initialize: function (options) {
+            this.exprCalculater = options.exprCalculater;
+            this.config = options.config;
+            this.domUpdater = options.domUpdater;
+            this.tree = options.tree;
+        },
+
+        /**
+         * 绑定scope model
+         *
+         * @public
+         * @param {ScopeModel} scopeModel scope model
+         */
+        setScope: function (scopeModel) {
+            this.scopeModel = scopeModel;
+
+            this.scopeModel.on('change', this.onChange, this);
+            this.scopeModel.on('parentchange', this.onChange, this);
+        },
+
+        /**
+         * model 发生变化的回调函数
+         *
+         * @protected
+         */
+        onChange: function () {
+            this.domUpdater.execute();
+        },
+
+        /**
+         * 获取scope model
+         *
+         * @public
+         * @return {ScopeModel} scope model对象
+         */
+        getScope: function () {
+            return this.scopeModel;
+        },
+
+        /**
+         * 向scope model里面设置数据
+         *
+         * @public
+         * @param {Object} data 要设置的数据
+         */
+        setData: function (data) {
+            this.scopeModel.set(data);
+        },
+
+        /**
+         * 隐藏当前parser实例相关的节点。具体子类实现
+         *
+         * @public
+         * @abstract
+         */
+        goDark: function () {},
+
+        /**
+         * 显示相关元素
+         *
+         * @public
+         * @abstract
+         */
+        restoreFromDark: function () {},
+
+        /**
+         * 获取解析器当前状态下的开始DOM节点。
+         *
+         * 由于有的解析器会将之前的节点移除掉，那么就会对遍历带来影响了，
+         * 所以此处提供两个获取开始节点和结束节点的方法。
+         *
+         * @public
+         * @return {Node} DOM节点对象
+         */
+        getStartNode: function () {
+            return this.startNode;
+        },
+
+        /**
+         * 获取解析器当前状态下的结束DOM节点
+         *
+         * @public
+         * @return {Node} 节点对象
+         */
+        getEndNode: function () {
+            return this.endNode;
+        },
+
+        /**
+         * 搜集表达式，生成表达式函数和 DOM 更新函数。具体子类实现
+         *
+         * @abstract
+         * @public
+         */
+        collectExprs: function () {},
+
+        /**
+         * 脏检测。默认会使用全等判断。
+         *
+         * @public
+         * @param  {string} expr         要检查的表达式
+         * @param  {*} exprValue    表达式当前计算出来的值
+         * @param  {*} exprOldValue 表达式上一次计算出来的值
+         * @return {boolean}              两次的值是否相同
+         */
+        dirtyCheck: function (expr, exprValue, exprOldValue) {
+            var dirtyCheckerFn = this.dirtyChecker ? this.dirtyChecker.getChecker(expr) : null;
+            return (dirtyCheckerFn && dirtyCheckerFn(expr, exprValue, exprOldValue))
+                    || (!dirtyCheckerFn && exprValue !== exprOldValue);
+        },
+
+        /**
+         * 设置脏检测器
+         *
+         * @public
+         * @param {DirtyChecker} dirtyChecker 脏检测器
+         */
+        setDirtyChecker: function (dirtyChecker) {
+            this.dirtyChecker = dirtyChecker;
+        },
+
+        /**
+         * 销毁解析器，将界面恢复成原样
+         *
+         * @public
+         */
+        destroy: function () {
+            this.exprCalculater = null;
+            this.config = null;
+            this.domUpdater = null;
+            this.tree = null;
+            this.dirtyChecker = null;
+        }
+    }
+);
+
+},{"../Base":2}],17:[function(require,module,exports){
 /**
- * 初始化
- *
- * @protectedß
- * @param {Object} options 来自于构造函数
+ * @file scope directive parser
+ * @author yibuyisheng(yibuyisheng@163.com)
  */
-Parser.prototype.initialize = function (options) {
-    this.exprCalculater = options.exprCalculater;
-    this.config = options.config;
-    this.domUpdater = options.domUpdater;
-    this.tree = options.tree;
-};
 
-Parser.prototype.initTree = function (tree) {};
-
-Parser.prototype.setScope = function (scopeModel) {
-    this.scopeModel = scopeModel;
-
-    this.scopeModel.on('change', this.onChange, this);
-    this.scopeModel.on('parentchange', this.onChange, this);
-};
-
-Parser.prototype.onChange = function () {
-    this.domUpdater.execute();
-};
-
-Parser.prototype.getScope = function () {
-    return this.scopeModel;
-};
-
-Parser.prototype.setData = function (data) {
-    this.scopeModel.set(data);
-};
-
-/**
- * 隐藏相关元素
- *
- * @public
- */
-Parser.prototype.goDark = function () {};
-
-/**
- * 显示相关元素
- *
- * @public
- */
-Parser.prototype.restoreFromDark = function () {};
-
-/**
- * 搜集表达式，生成表达式函数和 DOM 更新函数
- *
- * @abstract
- * @public
- */
-Parser.prototype.collectExprs = function () {};
-
-Parser.prototype.dirtyCheck = function (expr, exprValue, exprOldValue) {
-    var dirtyCheckerFn = this.dirtyChecker ? this.dirtyChecker.getChecker(expr) : null;
-    return (dirtyCheckerFn && dirtyCheckerFn(expr, exprValue, exprOldValue))
-            || (!dirtyCheckerFn && exprValue !== exprOldValue);
-};
-
-Parser.prototype.setDirtyChecker = function (dirtyChecker) {
-    this.dirtyChecker = dirtyChecker;
-};
-
-/**
- * 销毁解析器，将界面恢复成原样
- */
-Parser.prototype.destroy = function () {
-    this.exprCalculater = null;
-    this.config = null;
-    this.domUpdater = null;
-    this.tree = null;
-    this.dirtyChecker = null;
-};
-
-module.exports = Parser;
-
-},{}],21:[function(require,module,exports){
-var inherit = require('../inherit');
 var DirectiveParser = require('./DirectiveParser');
-var utils = require('../utils');
 var ScopeModel = require('../ScopeModel');
 var Tree = require('../trees/Tree');
 
-function ScopeDirectiveParser(options) {
-    DirectiveParser.call(this, options);
-}
+module.exports = DirectiveParser.extends(
+    {
+        initialize: function (options) {
+            DirectiveParser.prototype.initialize.call(this, options);
 
-ScopeDirectiveParser.prototype.initialize = function (options) {
-    DirectiveParser.prototype.initialize.call(this, options);
+            this.startNode = options.startNode;
+            this.endNode = options.endNode;
 
-    this.startNode = options.startNode;
-    this.endNode = options.endNode;
+            if (!this.tree.getTreeVar('scopes')) {
+                this.tree.setTreeVar('scopes', {});
+            }
+        },
 
-    if (!this.tree.getTreeVar('scopes')) {
-        this.tree.setTreeVar('scopes', {});
-    }
-};
+        setScope: function (scopeModel) {
+            this.scopeModel.setParent(scopeModel);
+            scopeModel.addChild(this.scopeModel);
+        },
 
-ScopeDirectiveParser.prototype.setScope = function (scopeModel) {
-    this.scopeModel.setParent(scopeModel);
-    scopeModel.addChild(this.scopeModel);
-};
+        collectExprs: function () {
+            var scopeName = this.startNode.nodeValue
+                .replace(/\s+/g, '')
+                .replace(this.config.scopeName + ':', '');
+            if (scopeName) {
+                var scopes = this.tree.getTreeVar('scopes');
+                this.scopeModel = new ScopeModel();
+                scopes[scopeName] = scopes[scopeName] || [];
+                scopes[scopeName].push(this.scopeModel);
+            }
 
-ScopeDirectiveParser.prototype.collectExprs = function () {
-    var scopeName = this.startNode.nodeValue
-        .replace(/\s+/g, '')
-        .replace(this.config.scopeName + ':', '');
-    if (scopeName) {
-        var scopes = this.tree.getTreeVar('scopes');
-        this.scopeModel = new ScopeModel();
-        scopes[scopeName] = scopes[scopeName] || [];
-        scopes[scopeName].push(this.scopeModel);
-    }
-
-    return [
-        {
-            startNode: this.startNode.nextSibling,
-            endNode: this.endNode.previousSibling
+            return [
+                {
+                    startNode: this.startNode.nextSibling,
+                    endNode: this.endNode.previousSibling
+                }
+            ];
         }
-    ];
-};
+    },
+    {
+        isProperNode: function (node, config) {
+            return DirectiveParser.isProperNode(node, config)
+                && node.nodeValue.replace(/\s+/, '').indexOf(config.scopeName + ':') === 0;
+        },
 
-ScopeDirectiveParser.isProperNode = function (node, config) {
-    return DirectiveParser.isProperNode(node, config)
-        && node.nodeValue.replace(/\s+/, '').indexOf(config.scopeName + ':') === 0;
-};
+        findEndNode: function (startNode, config) {
+            var curNode = startNode;
+            while ((curNode = curNode.nextSibling)) {
+                if (isEndNode(curNode, config)) {
+                    return curNode;
+                }
+            }
+        },
 
-ScopeDirectiveParser.findEndNode = function (startNode, config) {
-    var curNode = startNode;
-    while ((curNode = curNode.nextSibling)) {
-        if (isEndNode(curNode, config)) {
-            return curNode;
+        getNoEndNodeError: function () {
+            return new Error('the scope directive is not properly ended!');
         }
     }
-};
+);
 
-ScopeDirectiveParser.getNoEndNodeError = function () {
-    return new Error('the scope directive is not properly ended!');
-};
-
-module.exports = inherit(ScopeDirectiveParser, DirectiveParser);
 Tree.registeParser(module.exports);
 
 function isEndNode(node, config) {
@@ -1758,113 +1528,102 @@ function isEndNode(node, config) {
         && node.nodeValue.replace(/\s+/g, '') === config.scopeEndName;
 }
 
-},{"../ScopeModel":10,"../inherit":11,"../trees/Tree":26,"../utils":27,"./DirectiveParser":15}],22:[function(require,module,exports){
+},{"../ScopeModel":8,"../trees/Tree":20,"./DirectiveParser":11}],18:[function(require,module,exports){
 /**
  * @file 变量定义指令解析器
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
 var DirectiveParser = require('./DirectiveParser');
-var inherit = require('../inherit');
 var Tree = require('../trees/Tree');
 
-function VarDirectiveParser(options) {
-    DirectiveParser.call(this, options);
+module.exports = DirectiveParser.extends(
+    {
+        initialize: function (options) {
+            this.$super.initialize(options);
 
-    this.node = options.node;
-}
+            this.node = options.node;
+        },
 
-VarDirectiveParser.prototype.collectExprs = function () {
-    var expr = this.node.nodeValue.replace(this.config.varName + ':', '');
-    this.exprCalculater.createExprFn(expr);
+        collectExprs: function () {
+            var expr = this.node.nodeValue.replace(this.config.varName + ':', '');
+            this.exprCalculater.createExprFn(expr);
 
-    var leftValueName = expr.match(/\s*.+(?=\=)/)[0].replace(/\s+/g, '');
+            var leftValueName = expr.match(/\s*.+(?=\=)/)[0].replace(/\s+/g, '');
 
-    var me = this;
-    this.exprFn = function (scopeModel) {
-        var oldValue = scopeModel.get(leftValueName);
-        var newValue = me.exprCalculater.calculate(expr, false, scopeModel);
-        if (oldValue !== newValue) {
-            scopeModel.set(leftValueName, newValue);
+            var me = this;
+            this.exprFn = function (scopeModel) {
+                var oldValue = scopeModel.get(leftValueName);
+                var newValue = me.exprCalculater.calculate(expr, false, scopeModel);
+                if (oldValue !== newValue) {
+                    scopeModel.set(leftValueName, newValue);
+                }
+            };
+        },
+
+        setScope: function (scopeModel) {
+            DirectiveParser.prototype.setScope.apply(this, arguments);
+            this.exprFn(this.scopeModel);
+        },
+
+        /**
+         * 获取开始节点
+         *
+         * @protected
+         * @inheritDoc
+         * @return {Node}
+         */
+        getStartNode: function () {
+            return this.node;
+        },
+
+        /**
+         * 获取结束节点
+         *
+         * @protected
+         * @inheritDoc
+         * @return {Node}
+         */
+        getEndNode: function () {
+            return this.node;
         }
-    };
-};
-
-VarDirectiveParser.prototype.setScope = function (scopeModel) {
-    DirectiveParser.prototype.setScope.apply(this, arguments);
-    this.exprFn(this.scopeModel);
-};
-
-VarDirectiveParser.isProperNode = function (node, config) {
-    return node.nodeType === 8
-        && node.nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;
-};
-
-
-module.exports = inherit(VarDirectiveParser, DirectiveParser);
-Tree.registeParser(VarDirectiveParser);
-
-
-},{"../inherit":11,"../trees/Tree":26,"./DirectiveParser":15}],23:[function(require,module,exports){
-var Tree = require('./Tree');
-var inherit = require('../inherit');
-
-function ChildrenTree(options) {
-    if (!options.config || !options.domUpdater
-        || !options.exprCalculater || !options.treeVars
-        || !options.componentManager
-    ) {
-        throw new Error('wrong arguments');
+    },
+    {
+        isProperNode: function (node, config) {
+            return node.nodeType === 8
+                && node.nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;
+        }
     }
+);
 
-    options.componentChildren = undefined;
-    delete options.componentChildren;
+Tree.registeParser(module.exports);
 
-    Tree.call(this, options);
-}
 
-module.exports = inherit(ChildrenTree, Tree);
+},{"../trees/Tree":20,"./DirectiveParser":11}],19:[function(require,module,exports){
+/**
+ * @file for指令中用到的
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
 
-},{"../inherit":11,"./Tree":26}],24:[function(require,module,exports){
 var Tree = require('./Tree');
-var inherit = require('../inherit');
 
-function ComponentTree(options) {
-    if (!options.config || !options.domUpdater
-        || !options.exprCalculater || !options.treeVars
-        || !options.componentChildren
-        || !options.componentManager
-    ) {
-        throw new Error('wrong arguments');
+module.exports = Tree.extends(
+    {
+        initialize: function (options) {
+            if (!options.config
+                || !options.domUpdater
+                || !options.exprCalculater
+            ) {
+                throw new Error('wrong arguments');
+            }
+
+            this.$super.initialize(options);
+        }
     }
+);
 
-    Tree.call(this, options);
 
-    this.componentChildren = options.componentChildren;
-}
-
-module.exports = inherit(ComponentTree, Tree);
-
-},{"../inherit":11,"./Tree":26}],25:[function(require,module,exports){
-var Tree = require('./Tree');
-var inherit = require('../inherit');
-
-function ForTree(options) {
-    if (!options.config || !options.domUpdater
-        || !options.exprCalculater || !options.treeVars
-        || !options.componentManager
-    ) {
-        throw new Error('wrong arguments');
-    }
-
-    Tree.call(this, options);
-
-    this.componentChildren = options.componentChildren;
-}
-
-module.exports = inherit(ForTree, Tree);
-
-},{"../inherit":11,"./Tree":26}],26:[function(require,module,exports){
+},{"./Tree":20}],20:[function(require,module,exports){
 /**
  * @file 最终的树
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -1874,138 +1633,214 @@ var utils = require('../utils');
 var ExprCalculater = require('../ExprCalculater');
 var DomUpdater = require('../DomUpdater');
 var ScopeModel = require('../ScopeModel');
-var ComponentManager = require('../ComponentManager');
-
-function Tree(options) {
-    this.startNode = options.startNode;
-    this.endNode = options.endNode;
-    this.config = options.config;
-
-    this.exprCalculater = options.exprCalculater || new ExprCalculater();
-    this.domUpdater = options.domUpdater || new DomUpdater();
-    this.componentManager = options.componentManager || new ComponentManager();
-    this.dirtyChecker = options.dirtyChecker;
-
-    this.tree = [];
-    this.treeVars = options.treeVars || {};
-
-    this.rootScope = new ScopeModel();
-}
-
-Tree.prototype.registeComponent = function (componentClass) {
-    this.componentManager.registe(componentClass);
-};
-
-Tree.prototype.setTreeVar = function (name, value) {
-    if (this.treeVars[name] !== undefined) {
-        return false;
-    }
-    this.treeVars[name] = value;
-    return true;
-};
-
-Tree.prototype.unsetTreeVar = function (name) {
-    this.treeVars[name] = undefined;
-};
-
-Tree.prototype.getTreeVar = function (name) {
-    return this.treeVars[name];
-};
-
-Tree.prototype.getScopeByName = function (name) {
-    var scopes = this.getTreeVar('scopes');
-    if (!scopes) {
-        return;
-    }
-    return scopes[name];
-};
-
-Tree.prototype.traverse = function () {
-    walkDom(this, this.startNode, this.endNode, this.tree, this.rootScope);
-};
-
-Tree.prototype.setData = function (data) {
-    data = data || {};
-    this.rootScope.set(data);
-};
-
-Tree.prototype.goDark = function () {
-    utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
-        if (curNode.nodeType === 1 || curNode.nodeType === 3) {
-            utils.goDark(curNode);
-        }
-    }, this);
-};
-
-Tree.prototype.restoreFromDark = function () {
-    utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
-        if (curNode.nodeType === 1 || curNode.nodeType === 3) {
-            utils.restoreFromDark(curNode);
-        }
-    }, this);
-};
-
-Tree.prototype.setDirtyChecker = function (dirtyChecker) {
-    this.dirtyChecker = dirtyChecker;
-};
+var Base = require('../Base');
 
 var ParserClasses = [];
 
-/**
- * 注册一下解析器类。
- *
- * @param  {Constructor} ParserClass 解析器类
- */
-Tree.registeParser = function (ParserClass) {
-    var isExitsChildClass = false;
-    utils.each(ParserClasses, function (PC, index) {
-        if (utils.isSubClassOf(PC, ParserClass)) {
-            isExitsChildClass = true;
-        }
-        else if (utils.isSubClassOf(ParserClass, PC)) {
-            ParserClasses[index] = ParserClass;
-            isExitsChildClass = true;
-        }
+module.exports = Base.extends(
+    {
+        initialize: function (options) {
+            this.$super.initialize(options);
 
-        return isExitsChildClass;
-    });
+            this.startNode = options.startNode;
+            this.endNode = options.endNode;
+            this.config = options.config;
 
-    if (!isExitsChildClass) {
-        ParserClasses.push(ParserClass);
-    }
-};
+            this.exprCalculater = options.exprCalculater || new ExprCalculater();
+            this.domUpdater = options.domUpdater || new DomUpdater();
+            this.dirtyChecker = options.dirtyChecker;
 
-Tree.prototype.destroy = function () {
-    walk(this.tree);
+            this.tree = [];
+            this.treeVars = {};
 
-    this.startNode = null;
-    this.endNode = null;
-    this.config = null;
+            this.rootScope = new ScopeModel();
+        },
 
-    this.exprCalculater.destroy();
-    this.exprCalculater = null;
-
-    this.domUpdater.destroy();
-    this.domUpdater = null;
-
-    this.tree = null;
-    this.treeVars = null;
-
-    if (this.dirtyChecker) {
-        this.dirtyChecker.destroy();
-        this.dirtyChecker = null;
-    }
-
-    function walk(parserObjs) {
-        utils.each(parserObjs, function (curParserObj) {
-            curParserObj.parser.destroy();
-
-            if (curParserObj.children && curParserObj.children.length) {
-                walk(curParserObj.children);
+        /**
+         * 设置绑定在树上面的额外变量。这些变量有如下特性：
+         * 1、无法覆盖；
+         * 2、在获取treeVars上面某个变量的时候，如果当前树取出来是undefined，那么就会到父级树的treeVars上去找，以此类推。
+         *
+         * @public
+         * @param {string} name  变量名
+         * @param {*} value 变量值
+         * @return {boolean} 是否设置成功
+         */
+        setTreeVar: function (name, value) {
+            if (this.treeVars[name] !== undefined) {
+                return false;
             }
-        });
+            this.treeVars[name] = value;
+            return true;
+        },
+
+        unsetTreeVar: function (name) {
+            this.treeVars[name] = undefined;
+        },
+
+        getTreeVar: function (name) {
+            var val = this.treeVars[name];
+            if (val === undefined && this.$parent !== undefined) {
+                val = this.$parent.getTreeVar(name);
+            }
+            return val;
+        },
+
+        setParent: function (parent) {
+            this.$parent = parent;
+        },
+
+        getScopeByName: function (name) {
+            var scopes = this.getTreeVar('scopes');
+            if (!scopes) {
+                return;
+            }
+            return scopes[name];
+        },
+
+        traverse: function () {
+            walkDom(this, this.startNode, this.endNode, this.tree, this.rootScope);
+        },
+
+        setData: function (data) {
+            data = data || {};
+            this.rootScope.set(data);
+        },
+
+        goDark: function () {
+            utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
+                if (curNode.nodeType === 1 || curNode.nodeType === 3) {
+                    utils.goDark(curNode);
+                }
+            }, this);
+        },
+
+        restoreFromDark: function () {
+            utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
+                if (curNode.nodeType === 1 || curNode.nodeType === 3) {
+                    utils.restoreFromDark(curNode);
+                }
+            }, this);
+        },
+
+        setDirtyChecker: function (dirtyChecker) {
+            this.dirtyChecker = dirtyChecker;
+        },
+
+        destroy: function () {
+            walk(this.tree);
+
+            this.startNode = null;
+            this.endNode = null;
+            this.config = null;
+
+            this.exprCalculater.destroy();
+            this.exprCalculater = null;
+
+            this.domUpdater.destroy();
+            this.domUpdater = null;
+
+            this.tree = null;
+            this.treeVars = null;
+
+            if (this.dirtyChecker) {
+                this.dirtyChecker.destroy();
+                this.dirtyChecker = null;
+            }
+
+            function walk(parserObjs) {
+                utils.each(parserObjs, function (curParserObj) {
+                    curParserObj.parser.destroy();
+
+                    if (curParserObj.children && curParserObj.children.length) {
+                        walk(curParserObj.children);
+                    }
+                });
+            }
+        },
+
+        /**
+         * 创建解析器实例，其返回值的结构为：
+         * {
+         *     parser: ...,
+         *     collectResult: ...
+         * }
+         *
+         * 返回值存在如下几种情况：
+         *
+         * 1、如果 parser 属性存在且 collectResult 为 true ，则说明当前解析器解析了所有相应的节点（包括起止节点间的节点、当前节点和子孙节点）；
+         * 2、直接返回假值或者 parser 不存在，说明没有处理任何节点，当前节点不属于当前解析器处理；
+         * 3、parser 存在且 collectResult 为数组，结构如下：
+         *     [
+         *         {
+         *             startNode: Node.<...>,
+         *             endNode: Node.<...>
+         *         }
+         *     ]
+         *
+         *  则说明当前是带有很多分支的节点，要依次解析数组中每个元素指定的节点范围。
+         *  而且，该解析器对应的 setData() 方法将会返回整数，指明使用哪一个分支的节点。
+         *
+         * @inner
+         * @param {Constructor} ParserClass parser 类
+         * @param  {Object} options 初始化参数
+         * @return {Object}         返回值
+         */
+        createParser: function (ParserClass, options) {
+            var startNode = options.startNode || options.node;
+            if (!ParserClass.isProperNode(startNode, options.config)) {
+                return;
+            }
+
+            var endNode;
+            if (ParserClass.findEndNode) {
+                endNode = ParserClass.findEndNode(startNode, options.config);
+
+                if (!endNode) {
+                    throw ParserClass.getNoEndNodeError();
+                }
+                else if (endNode.parentNode !== startNode.parentNode) {
+                    throw new Error('the relationship between start node and end node is not brotherhood!');
+                }
+            }
+
+            var parser = new ParserClass(utils.extend(options, {
+                endNode: endNode
+            }));
+
+            return {
+                parser: parser,
+                endNode: endNode || options.node
+            };
+        }
+    },
+    {
+        /**
+         * 注册一下解析器类。
+         *
+         * @param  {Constructor} ParserClass 解析器类
+         */
+        registeParser: function (ParserClass) {
+            var isExitsChildClass = false;
+            utils.each(ParserClasses, function (PC, index) {
+                if (utils.isSubClassOf(PC, ParserClass)) {
+                    isExitsChildClass = true;
+                }
+                else if (utils.isSubClassOf(ParserClass, PC)) {
+                    ParserClasses[index] = ParserClass;
+                    isExitsChildClass = true;
+                }
+
+                return isExitsChildClass;
+            });
+
+            if (!isExitsChildClass) {
+                ParserClasses.push(ParserClass);
+            }
+        }
     }
-};
+);
+
 
 module.exports = Tree;
 
@@ -2032,10 +1867,11 @@ function walkDom(tree, startNode, endNode, container, scopeModel) {
         var parserObj;
 
         utils.each(ParserClasses, function (ParserClass) {
-            parserObj = createParser(ParserClass, options);
+            parserObj = tree.createParser(ParserClass, options);
             if (!parserObj || !parserObj.parser) {
                 return;
             }
+            parserObj.collectResult = parserObj.parser.collectExprs();
 
             parserObj.parser.setScope(scopeModel);
 
@@ -2053,7 +1889,7 @@ function walkDom(tree, startNode, endNode, container, scopeModel) {
                 }, this);
 
                 if (parserObj.endNode !== endNode) {
-                    curNode = parserObj.endNode.nextSibling;
+                    curNode = parserObj.parser.getEndNode().nextSibling;
                 }
                 else {
                     curNode = null;
@@ -2067,7 +1903,7 @@ function walkDom(tree, startNode, endNode, container, scopeModel) {
                 }
 
                 if (curNode !== endNode) {
-                    curNode = curNode.nextSibling;
+                    curNode = parserObj.parser.getEndNode().nextSibling;
                 }
                 else {
                     curNode = null;
@@ -2085,66 +1921,11 @@ function walkDom(tree, startNode, endNode, container, scopeModel) {
     }
 }
 
-/**
- * 创建解析器实例，其返回值的结构为：
- * {
- *     parser: ...,
- *     collectResult: ...
- * }
- *
- * 返回值存在如下几种情况：
- *
- * 1、如果 parser 属性存在且 collectResult 为 true ，则说明当前解析器解析了所有相应的节点（包括起止节点间的节点、当前节点和子孙节点）；
- * 2、直接返回假值或者 parser 不存在，说明没有处理任何节点，当前节点不属于当前解析器处理；
- * 3、parser 存在且 collectResult 为数组，结构如下：
- *     [
- *         {
- *             startNode: Node.<...>,
- *             endNode: Node.<...>
- *         }
- *     ]
- *
- *  则说明当前是带有很多分支的节点，要依次解析数组中每个元素指定的节点范围。
- *  而且，该解析器对应的 setData() 方法将会返回整数，指明使用哪一个分支的节点。
- *
- * @inner
- * @param {Constructor} ParserClass parser 类
- * @param  {Object} options 初始化参数
- * @return {Object}         返回值
- */
-function createParser(ParserClass, options) {
-    var startNode = options.startNode || options.node;
-    if (!ParserClass.isProperNode(startNode, options.config)) {
-        return;
-    }
-
-    var endNode;
-    if (ParserClass.findEndNode) {
-        endNode = ParserClass.findEndNode(startNode, options.config);
-
-        if (!endNode) {
-            throw ParserClass.getNoEndNodeError();
-        }
-        else if (endNode.parentNode !== startNode.parentNode) {
-            throw new Error('the relationship between start node and end node is not brotherhood!');
-        }
-    }
-
-    var parser = new ParserClass(utils.extend(options, {
-        endNode: endNode
-    }));
-
-    return {
-        parser: parser,
-        collectResult: parser.collectExprs(),
-        endNode: endNode || options.node
-    };
-}
 
 
 
 
-},{"../ComponentManager":4,"../DomUpdater":7,"../ExprCalculater":9,"../ScopeModel":10,"../utils":27}],27:[function(require,module,exports){
+},{"../Base":2,"../DomUpdater":5,"../ExprCalculater":7,"../ScopeModel":8,"../utils":21}],21:[function(require,module,exports){
 /**
  * @file 一堆项目里面常用的方法
  * @author yibuyisheng(yibuyisheng@163.com)
@@ -2267,6 +2048,29 @@ exports.isFunction = function (obj) {
     return isClass(obj, 'Function');
 };
 
+/**
+ * 是否是一个纯对象，满足如下条件：
+ *
+ * 1、除了内置属性之外，没有其他继承属性；
+ * 2、constructor 是 Object
+ *
+ * @param {Any} obj 待判断的变量
+ * @return {boolean}
+ */
+exports.isPureObject = function (obj) {
+    if (!isClass(obj, 'Object')) {
+        return false;
+    }
+
+    for (var k in obj) {
+        if (!obj.hasOwnProperty(k)) {
+            return false;
+        }
+    }
+
+    return true;
+};
+
 exports.isClass = isClass;
 
 exports.bind = function (fn, thisArg) {
@@ -2288,6 +2092,16 @@ exports.bind = function (fn, thisArg) {
 
 exports.isSubClassOf = function (SubClass, SuperClass) {
     return SubClass.prototype instanceof SuperClass;
+};
+
+/**
+ * 对传入的字符串进行创建正则表达式之前的转义，防止字符串中的一些字符成为关键字。
+ *
+ * @param  {string} str 待转义的字符串
+ * @return {string}     转义之后的字符串
+ */
+exports.regExpEncode = function regExpEncode(str) {
+    return '\\' + str.split('').join('\\');
 };
 
 exports.xhr = function (options, loadFn, errorFn) {
