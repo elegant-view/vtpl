@@ -7,6 +7,7 @@ var Parser = require('./Parser');
 var inherit = require('../inherit');
 var utils = require('../utils');
 var Tree = require('../trees/Tree');
+var DomUpdater = require('../DomUpdater');
 
 function ExprParser(options) {
     Parser.call(this, options);
@@ -55,7 +56,7 @@ ExprParser.prototype.collectExprs = function () {
  * 添加表达式
  *
  * @protected
- * @param {Attr} attr 如果当前是元素节点，则要传入遍历到的属性
+ * @param {Attr} attr 如果当前是元素节点，则要传入遍历到的属性，所以attr存在与否是判断当前元素是否是文本节点的一个依据
  */
 ExprParser.prototype.addExpr = function (attr) {
     var expr = attr ? attr.value : this.node.nodeValue;
@@ -65,7 +66,7 @@ ExprParser.prototype.addExpr = function (attr) {
     addExpr(
         this,
         expr,
-        attr ? createAttrUpdateFn(attr, this.domUpdater) : (function (me, curNode) {
+        attr ? createAttrUpdateFn(this.node, attr.name, this.domUpdater) : (function (me, curNode) {
             var taskId = me.domUpdater.generateTaskId();
             return function (exprValue) {
                 me.domUpdater.addTaskFn(
@@ -89,6 +90,28 @@ ExprParser.prototype.addExpr = function (attr) {
             curNode.nodeValue = nodeValue;
         }, null, this.node, this.node.nodeValue));
     }
+};
+
+/**
+ * 获取开始节点
+ *
+ * @protected
+ * @inheritDoc
+ * @return {Node}
+ */
+ExprParser.prototype.getStartNode = function () {
+    return this.node;
+};
+
+/**
+ * 获取结束节点
+ *
+ * @protected
+ * @inheritDoc
+ * @return {Node}
+ */
+ExprParser.prototype.getEndNode = function () {
+    return this.node;
 };
 
 ExprParser.prototype.destroy = function () {
@@ -159,14 +182,23 @@ ExprParser.isProperNode = function (node) {
 module.exports = inherit(ExprParser, Parser);
 Tree.registeParser(module.exports);
 
-function createAttrUpdateFn(attr, domUpdater) {
+/**
+ * 创建DOM节点属性更新函数
+ *
+ * @inner
+ * @param  {Node} node    DOM中的节点
+ * @param {string} name 要更新的属性名
+ * @param  {DomUpdater} domUpdater DOM更新器
+ * @return {function(Object)}      更新函数
+ */
+function createAttrUpdateFn(node, name, domUpdater) {
     var taskId = domUpdater.generateTaskId();
     return function (exprValue) {
         domUpdater.addTaskFn(
             taskId,
-            utils.bind(function (attr, exprValue) {
-                attr.value = exprValue;
-            }, null, attr, exprValue)
+            utils.bind(function (node, name, exprValue) {
+                DomUpdater.setAttr(node, name, exprValue);
+            }, null, node, name, exprValue)
         );
     };
 }
@@ -180,11 +212,38 @@ function addExpr(parser, expr, updateFn) {
     parser.updateFns[expr].push(updateFn);
 }
 
+/**
+ * 创建根据scopeModel计算表达式值的函数
+ *
+ * @inner
+ * @param  {Parser} parser 解析器实例
+ * @param  {string} expr   含有表达式的字符串
+ * @return {function(Scope):*}
+ */
 function createExprFn(parser, expr) {
     return function (scopeModel) {
-        return expr.replace(parser.config.getExprRegExp(), function () {
-            parser.exprCalculater.createExprFn(arguments[1]);
-            return parser.exprCalculater.calculate(arguments[1], false, scopeModel);
-        });
+        // 此处要分两种情况：
+        // 1、expr并不是纯正的表达式，如`==${name}==`。
+        // 2、expr是纯正的表达式，如`${name}`。
+        // 对于不纯正表达式的情况，此处的返回值肯定是字符串；
+        // 而对于纯正的表达式，此处就不要将其转换成字符串形式了。
+
+        var regExp = parser.config.getExprRegExp();
+
+        var possibleExprCount = expr.match(new RegExp(utils.regExpEncode(parser.config.exprPrefix), 'g'));
+        possibleExprCount = possibleExprCount ? possibleExprCount.length : 0;
+
+        // 不纯正
+        if (possibleExprCount !== 1 || expr.replace(regExp, '')) {
+            return expr.replace(regExp, function () {
+                parser.exprCalculater.createExprFn(arguments[1]);
+                return parser.exprCalculater.calculate(arguments[1], false, scopeModel);
+            });
+        }
+
+        // 纯正
+        var pureExpr = expr.slice(parser.config.exprPrefix.length, -parser.config.exprSuffix.length);
+        parser.exprCalculater.createExprFn(pureExpr);
+        return parser.exprCalculater.calculate(pureExpr, false, scopeModel);
     };
 }

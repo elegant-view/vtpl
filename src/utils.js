@@ -120,6 +120,29 @@ exports.isFunction = function (obj) {
     return isClass(obj, 'Function');
 };
 
+/**
+ * 是否是一个纯对象，满足如下条件：
+ *
+ * 1、除了内置属性之外，没有其他继承属性；
+ * 2、constructor 是 Object
+ *
+ * @param {Any} obj 待判断的变量
+ * @return {boolean}
+ */
+exports.isPureObject = function (obj) {
+    if (!isClass(obj, 'Object')) {
+        return false;
+    }
+
+    for (var k in obj) {
+        if (!obj.hasOwnProperty(k)) {
+            return false;
+        }
+    }
+
+    return true;
+};
+
 exports.isClass = isClass;
 
 exports.bind = function (fn, thisArg) {
@@ -141,6 +164,16 @@ exports.bind = function (fn, thisArg) {
 
 exports.isSubClassOf = function (SubClass, SuperClass) {
     return SubClass.prototype instanceof SuperClass;
+};
+
+/**
+ * 对传入的字符串进行创建正则表达式之前的转义，防止字符串中的一些字符成为关键字。
+ *
+ * @param  {string} str 待转义的字符串
+ * @return {string}     转义之后的字符串
+ */
+exports.regExpEncode = function regExpEncode(str) {
+    return '\\' + str.split('').join('\\');
 };
 
 exports.xhr = function (options, loadFn, errorFn) {

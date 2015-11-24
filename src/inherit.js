@@ -9,6 +9,7 @@ function inherit(ChildClass, ParentClass) {
     Cls.prototype = ParentClass.prototype;
     var childProto = ChildClass.prototype;
     ChildClass.prototype = new Cls();
+    ChildClass.prototype.constructor = ChildClass;
 
     var key;
     for (key in childProto) {

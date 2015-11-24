@@ -23,7 +23,7 @@ ScopeModel.prototype.set = function (name, value) {
         this.store[name] = value;
         change(this);
     }
-    else if (utils.isClass(name, 'Object')) {
+    else if (utils.isPureObject(name)) {
         utils.extend(this.store, name);
         change(this);
     }

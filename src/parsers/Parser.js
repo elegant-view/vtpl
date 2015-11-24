@@ -23,7 +23,7 @@ function Parser(options) {
 /**
  * 初始化
  *
- * @protectedß
+ * @protected
  * @param {Object} options 来自于构造函数
  */
 Parser.prototype.initialize = function (options) {
@@ -67,6 +67,29 @@ Parser.prototype.goDark = function () {};
  * @public
  */
 Parser.prototype.restoreFromDark = function () {};
+
+/**
+ * 获取解析器当前状态下的开始DOM节点。
+ *
+ * 由于有的解析器会将之前的节点移除掉，那么就会对遍历带来影响了，
+ * 所以此处提供两个获取开始节点和结束节点的方法。
+ *
+ * @public
+ * @return {Node} DOM节点对象
+ */
+Parser.prototype.getStartNode = function () {
+    return this.startNode;
+};
+
+/**
+ * 获取解析器当前状态下的结束DOM节点
+ *
+ * @public
+ * @return {Node} 节点对象
+ */
+Parser.prototype.getEndNode = function () {
+    return this.endNode;
+};
 
 /**
  * 搜集表达式，生成表达式函数和 DOM 更新函数

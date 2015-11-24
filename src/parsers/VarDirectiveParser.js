@@ -34,6 +34,28 @@ VarDirectiveParser.prototype.setScope = function (scopeModel) {
     this.exprFn(this.scopeModel);
 };
 
+/**
+ * 获取开始节点
+ *
+ * @protected
+ * @inheritDoc
+ * @return {Node}
+ */
+VarDirectiveParser.prototype.getStartNode = function () {
+    return this.node;
+};
+
+/**
+ * 获取结束节点
+ *
+ * @protected
+ * @inheritDoc
+ * @return {Node}
+ */
+VarDirectiveParser.prototype.getEndNode = function () {
+    return this.node;
+};
+
 VarDirectiveParser.isProperNode = function (node, config) {
     return node.nodeType === 8
         && node.nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;

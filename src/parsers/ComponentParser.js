@@ -8,6 +8,7 @@ var Parser = require('./Parser');
 var Tree = require('../trees/Tree');
 var ComponentManager = require('../ComponentManager');
 var utils = require('../utils');
+var Event = require('../Event');
 
 function ComponentParser(options) {
     Parser.call(this, options);
@@ -24,6 +25,10 @@ ComponentParser.prototype.initialize = function (options) {
     this.exprFns = {};
     this.updateFns = {};
     this.exprOldValues = {};
+};
+
+ComponentParser.prototype.setComponentEvent = function (event) {
+    this.componentEvent = event;
 };
 
 ComponentParser.prototype.collectExprs = function () {
@@ -66,6 +71,9 @@ ComponentParser.prototype.collectExprs = function () {
         componentNode: this.node,
         tree: this.tree
     });
+    if (this.componentEvent) {
+        this.componentEvent.trigger('newcomponent', this.component);
+    }
 
     return true;
 
@@ -86,6 +94,36 @@ ComponentParser.prototype.collectExprs = function () {
             return arguments[1];
         });
     }
+};
+
+/**
+ * 获取开始节点
+ *
+ * @protected
+ * @inheritDoc
+ * @return {Node}
+ */
+ComponentParser.prototype.getStartNode = function () {
+    if (!this.component) {
+        return this.node;
+    }
+
+    return this.component.startNode;
+};
+
+/**
+ * 获取结束节点
+ *
+ * @protected
+ * @inheritDoc
+ * @return {Node}
+ */
+ComponentParser.prototype.getEndNode = function () {
+    if (!this.component) {
+        return this.node;
+    }
+
+    return this.component.endNode;
 };
 
 ComponentParser.prototype.setScope = function (scopeModel) {

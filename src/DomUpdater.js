@@ -56,4 +56,34 @@ DomUpdater.prototype.execute = function (doneFn) {
     }
 };
 
+/**
+ * 给指定节点的指定属性设置值
+ *
+ * TODO: 完善
+ *
+ * @static
+ * @param {Node} node  DOM节点
+ * @param {string} name  节点属性名
+ * @param {Object} value 节点属性值
+ * @return {*}
+ */
+DomUpdater.setAttr = function (node, name, value) {
+    // 目前仅处理元素节点，以后是否处理其他类型的节点，以后再说
+    if (node.nodeType !== 1) {
+        return;
+    }
+
+    if (name === 'style' && utils.isPureObject(value)) {
+        return DomUpdater.setStyle(node, value);
+    }
+
+    node.setAttribute(name, value);
+};
+
+DomUpdater.setStyle = function (node, styleObj) {
+    for (var k in styleObj) {
+        node.style[k] = styleObj[k];
+    }
+};
+
 module.exports = DomUpdater;

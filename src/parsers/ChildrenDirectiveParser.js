@@ -47,6 +47,31 @@ ChildrenDirectiveParser.prototype.collectExprs = function () {
     return true;
 };
 
+/**
+ * 获取开始节点
+ *
+ * @protected
+ * @inheritDoc
+ * @return {Node}
+ */
+ChildrenDirectiveParser.prototype.getStartNode = function () {
+    if (!this.childrenTree) {
+        return this.node;
+    }
+    return this.childrenTree.startNode;
+};
+
+/**
+ * 获取结束节点
+ *
+ * @protected
+ * @inheritDoc
+ * @return {Node}
+ */
+ChildrenDirectiveParser.prototype.getEndNode = function () {
+    return this.node;
+};
+
 ChildrenDirectiveParser.prototype.destroy = function () {
     this.childrenTree.destroy();
 

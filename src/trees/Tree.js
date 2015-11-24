@@ -25,8 +25,23 @@ function Tree(options) {
     this.rootScope = new ScopeModel();
 }
 
-Tree.prototype.registeComponent = function (componentClass) {
-    this.componentManager.registe(componentClass);
+/**
+ * 注册组件类
+ *
+ * @public
+ * @param  {Map.<string, Component>} componentClasses 组件名和组件类的映射
+ */
+Tree.prototype.registeComponents = function (componentClasses) {
+    if (!utils.isPureObject(componentClasses)) {
+        return;
+    }
+
+    for (var name in componentClasses) {
+        var componentClass = componentClasses[name];
+        // 此处占用了组件类上的name属性，外部不要用这个属性
+        componentClass.$name = name;
+        this.componentManager.registe(componentClass);
+    }
 };
 
 Tree.prototype.setTreeVar = function (name, value) {
@@ -140,84 +155,6 @@ Tree.prototype.destroy = function () {
     }
 };
 
-module.exports = Tree;
-
-function walkDom(tree, startNode, endNode, container, scopeModel) {
-    if (startNode === endNode) {
-        add(startNode);
-        return;
-    }
-
-    for (var curNode = startNode; curNode;) {
-        curNode = add(curNode);
-    }
-
-    function add(curNode) {
-        var options = {
-            startNode: curNode,
-            node: curNode,
-            config: tree.config,
-            exprCalculater: tree.exprCalculater,
-            domUpdater: tree.domUpdater,
-            tree: tree
-        };
-
-        var parserObj;
-
-        utils.each(ParserClasses, function (ParserClass) {
-            parserObj = createParser(ParserClass, options);
-            if (!parserObj || !parserObj.parser) {
-                return;
-            }
-
-            parserObj.parser.setScope(scopeModel);
-
-            if (utils.isArray(parserObj.collectResult)) {
-                var branches = parserObj.collectResult;
-                container.push({parser: parserObj.parser, children: branches});
-                utils.each(branches, function (branch, i) {
-                    if (!branch.startNode || !branch.endNode) {
-                        return;
-                    }
-
-                    var con = [];
-                    walkDom(tree, branch.startNode, branch.endNode, con, parserObj.parser.getScope());
-                    branches[i] = con;
-                }, this);
-
-                if (parserObj.endNode !== endNode) {
-                    curNode = parserObj.endNode.nextSibling;
-                }
-                else {
-                    curNode = null;
-                }
-            }
-            else {
-                var con = [];
-                container.push({parser: parserObj.parser, children: con});
-                if (curNode.nodeType === 1 && curNode.childNodes.length) {
-                    walkDom(tree, curNode.firstChild, curNode.lastChild, con, parserObj.parser.getScope());
-                }
-
-                if (curNode !== endNode) {
-                    curNode = curNode.nextSibling;
-                }
-                else {
-                    curNode = null;
-                }
-            }
-
-            return true;
-        }, this);
-
-        if (!parserObj) {
-            curNode = curNode.nextSibling;
-        }
-
-        return curNode;
-    }
-}
-
 /**
  * 创建解析器实例，其返回值的结构为：
  * {
@@ -245,7 +182,7 @@ function walkDom(tree, startNode, endNode, container, scopeModel) {
  * @param  {Object} options 初始化参数
  * @return {Object}         返回值
  */
-function createParser(ParserClass, options) {
+Tree.prototype.createParser = function (ParserClass, options) {
     var startNode = options.startNode || options.node;
     if (!ParserClass.isProperNode(startNode, options.config)) {
         return;
@@ -269,10 +206,89 @@ function createParser(ParserClass, options) {
 
     return {
         parser: parser,
-        collectResult: parser.collectExprs(),
         endNode: endNode || options.node
     };
+};
+
+module.exports = Tree;
+
+function walkDom(tree, startNode, endNode, container, scopeModel) {
+    if (startNode === endNode) {
+        add(startNode);
+        return;
+    }
+
+    for (var curNode = startNode; curNode;) {
+        curNode = add(curNode);
+    }
+
+    function add(curNode) {
+        var options = {
+            startNode: curNode,
+            node: curNode,
+            config: tree.config,
+            exprCalculater: tree.exprCalculater,
+            domUpdater: tree.domUpdater,
+            tree: tree
+        };
+
+        var parserObj;
+
+        utils.each(ParserClasses, function (ParserClass) {
+            parserObj = tree.createParser(ParserClass, options);
+            if (!parserObj || !parserObj.parser) {
+                return;
+            }
+            parserObj.collectResult = parserObj.parser.collectExprs();
+
+            parserObj.parser.setScope(scopeModel);
+
+            if (utils.isArray(parserObj.collectResult)) {
+                var branches = parserObj.collectResult;
+                container.push({parser: parserObj.parser, children: branches});
+                utils.each(branches, function (branch, i) {
+                    if (!branch.startNode || !branch.endNode) {
+                        return;
+                    }
+
+                    var con = [];
+                    walkDom(tree, branch.startNode, branch.endNode, con, parserObj.parser.getScope());
+                    branches[i] = con;
+                }, this);
+
+                if (parserObj.endNode !== endNode) {
+                    curNode = parserObj.parser.getEndNode().nextSibling;
+                }
+                else {
+                    curNode = null;
+                }
+            }
+            else {
+                var con = [];
+                container.push({parser: parserObj.parser, children: con});
+                if (curNode.nodeType === 1 && curNode.childNodes.length) {
+                    walkDom(tree, curNode.firstChild, curNode.lastChild, con, parserObj.parser.getScope());
+                }
+
+                if (curNode !== endNode) {
+                    curNode = parserObj.parser.getEndNode().nextSibling;
+                }
+                else {
+                    curNode = null;
+                }
+            }
+
+            return true;
+        }, this);
+
+        if (!parserObj) {
+            curNode = curNode.nextSibling;
+        }
+
+        return curNode;
+    }
 }
+
 
 
 
