@@ -1,3 +1,4 @@
+
 var Tree = require('./Tree');
 var inherit = require('../inherit');
 var ComponentParser = require('../parsers/ComponentParser');
