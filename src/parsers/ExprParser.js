@@ -10,6 +10,7 @@ var DomUpdater = require('../DomUpdater');
 
 module.exports = Parser.extends(
     {
+        $name: 'ExprParser',
 
         /**
          * 初始化
@@ -19,7 +20,7 @@ module.exports = Parser.extends(
          * @param  {Node} options.node DOM节点
          */
         initialize: function (options) {
-            this.$super.initialize(options);
+            Parser.prototype.initialize.apply(this, arguments);
 
             this.node = options.node;
 
@@ -179,7 +180,7 @@ module.exports = Parser.extends(
                 exprOldValues[expr] = exprValue;
             }
 
-            this.$super.onChange();
+            Parser.prototype.onChange.apply(this, arguments);
         },
 
         /**

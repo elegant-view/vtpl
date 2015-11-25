@@ -21,6 +21,8 @@ var Base = require('../Base');
 module.exports = Base.extends(
     {
 
+        $name: 'Parser',
+
         /**
          * 初始化
          *

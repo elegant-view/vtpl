@@ -9,8 +9,9 @@ var Tree = require('../trees/Tree');
 
 module.exports = DirectiveParser.extends(
     {
+        $name: 'IfDirectiveParser',
         initialize: function (options) {
-            this.$super.initialize(options);
+            DirectiveParser.prototype.initialize.apply(this, arguments);
 
             this.startNode = options.startNode;
             this.endNode = options.endNode;

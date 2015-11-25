@@ -8,8 +8,9 @@ var Tree = require('../trees/Tree');
 
 module.exports = DirectiveParser.extends(
     {
+        $name: 'VarDirectiveParser',
         initialize: function (options) {
-            this.$super.initialize(options);
+            DirectiveParser.prototype.initialize.apply(this, arguments);
 
             this.node = options.node;
         },

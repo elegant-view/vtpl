@@ -13,8 +13,9 @@ var ParserClasses = [];
 
 module.exports = Base.extends(
     {
+        $name: 'Tree',
         initialize: function (options) {
-            this.$super.initialize(options);
+            Base.prototype.initialize.apply(this, arguments);
 
             this.startNode = options.startNode;
             this.endNode = options.endNode;
@@ -52,9 +53,21 @@ module.exports = Base.extends(
             this.treeVars[name] = undefined;
         },
 
-        getTreeVar: function (name) {
+        /**
+         * 获取绑定到树上的额外变量
+         *
+         * @public
+         * @param  {string} name                  变量名
+         * @param  {boolean=} shouldNotFindInParent 如果在当前树中没找到，是否到父级树中去找。
+         *                                         true就代表不去，false就代表要去
+         * @return {*}
+         */
+        getTreeVar: function (name, shouldNotFindInParent) {
             var val = this.treeVars[name];
-            if (val === undefined && this.$parent !== undefined) {
+            if (!shouldNotFindInParent
+                && val === undefined
+                && this.$parent !== undefined
+            ) {
                 val = this.$parent.getTreeVar(name);
             }
             return val;
@@ -215,8 +228,6 @@ module.exports = Base.extends(
     }
 );
 
-
-module.exports = Tree;
 
 function walkDom(tree, startNode, endNode, container, scopeModel) {
     if (startNode === endNode) {

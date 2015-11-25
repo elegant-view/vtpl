@@ -26,7 +26,7 @@ Base.extends = function (props, staticProps) {
     var cls = function () {
         baseCls.apply(this, arguments);
     };
-    utils.extend(cls.prototype, props, {$super: baseCls.prototype});
+    utils.extend(cls.prototype, props);
     utils.extend(cls, staticProps);
 
     return inherit(cls, baseCls);

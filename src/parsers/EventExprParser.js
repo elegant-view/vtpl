@@ -11,13 +11,15 @@ var ScopeModel = require('../ScopeModel');
 module.exports = ExprParser.extends(
     {
 
+        $name: 'EventExprParser',
+
         /**
          * 初始化
          *
          * @protected
          */
         initialize: function () {
-            this.$super.initialize.apply(this, arguments);
+            ExprParser.prototype.initialize.apply(this, arguments);
 
             this.events = {};
         },
@@ -33,7 +35,7 @@ module.exports = ExprParser.extends(
          */
         addExpr: function (attr) {
             if (!attr) {
-                return this.$super.addExpr(arguments);
+                return ExprParser.prototype.addExpr.apply(this, arguments);
             }
 
             var eventName = getEventName(attr.name, this.config);
@@ -58,7 +60,7 @@ module.exports = ExprParser.extends(
                 }
             }
             else {
-                this.$super.addExpr(arguments);
+                ExprParser.prototype.addExpr.apply(this, arguments);
             }
         },
 
@@ -74,7 +76,7 @@ module.exports = ExprParser.extends(
             }, this);
             this.events = null;
 
-            this.$super.destroy(this);
+            ExprParser.prototype.destroy.apply(this);
         }
     }
 );

@@ -9,8 +9,10 @@ var ForTree = require('../trees/ForTree');
 
 module.exports = DirectiveParser.extends(
     {
+        $name: 'ForDirectiveParser',
+
         initialize: function (options) {
-            this.$super.initialize(arguments);
+            DirectiveParser.prototype.initialize.apply(this, arguments);
 
             this.startNode = options.startNode;
             this.endNode = options.endNode;
@@ -56,7 +58,7 @@ module.exports = DirectiveParser.extends(
 
             this.exprOldValue = exprValue;
 
-            this.$super.onChange(arguments);
+            DirectiveParser.prototype.onChange.apply(this, arguments);
         },
 
         destroy: function () {
@@ -74,7 +76,7 @@ module.exports = DirectiveParser.extends(
             this.updateFn = null;
             this.startNode = null;
             this.endNode = null;
-            this.$super.destroy(this);
+            DirectiveParser.prototype.destroy.apply(this, arguments);
         }
     },
     {

@@ -9,6 +9,7 @@ var Tree = require('../trees/Tree');
 
 module.exports = DirectiveParser.extends(
     {
+        $name: 'ScopeDirectiveParser',
         initialize: function (options) {
             DirectiveParser.prototype.initialize.call(this, options);
 
