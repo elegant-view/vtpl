@@ -7,7 +7,6 @@ var Tree = require('./Tree');
 
 module.exports = Tree.extends(
     {
-        $name: 'ForTree',
         initialize: function (options) {
             if (!options.config
                 || !options.domUpdater
@@ -18,6 +17,9 @@ module.exports = Tree.extends(
 
             Tree.prototype.initialize.apply(this, arguments);
         }
+    },
+    {
+        $name: 'ForTree'
     }
 );
 

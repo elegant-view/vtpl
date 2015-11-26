@@ -8,7 +8,6 @@ var Tree = require('../trees/Tree');
 
 module.exports = DirectiveParser.extends(
     {
-        $name: 'VarDirectiveParser',
         initialize: function (options) {
             DirectiveParser.prototype.initialize.apply(this, arguments);
 
@@ -62,7 +61,9 @@ module.exports = DirectiveParser.extends(
         isProperNode: function (node, config) {
             return node.nodeType === 8
                 && node.nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;
-        }
+        },
+
+        $name: 'VarDirectiveParser'
     }
 );
 

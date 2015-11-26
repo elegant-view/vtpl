@@ -21,6 +21,11 @@ Base.prototype.initialize = function () {};
  * @return {Class}             子类
  */
 Base.extends = function (props, staticProps) {
+    // 每个类都必须有一个名字
+    if (!staticProps || !staticProps.$name) {
+        throw new SyntaxError('each class must have a `$name`.');
+    }
+
     var baseCls = this;
 
     var cls = function () {
@@ -28,6 +33,9 @@ Base.extends = function (props, staticProps) {
     };
     utils.extend(cls.prototype, props);
     utils.extend(cls, staticProps);
+
+    // 记录一下父类
+    cls.$superClass = baseCls;
 
     return inherit(cls, baseCls);
 };

@@ -10,7 +10,6 @@ var DomUpdater = require('../DomUpdater');
 
 module.exports = Parser.extends(
     {
-        $name: 'ExprParser',
 
         /**
          * 初始化
@@ -204,7 +203,9 @@ module.exports = Parser.extends(
          */
         isProperNode: function (node) {
             return node.nodeType === 1 || node.nodeType === 3;
-        }
+        },
+
+        $name: 'ExprParser'
     }
 );
 

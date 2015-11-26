@@ -6,12 +6,11 @@
 var Parser = require('./Parser');
 
 module.exports = Parser.extends(
-    {
-        $name: 'DirectiveParser'
-    },
+    {},
     {
         isProperNode: function (node, config) {
             return node.nodeType === 8;
-        }
+        },
+        $name: 'DirectiveParser'
     }
 );

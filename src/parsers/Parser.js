@@ -21,8 +21,6 @@ var Base = require('../Base');
 module.exports = Base.extends(
     {
 
-        $name: 'Parser',
-
         /**
          * 初始化
          *
@@ -162,5 +160,8 @@ module.exports = Base.extends(
             this.tree = null;
             this.dirtyChecker = null;
         }
+    },
+    {
+        $name: 'Parser'
     }
 );

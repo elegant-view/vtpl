@@ -9,7 +9,6 @@ var Tree = require('../trees/Tree');
 
 module.exports = DirectiveParser.extends(
     {
-        $name: 'ScopeDirectiveParser',
         initialize: function (options) {
             DirectiveParser.prototype.initialize.call(this, options);
 
@@ -62,7 +61,9 @@ module.exports = DirectiveParser.extends(
 
         getNoEndNodeError: function () {
             return new Error('the scope directive is not properly ended!');
-        }
+        },
+
+        $name: 'ScopeDirectiveParser'
     }
 );
 

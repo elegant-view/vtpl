@@ -9,7 +9,6 @@ var ForTree = require('../trees/ForTree');
 
 module.exports = DirectiveParser.extends(
     {
-        $name: 'ForDirectiveParser',
 
         initialize: function (options) {
             DirectiveParser.prototype.initialize.apply(this, arguments);
@@ -96,7 +95,9 @@ module.exports = DirectiveParser.extends(
 
         getNoEndNodeError: function () {
             return new Error('the `for` directive is not properly ended!');
-        }
+        },
+
+        $name: 'ForDirectiveParser'
     }
 );
 

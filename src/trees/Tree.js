@@ -13,7 +13,6 @@ var ParserClasses = [];
 
 module.exports = Base.extends(
     {
-        $name: 'Tree',
         initialize: function (options) {
             Base.prototype.initialize.apply(this, arguments);
 
@@ -224,7 +223,9 @@ module.exports = Base.extends(
             if (!isExitsChildClass) {
                 ParserClasses.push(ParserClass);
             }
-        }
+        },
+
+        $name: 'Tree'
     }
 );
 

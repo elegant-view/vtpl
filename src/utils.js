@@ -189,6 +189,23 @@ exports.xhr = function (options, loadFn, errorFn) {
     xhr.send(options.body);
 };
 
+/**
+ * 将字符串中的驼峰命名方式改为短横线的形式
+ *
+ * @public
+ * @param  {string} str 要转换的字符串
+ * @return {string}
+ */
+exports.camel2line = function (str) {
+    return str.replace(/[A-Z]/g, function (matched, index) {
+        if (index === 0) {
+            return matched.toLowerCase();
+        }
+        return '-' + matched.toLowerCase();
+    });
+};
+
+
 function setHeaders(headers, xhr) {
     if (!headers) {
         return;

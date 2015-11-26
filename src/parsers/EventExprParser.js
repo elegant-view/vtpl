@@ -11,8 +11,6 @@ var ScopeModel = require('../ScopeModel');
 module.exports = ExprParser.extends(
     {
 
-        $name: 'EventExprParser',
-
         /**
          * 初始化
          *
@@ -78,6 +76,9 @@ module.exports = ExprParser.extends(
 
             ExprParser.prototype.destroy.apply(this);
         }
+    },
+    {
+        $name: 'EventExprParser'
     }
 );
 
