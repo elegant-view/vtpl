@@ -1,5 +1,5 @@
 {
-  "name": "dom-data-bind",
+  "name": "vtpl",
   "version": "1.0.0-alpha.2",
   "description": "This is a template library. Unlike those traditional templates (such as [Jade](http://jade-lang.com/)), It is based on DOM.",
   "main": "main.js",
@@ -12,14 +12,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yibuyisheng/dom-data-bind.git"
+    "url": "git+https://github.com/elegant-view/vtpl.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/yibuyisheng/dom-data-bind/issues"
+    "url": "https://github.com/elegant-view/vtpl/issues"
   },
-  "homepage": "https://github.com/yibuyisheng/dom-data-bind#readme",
+  "homepage": "https://github.com/elegant-view/vtpl#readme",
   "devDependencies": {
     "gulp": "^3.9.0",
     "gulp-browserify": "^0.5.1",

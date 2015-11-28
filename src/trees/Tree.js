@@ -241,6 +241,10 @@ function walkDom(tree, startNode, endNode, container, scopeModel) {
     }
 
     function add(curNode) {
+        if (!curNode) {
+            return;
+        }
+
         var options = {
             startNode: curNode,
             node: curNode,

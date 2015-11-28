@@ -205,6 +205,19 @@ exports.camel2line = function (str) {
     });
 };
 
+/**
+ * 将字符串中的短横线命名方式改为驼峰的形式
+ *
+ * @public
+ * @param  {string} str 要转换的字符串
+ * @return {string}
+ */
+exports.line2camel = function (str) {
+    return str.replace(/-[a-z]/g, function (matched) {
+        return matched[1].toUpperCase();
+    });
+};
+
 
 function setHeaders(headers, xhr) {
     if (!headers) {

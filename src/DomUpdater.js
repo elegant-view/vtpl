@@ -57,7 +57,7 @@ DomUpdater.prototype.execute = function (doneFn) {
 };
 
 /**
- * 给指定节点的指定属性设置值
+ * 给指定DOM节点的指定属性设置值
  *
  * TODO: 完善
  *
@@ -77,7 +77,35 @@ DomUpdater.setAttr = function (node, name, value) {
         return DomUpdater.setStyle(node, value);
     }
 
+    if (name === 'class') {
+        return DomUpdater.setClass(node, value);
+    }
+
     node.setAttribute(name, value);
+};
+
+DomUpdater.setClass = function (node, klass) {
+    if (!klass) {
+        return;
+    }
+
+    var klasses = [];
+    if (utils.isClass(klass, 'String')) {
+        klasses = klass.split(' ');
+    }
+    else if (utils.isPureObject(klass)) {
+        for (var k in klass) {
+            if (klass[k]) {
+                klasses.push(klass[k]);
+            }
+        }
+    }
+    else if (utils.isArray(klass)) {
+        klasses = klass;
+    }
+
+    node.setAttribute('class', '');
+    node.classList.add.apply(node.classList, klasses);
 };
 
 DomUpdater.setStyle = function (node, styleObj) {
