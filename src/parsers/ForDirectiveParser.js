@@ -76,6 +76,27 @@ module.exports = DirectiveParser.extends(
             this.startNode = null;
             this.endNode = null;
             DirectiveParser.prototype.destroy.apply(this, arguments);
+        },
+
+        createTree: function (config) {
+            var parser = this;
+            var copySeg = parser.tplSeg.cloneNode(true);
+            var startNode = copySeg.firstChild;
+            var endNode = copySeg.lastChild;
+            utils.traverseNodes(startNode, endNode, function (curNode) {
+                parser.endNode.parentNode.insertBefore(curNode, parser.endNode);
+            });
+
+            var tree = new ForTree({
+                startNode: startNode,
+                endNode: endNode,
+                config: config,
+                domUpdater: parser.tree.domUpdater,
+                exprCalculater: parser.tree.exprCalculater
+            });
+            tree.setParent(parser.tree);
+            tree.traverse();
+            return tree;
         }
     },
     {
@@ -116,7 +137,7 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
         var index = 0;
         for (var k in exprValue) {
             if (!trees[index]) {
-                trees[index] = createTree(parser, config);
+                trees[index] = parser.createTree(parser, config);
             }
 
             trees[index].restoreFromDark();
@@ -142,24 +163,4 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
             }
         }, null, trees, index));
     };
-}
-
-function createTree(parser, config) {
-    var copySeg = parser.tplSeg.cloneNode(true);
-    var startNode = copySeg.firstChild;
-    var endNode = copySeg.lastChild;
-    utils.traverseNodes(startNode, endNode, function (curNode) {
-        parser.endNode.parentNode.insertBefore(curNode, parser.endNode);
-    });
-
-    var tree = new ForTree({
-        startNode: startNode,
-        endNode: endNode,
-        config: config,
-        domUpdater: parser.tree.domUpdater,
-        exprCalculater: parser.tree.exprCalculater
-    });
-    tree.setParent(parser.tree);
-    tree.traverse();
-    return tree;
 }
