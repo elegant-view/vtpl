@@ -212,6 +212,32 @@ module.exports = Parser.extends(
                 this.attrToDomTaskIdMap[attrName] = this.domUpdater.generateTaskId();
             }
             return this.attrToDomTaskIdMap[attrName];
+        },
+
+        /**
+         * 设置当前节点的属性
+         *
+         * @public
+         * @param {string} name 属性名
+         * @param {*} value 属性值
+         */
+        setAttr: function (name, value) {
+            var taskId = this.getTaskId();
+            var me = this;
+            this.domUpdater.addTaskFn(taskId, function () {
+                DomUpdater.setAttr(me.node, name, value);
+            });
+        },
+
+        /**
+         * 获取属性
+         *
+         * @public
+         * @param  {string} name 属性名
+         * @return {*}      属性值
+         */
+        getAttr: function (name) {
+            return DomUpdater.getAttr(this.node, name);
         }
     },
     {
