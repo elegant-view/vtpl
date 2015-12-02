@@ -6,6 +6,10 @@
 var utils = require('./utils');
 var log = require('./log');
 
+var eventList = ('blur focus focusin focusout load resize scroll unload click dblclick '
+    + 'mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave '
+    + 'change select submit keydown keypress keyup error contextmenu').split(' ');
+
 function DomUpdater() {
     this.tasks = {};
     this.isExecuting = false;
@@ -81,7 +85,38 @@ DomUpdater.setAttr = function (node, name, value) {
         return DomUpdater.setClass(node, value);
     }
 
+    if (isEventName(name)) {
+        return DomUpdater.setEvent(node, name, value);
+    }
+
     node.setAttribute(name, value);
+};
+
+DomUpdater.setEvent = function (node, name, value) {
+    if (utils.isFunction(value)) {
+        node[name] = function (event) {
+            event = event || window.event;
+            value(event);
+        };
+    }
+    else {
+        node[name] = null;
+    }
+};
+
+DomUpdater.setClass = function (node, klass) {
+    if (!klass) {
+        return;
+    }
+
+    node.setAttribute('class', '');
+    node.classList.add.apply(node.classList, DomUpdater.getClassList(klass));
+};
+
+DomUpdater.setStyle = function (node, styleObj) {
+    for (var k in styleObj) {
+        node.style[k] = styleObj[k];
+    }
 };
 
 /**
@@ -118,19 +153,18 @@ DomUpdater.getClassList = function (klass) {
     return klasses;
 };
 
-DomUpdater.setClass = function (node, klass) {
-    if (!klass) {
+function isEventName(str) {
+    if (str.indexOf('on') !== 0) {
         return;
     }
-
-    node.setAttribute('class', '');
-    node.classList.add.apply(node.classList, DomUpdater.getClassList(klass));
-};
-
-DomUpdater.setStyle = function (node, styleObj) {
-    for (var k in styleObj) {
-        node.style[k] = styleObj[k];
+    str = str.slice(2);
+    for (var i = 0, il = eventList.length; i < il; ++i) {
+        if (str === eventList[i]) {
+            return true;
+        }
     }
-};
+
+    return false;
+}
 
 module.exports = DomUpdater;

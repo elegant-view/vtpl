@@ -7,6 +7,7 @@ var ExprParser = require('./ExprParser');
 var utils = require('../utils');
 var Tree = require('../trees/Tree');
 var ScopeModel = require('../ScopeModel');
+var DomUpdater = require('../DomUpdater');
 
 module.exports = ExprParser.extends(
     {
@@ -50,12 +51,13 @@ module.exports = ExprParser.extends(
                     this.exprCalculater.createExprFn(expr, true);
 
                     var me = this;
-                    this.node['on' + eventName] = function (event) {
+
+                    DomUpdater.setAttr(this.node, 'on' + eventName, function (event) {
                         var localScope = new ScopeModel();
                         localScope.set('event', event);
                         localScope.setParent(me.getScope());
                         me.exprCalculater.calculate(expr, true, localScope);
-                    };
+                    });
                 }
             }
             else {
@@ -71,7 +73,7 @@ module.exports = ExprParser.extends(
          */
         destroy: function () {
             utils.each(this.events, function (attrValue, eventName) {
-                this.node['on' + eventName] = null;
+                DomUpdater.setAttr(this.node, 'on' + eventName);
             }, this);
             this.events = null;
 
