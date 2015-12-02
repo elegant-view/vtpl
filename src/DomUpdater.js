@@ -84,11 +84,22 @@ DomUpdater.setAttr = function (node, name, value) {
     node.setAttribute(name, value);
 };
 
-DomUpdater.setClass = function (node, klass) {
-    if (!klass) {
-        return;
+/**
+ * 获取元素节点的属性值
+ *
+ * @static
+ * @param {Node} node dom节点
+ * @param {string} name 属性名
+ * @return {*} 属性值
+ */
+DomUpdater.getAttr = function (node, name) {
+    if (name === 'class') {
+        return DomUpdater.getClassList(node.className);
     }
+    return node.getAttribute(node);
+};
 
+DomUpdater.getClassList = function (klass) {
     var klasses = [];
     if (utils.isClass(klass, 'String')) {
         klasses = klass.split(' ');
@@ -104,8 +115,16 @@ DomUpdater.setClass = function (node, klass) {
         klasses = klass;
     }
 
+    return klasses;
+};
+
+DomUpdater.setClass = function (node, klass) {
+    if (!klass) {
+        return;
+    }
+
     node.setAttribute('class', '');
-    node.classList.add.apply(node.classList, klasses);
+    node.classList.add.apply(node.classList, DomUpdater.getClassList(klass));
 };
 
 DomUpdater.setStyle = function (node, styleObj) {
