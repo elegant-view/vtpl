@@ -127,8 +127,7 @@ DomUpdater.setClass = function (node, klass) {
         return;
     }
 
-    node.setAttribute('class', '');
-    node.classList.add.apply(node.classList, DomUpdater.getClassList(klass));
+    node.className = DomUpdater.getClassList(klass).join(' ');
 };
 
 DomUpdater.setStyle = function (node, styleObj) {
@@ -168,7 +167,7 @@ DomUpdater.getClassList = function (klass) {
         klasses = klass;
     }
 
-    return klasses;
+    return utils.distinctArr(klasses);
 };
 
 function isEventName(str) {

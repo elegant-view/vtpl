@@ -218,15 +218,22 @@ exports.line2camel = function (str) {
     });
 };
 
-exports.distinctArr = function (arr) {
+exports.distinctArr = function (arr, hashFn) {
+    hashFn = exports.isFunction(hashFn) ? hashFn : function (elem) {
+        return String(elem);
+    };
     var obj = {};
     for (var i = 0, il = arr.length; i < il; ++i) {
-        obj[arr[i]] = true;
+        obj[hashFn(arr[i])] = arr[i];
     }
 
     var ret = [];
     for (var key in obj) {
-        ret.push(key);
+        if (!obj.hasOwnProperty(key)) {
+            continue;
+        }
+
+        ret.push(obj[key]);
     }
 
     return ret;
