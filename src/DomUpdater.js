@@ -89,7 +89,25 @@ DomUpdater.setAttr = function (node, name, value) {
         return DomUpdater.setEvent(node, name, value);
     }
 
+    // 外部点击事件
+    if (name === 'onoutclick') {
+        return DomUpdater.setOutClick(node, value);
+    }
+
     node.setAttribute(name, value);
+};
+
+DomUpdater.setOutClick = function (node, callback) {
+    if (!utils.isFunction(callback)) {
+        return;
+    }
+    window.addEventListener('click', function (event) {
+        event = event || window.event;
+
+        if (node !== event.target && !node.contains(event.target)) {
+            callback(event);
+        }
+    });
 };
 
 DomUpdater.setEvent = function (node, name, value) {
