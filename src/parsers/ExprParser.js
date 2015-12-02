@@ -29,6 +29,12 @@ module.exports = Parser.extends(
             // 恢复原貌的函数
             this.restoreFns = {};
             this.exprOldValues = {};
+
+            /**
+             * DOM节点属性与更新属性的任务id的映射
+             * @type {Object}
+             */
+            this.attrToDomTaskIdMap = {};
         },
 
         /**
@@ -73,17 +79,19 @@ module.exports = Parser.extends(
             addExpr(
                 this,
                 expr,
-                attr ? createAttrUpdateFn(this.node, attr.name, this.domUpdater) : (function (me, curNode) {
-                    var taskId = me.domUpdater.generateTaskId();
-                    return function (exprValue) {
-                        me.domUpdater.addTaskFn(
-                            taskId,
-                            utils.bind(function (curNode, exprValue) {
-                                curNode.nodeValue = exprValue;
-                            }, null, curNode, exprValue)
-                        );
-                    };
-                })(this, this.node)
+                attr
+                    ? createAttrUpdateFn(this.getTaskId(attr.name), this.node, attr.name, this.domUpdater)
+                    : (function (me, curNode) {
+                        var taskId = me.domUpdater.generateTaskId();
+                        return function (exprValue) {
+                            me.domUpdater.addTaskFn(
+                                taskId,
+                                utils.bind(function (curNode, exprValue) {
+                                    curNode.nodeValue = exprValue;
+                                }, null, curNode, exprValue)
+                            );
+                        };
+                    })(this, this.node)
             );
 
             this.restoreFns[expr] = this.restoreFns[expr] || [];
@@ -190,6 +198,20 @@ module.exports = Parser.extends(
         restoreFromDark: function () {
             utils.restoreFromDark(this.node);
             this.isGoDark = false;
+        },
+
+        /**
+         * 根据DOM节点的属性名字拿到一个任务id。
+         *
+         * @protected
+         * @param  {string} attrName 属性名字
+         * @return {string}          任务id
+         */
+        getTaskId: function (attrName) {
+            if (!this.attrToDomTaskIdMap[attrName]) {
+                this.attrToDomTaskIdMap[attrName] = this.domUpdater.generateTaskId();
+            }
+            return this.attrToDomTaskIdMap[attrName];
         }
     },
     {
@@ -215,13 +237,13 @@ Tree.registeParser(module.exports);
  * 创建DOM节点属性更新函数
  *
  * @inner
+ * @param {number} taskId dom任务id
  * @param  {Node} node    DOM中的节点
  * @param {string} name 要更新的属性名
  * @param  {DomUpdater} domUpdater DOM更新器
  * @return {function(Object)}      更新函数
  */
-function createAttrUpdateFn(node, name, domUpdater) {
-    var taskId = domUpdater.generateTaskId();
+function createAttrUpdateFn(taskId, node, name, domUpdater) {
     return function (exprValue) {
         domUpdater.addTaskFn(
             taskId,
