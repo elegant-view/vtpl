@@ -218,6 +218,20 @@ exports.line2camel = function (str) {
     });
 };
 
+exports.distinctArr = function (arr) {
+    var obj = {};
+    for (var i = 0, il = arr.length; i < il; ++i) {
+        obj[arr[i]] = true;
+    }
+
+    var ret = [];
+    for (var key in obj) {
+        ret.push(key);
+    }
+
+    return ret;
+};
+
 
 function setHeaders(headers, xhr) {
     if (!headers) {
