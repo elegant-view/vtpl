@@ -38,6 +38,9 @@ module.exports = ExprParser.extends(
             }
 
             var eventName = getEventName(attr.name, this.config);
+            if (!eventName && DomUpdater.isEventName(attr.name)) {
+                eventName = attr.name.replace('on', '');
+            }
             if (eventName) {
                 if (this.config.getExprRegExp().test(attr.value)) {
                     this.events[eventName] = attr.value;

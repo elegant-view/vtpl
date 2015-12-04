@@ -137,7 +137,7 @@ function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
         var index = 0;
         for (var k in exprValue) {
             if (!trees[index]) {
-                trees[index] = parser.createTree(parser, config);
+                trees[index] = parser.createTree(config);
             }
 
             trees[index].restoreFromDark();

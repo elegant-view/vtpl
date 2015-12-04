@@ -8,6 +8,14 @@ function ExprCalculater() {
 }
 
 ExprCalculater.prototype.createExprFn = function (expr, avoidReturn) {
+    if (expr === 'klass') {
+        throw new Error('`klass` is the preserved word for `class`');
+    }
+    // 对expr='class'进行下转换
+    if (expr === 'class') {
+        expr = 'klass';
+    }
+
     avoidReturn = !!avoidReturn;
     this.fns[expr] = this.fns[expr] || {};
     if (this.fns[expr][avoidReturn]) {
@@ -24,6 +32,11 @@ ExprCalculater.prototype.createExprFn = function (expr, avoidReturn) {
 };
 
 ExprCalculater.prototype.calculate = function (expr, avoidReturn, scopeModel) {
+    // 对expr='class'进行下转换
+    if (expr === 'class') {
+        expr = 'klass';
+    }
+
     var fnObj = this.fns[expr][avoidReturn];
     if (!fnObj) {
         throw new Error('no such expression function created!');

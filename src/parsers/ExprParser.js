@@ -222,7 +222,7 @@ module.exports = Parser.extends(
          * @param {*} value 属性值
          */
         setAttr: function (name, value) {
-            var taskId = this.getTaskId();
+            var taskId = this.getTaskId(name);
             var me = this;
             this.domUpdater.addTaskFn(taskId, function () {
                 DomUpdater.setAttr(me.node, name, value);

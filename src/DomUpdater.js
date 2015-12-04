@@ -85,7 +85,7 @@ DomUpdater.setAttr = function (node, name, value) {
         return DomUpdater.setClass(node, value);
     }
 
-    if (isEventName(name)) {
+    if (DomUpdater.isEventName(name)) {
         return DomUpdater.setEvent(node, name, value);
     }
 
@@ -170,7 +170,7 @@ DomUpdater.getClassList = function (klass) {
     return utils.distinctArr(klasses);
 };
 
-function isEventName(str) {
+DomUpdater.isEventName = function (str) {
     if (str.indexOf('on') !== 0) {
         return;
     }
@@ -182,6 +182,30 @@ function isEventName(str) {
     }
 
     return false;
-}
+};
+
+DomUpdater.outerHtml = function (node) {
+    var div = document.createElement('div');
+    div.appendChild(node.cloneNode(false));
+    var html = div.innerHTML;
+    div = null;
+    return html;
+};
+
+/**
+ * 将一个元素节点对应的html字符串的开始部分和结束部分分开，比如有这样一段html：
+ *
+ * <p class="klass">...</p>
+ *
+ * 那么分离的结果是：['<p class="klass">', '</p>']
+ *
+ * @param {Element} node 待分离的元素节点
+ * @return {Array.<string>} 分离好的
+ */
+DomUpdater.splitElement = function (node) {
+    var html = DomUpdater.outerHtml(node);
+    var match = html.match(/<([a-z|-]+)\s+[^>]*>/i);
+    return [match[0], '</' + match[1] + '>'];
+};
 
 module.exports = DomUpdater;
