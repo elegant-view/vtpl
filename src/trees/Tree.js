@@ -84,6 +84,11 @@ module.exports = Base.extends(
             return scopes[name];
         },
 
+        /**
+         * 遍历DOM树，生成解析器类->搜集指令和表达式并生成相应的DOM更新函数->绑定ScopeModel
+         *
+         * @public
+         */
         traverse: function () {
             walkDom(this, this.startNode, this.endNode, this.tree, this.rootScope);
         },
@@ -201,6 +206,7 @@ module.exports = Base.extends(
         }
     },
     {
+
         /**
          * 注册一下解析器类。
          *

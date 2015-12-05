@@ -38,7 +38,7 @@ module.exports = ExprParser.extends(
             }
 
             var eventName = getEventName(attr.name, this.config);
-            if (!eventName && DomUpdater.isEventName(attr.name)) {
+            if (!eventName && this.tree.domUpdater.isEventName(attr.name)) {
                 eventName = attr.name.replace('on', '');
             }
             if (eventName) {
@@ -55,7 +55,7 @@ module.exports = ExprParser.extends(
 
                     var me = this;
 
-                    DomUpdater.setAttr(this.node, 'on' + eventName, function (event) {
+                    this.tree.domUpdater.setAttr(this.node, 'on' + eventName, function (event) {
                         var localScope = new ScopeModel();
                         localScope.set('event', event);
                         localScope.setParent(me.getScope());
@@ -76,7 +76,7 @@ module.exports = ExprParser.extends(
          */
         destroy: function () {
             utils.each(this.events, function (attrValue, eventName) {
-                DomUpdater.setAttr(this.node, 'on' + eventName);
+                this.tree.domUpdater.setAttr(this.node, 'on' + eventName);
             }, this);
             this.events = null;
 

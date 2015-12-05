@@ -14,18 +14,51 @@ function DomUpdater() {
     this.tasks = {};
     this.isExecuting = false;
     this.doneFns = [];
+    this.counter = 0;
+
+    this.windowClickListeners = [];
+    var me = this;
+    this.onWindowClick = function (event) {
+        for (var i = 0, il = me.windowClickListeners.length; i < il; ++i) {
+            me.windowClickListeners[i].fn.apply(me, arguments);
+        }
+    };
+    window.addEventListener('click', this.onWindowClick);
 }
 
-var counter = 0;
 DomUpdater.prototype.generateTaskId = function () {
-    return counter++;
+    return this.counter++;
 };
 
 DomUpdater.prototype.addTaskFn = function (taskId, taskFn) {
     this.tasks[taskId] = taskFn;
 };
 
+DomUpdater.prototype.setOutClick = function (node, callback) {
+    if (!utils.isFunction(callback)) {
+        var listeners = [];
+        for (var i = 0, il = this.windowClickListeners.length; i < il; ++i) {
+            if (this.windowClickListeners[i].node !== node) {
+                listeners.push(this.windowClickListeners[i]);
+            }
+        }
+        this.windowClickListeners = listeners;
+        return;
+    }
+
+    this.windowClickListeners.push({
+        node: node,
+        fn: function (event) {
+            if (node !== event.target && !node.contains(event.target)) {
+                callback(event);
+            }
+        }
+    });
+};
+
 DomUpdater.prototype.destroy = function () {
+    this.windowClickListeners = null;
+    window.removeEventListener('click', this.onWindowClick);
     this.tasks = null;
 };
 
@@ -65,52 +98,38 @@ DomUpdater.prototype.execute = function (doneFn) {
  *
  * TODO: 完善
  *
- * @static
  * @param {Node} node  DOM节点
  * @param {string} name  节点属性名
  * @param {Object} value 节点属性值
  * @return {*}
  */
-DomUpdater.setAttr = function (node, name, value) {
+DomUpdater.prototype.setAttr = function (node, name, value) {
     // 目前仅处理元素节点，以后是否处理其他类型的节点，以后再说
     if (node.nodeType !== 1) {
         return;
     }
 
     if (name === 'style' && utils.isPureObject(value)) {
-        return DomUpdater.setStyle(node, value);
+        return this.setStyle(node, value);
     }
 
     if (name === 'class') {
-        return DomUpdater.setClass(node, value);
+        return this.setClass(node, value);
     }
 
-    if (DomUpdater.isEventName(name)) {
-        return DomUpdater.setEvent(node, name, value);
+    if (this.isEventName(name)) {
+        return this.setEvent(node, name, value);
     }
 
     // 外部点击事件
     if (name === 'onoutclick') {
-        return DomUpdater.setOutClick(node, value);
+        return this.setOutClick(node, value);
     }
 
     node.setAttribute(name, value);
 };
 
-DomUpdater.setOutClick = function (node, callback) {
-    if (!utils.isFunction(callback)) {
-        return;
-    }
-    window.addEventListener('click', function (event) {
-        event = event || window.event;
-
-        if (node !== event.target && !node.contains(event.target)) {
-            callback(event);
-        }
-    });
-};
-
-DomUpdater.setEvent = function (node, name, value) {
+DomUpdater.prototype.setEvent = function (node, name, value) {
     if (utils.isFunction(value)) {
         node[name] = function (event) {
             event = event || window.event;
@@ -122,15 +141,15 @@ DomUpdater.setEvent = function (node, name, value) {
     }
 };
 
-DomUpdater.setClass = function (node, klass) {
+DomUpdater.prototype.setClass = function (node, klass) {
     if (!klass) {
         return;
     }
 
-    node.className = DomUpdater.getClassList(klass).join(' ');
+    node.className = this.getClassList(klass).join(' ');
 };
 
-DomUpdater.setStyle = function (node, styleObj) {
+DomUpdater.prototype.setStyle = function (node, styleObj) {
     for (var k in styleObj) {
         node.style[k] = styleObj[k];
     }
@@ -139,19 +158,18 @@ DomUpdater.setStyle = function (node, styleObj) {
 /**
  * 获取元素节点的属性值
  *
- * @static
  * @param {Node} node dom节点
  * @param {string} name 属性名
  * @return {*} 属性值
  */
-DomUpdater.getAttr = function (node, name) {
+DomUpdater.prototype.getAttr = function (node, name) {
     if (name === 'class') {
-        return DomUpdater.getClassList(node.className);
+        return this.getClassList(node.className);
     }
     return node.getAttribute(node);
 };
 
-DomUpdater.getClassList = function (klass) {
+DomUpdater.prototype.getClassList = function (klass) {
     var klasses = [];
     if (utils.isClass(klass, 'String')) {
         klasses = klass.split(' ');
@@ -170,7 +188,7 @@ DomUpdater.getClassList = function (klass) {
     return utils.distinctArr(klasses);
 };
 
-DomUpdater.isEventName = function (str) {
+DomUpdater.prototype.isEventName = function (str) {
     if (str.indexOf('on') !== 0) {
         return;
     }
@@ -184,7 +202,7 @@ DomUpdater.isEventName = function (str) {
     return false;
 };
 
-DomUpdater.outerHtml = function (node) {
+DomUpdater.prototype.outerHtml = function (node) {
     var div = document.createElement('div');
     div.appendChild(node.cloneNode(false));
     var html = div.innerHTML;
@@ -202,8 +220,8 @@ DomUpdater.outerHtml = function (node) {
  * @param {Element} node 待分离的元素节点
  * @return {Array.<string>} 分离好的
  */
-DomUpdater.splitElement = function (node) {
-    var html = DomUpdater.outerHtml(node);
+DomUpdater.prototype.splitElement = function (node) {
+    var html = this.outerHtml(node);
     var match = html.match(/<([a-z|-]+)\s+[^>]*>/i);
     return [match[0], '</' + match[1] + '>'];
 };

@@ -225,7 +225,7 @@ module.exports = Parser.extends(
             var taskId = this.getTaskId(name);
             var me = this;
             this.domUpdater.addTaskFn(taskId, function () {
-                DomUpdater.setAttr(me.node, name, value);
+                me.tree.domUpdater.setAttr(me.node, name, value);
             });
         },
 
@@ -237,7 +237,7 @@ module.exports = Parser.extends(
          * @return {*}      属性值
          */
         getAttr: function (name) {
-            return DomUpdater.getAttr(this.node, name);
+            return this.tree.domUpdater.getAttr(this.node, name);
         }
     },
     {
@@ -274,7 +274,7 @@ function createAttrUpdateFn(taskId, node, name, domUpdater) {
         domUpdater.addTaskFn(
             taskId,
             utils.bind(function (node, name, exprValue) {
-                DomUpdater.setAttr(node, name, exprValue);
+                domUpdater.setAttr(node, name, exprValue);
             }, null, node, name, exprValue)
         );
     };

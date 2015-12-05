@@ -1,3 +1,8 @@
+/**
+ * @file 表达式计算器
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
 var utils = require('./utils');
 
 function ExprCalculater() {

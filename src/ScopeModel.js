@@ -21,11 +21,11 @@ ScopeModel.prototype.addChild = function (child) {
 ScopeModel.prototype.set = function (name, value) {
     if (utils.isClass(name, 'String')) {
         this.store[name] = value;
-        change(this);
+        change(this, {name: name, value: value});
     }
     else if (utils.isPureObject(name)) {
         utils.extend(this.store, name);
-        change(this);
+        change(this, name);
     }
 };
 
@@ -45,9 +45,9 @@ ScopeModel.prototype.get = function (name) {
 
 module.exports = inherit(ScopeModel, Event);
 
-function change(me) {
-    me.trigger('change', me);
+function change(me, changeObj) {
+    me.trigger('change', me, changeObj);
     utils.each(me.children, function (scope) {
-        scope.trigger('parentchange', me);
+        scope.trigger('parentchange', me, changeObj);
     });
 }
