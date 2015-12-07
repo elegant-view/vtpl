@@ -210,14 +210,30 @@ module.exports = Base.extends(
         /**
          * 注册一下解析器类。
          *
+         * 解析器类的命中规则是：
+         *
+         * 当遇到一个节点的时候，会严格按照ParserClasses数组的顺序来判断当前的节点是否归该解析器类处理（isProperNode）。
+         * 所以，越是靠前的解析器类，就拥有越高的优先级。
+         *
+         * 在注册解析器类的时候，这个顺序就会定下来，并且子类拥有比父类更高的优先级。
+         *
          * @param  {Constructor} ParserClass 解析器类
          */
         registeParser: function (ParserClass) {
+            ParserClasses.push(ParserClass);
+
+            utils.each(ParserClasses, function (PC, index) {
+                
+            });
+
+
             var isExitsChildClass = false;
             utils.each(ParserClasses, function (PC, index) {
+                // 如果ParserClass是PC的父类
                 if (utils.isSubClassOf(PC, ParserClass)) {
                     isExitsChildClass = true;
                 }
+                // 如果PC是ParserClass的父类
                 else if (utils.isSubClassOf(ParserClass, PC)) {
                     ParserClasses[index] = ParserClass;
                     isExitsChildClass = true;
