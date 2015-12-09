@@ -7,6 +7,7 @@ var Parser = require('./Parser');
 var utils = require('../utils');
 var Tree = require('../trees/Tree');
 var DomUpdater = require('../DomUpdater');
+var Node = require('../nodes/Node');
 
 module.exports = Parser.extends(
     {
@@ -44,17 +45,17 @@ module.exports = Parser.extends(
          * @return {boolean} 返回布尔值
          */
         collectExprs: function () {
-            var curNode = this.node;
+            var nodeType = this.node.getNodeType();
 
             // 文本节点
-            if (curNode.nodeType === 3) {
+            if (nodeType === Node.TEXT_NODE) {
                 this.addExpr();
                 return true;
             }
 
             // 元素节点
-            if (curNode.nodeType === 1) {
-                var attributes = curNode.attributes;
+            if (nodeType === Node.ELEMENT_NODE) {
+                var attributes = this.node.getAttributes();
                 for (var i = 0, il = attributes.length; i < il; i++) {
                     this.addExpr(attributes[i]);
                 }
@@ -72,10 +73,11 @@ module.exports = Parser.extends(
          *                    所以attr存在与否是判断当前元素是否是文本节点的一个依据
          */
         addExpr: function (attr) {
-            var expr = attr ? attr.value : this.node.nodeValue;
+            var expr = attr ? attr.value : this.node.getNodeValue();
             if (!this.config.getExprRegExp().test(expr)) {
                 return;
             }
+
             addExpr(
                 this,
                 expr,
@@ -87,7 +89,7 @@ module.exports = Parser.extends(
                             me.domUpdater.addTaskFn(
                                 taskId,
                                 utils.bind(function (curNode, exprValue) {
-                                    curNode.nodeValue = exprValue;
+                                    curNode.setNodeValue(exprValue);
                                 }, null, curNode, exprValue)
                             );
                         };
@@ -96,15 +98,45 @@ module.exports = Parser.extends(
 
             this.restoreFns[expr] = this.restoreFns[expr] || [];
             if (attr) {
-                this.restoreFns[expr].push(utils.bind(function (curNode, attrName, attrValue) {
-                    curNode.setAttribute(attrName, attrValue);
-                }, null, this.node, attr.name, attr.value));
+                this.restoreFns[expr].push(utils.bind(
+                    function (curNode, attrName, attrValue) {
+                        curNode.setAttribute(attrName, attrValue);
+                    },
+                    null,
+                    this.node,
+                    attr.name,
+                    attr.value
+                ));
             }
             else {
-                this.restoreFns[expr].push(utils.bind(function (curNode, nodeValue) {
-                    curNode.nodeValue = nodeValue;
-                }, null, this.node, this.node.nodeValue));
+                this.restoreFns[expr].push(utils.bind(
+                    function (curNode, nodeValue) {
+                        curNode.setNodeValue(nodeValue);
+                    },
+                    null,
+                    this.node,
+                    this.node.nodeValue
+                ));
             }
+        },
+
+        linkScope: function () {
+            // 拿scope里面的数据初始化一下
+            var exprs = this.exprs;
+            var exprOldValues = this.exprOldValues;
+            for (var i = 0, il = exprs.length; i < il; i++) {
+                var expr = exprs[i];
+                var exprValue = this.exprFns[expr](this.tree.rootScope);
+
+                var updateFns = this.updateFns[expr];
+                for (var j = 0, jl = updateFns.length; j < jl; j++) {
+                    updateFns[j](exprValue);
+                }
+
+                exprOldValues[expr] = exprValue;
+            }
+
+            Parser.prototype.linkScope.call(this);
         },
 
         /**
@@ -250,7 +282,8 @@ module.exports = Parser.extends(
          * @return {boolean}
          */
         isProperNode: function (node) {
-            return node.nodeType === 1 || node.nodeType === 3;
+            var nodeType = node.getNodeType();
+            return nodeType === Node.ELEMENT_NODE || nodeType === Node.TEXT_NODE;
         },
 
         $name: 'ExprParser'

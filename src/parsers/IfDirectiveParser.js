@@ -6,6 +6,7 @@
 var DirectiveParser = require('./DirectiveParser');
 var utils = require('../utils');
 var Tree = require('../trees/Tree');
+var Node = require('../nodes/Node');
 
 module.exports = DirectiveParser.extends(
     {
@@ -23,54 +24,65 @@ module.exports = DirectiveParser.extends(
         },
 
         collectExprs: function () {
-            var branches = [];
-            var branchIndex = -1;
-
-            utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
-                var nodeType = getIfNodeType(curNode, this.config);
-
-                if (nodeType) {
-                    setEndNode(curNode, branches, branchIndex);
-
-                    branchIndex++;
-                    branches[branchIndex] = branches[branchIndex] || {};
-
-                    // 是 if 节点或者 elif 节点，搜集表达式
-                    if (nodeType < 3) {
-                        var expr = curNode.nodeValue.replace(this.config.getAllIfRegExp(), '');
-                        this.exprs.push(expr);
-
-                        if (!this.exprFns[expr]) {
-                            this.exprFns[expr] = utils.createExprFn(
-                                this.config.getExprRegExp(),
-                                expr,
-                                this.exprCalculater
-                            );
-                        }
+            var branchNodeStack = [];
+            Node.iterate(this.startNode, this.endNode, function (node) {
+                var ifNodeType = getIfNodeType(node);
+                // if
+                if (ifNodeType === 1) {
+                    if (branchNodeStack.length) {
+                        throw new Error('wrong `if` directive syntax');
                     }
-                    else if (nodeType === 3) {
-                        this.hasElseBranch = true;
+                    branchNodeStack.push({node: node, type: ifNodeType});
+                }
+                // elif
+                else if (ifNodeType === 2 || ifNodeType === 3) {
+                    if (!branchNodeStack.length
+                        || (
+                            // 前面一个分支既不是`if`，也不是`elif`
+                            branchNodeStack[branchNodeStack.length - 1].type !== 1
+                            && branchNodeStack[branchNodeStack.length - 1].type !== 2
+                        )
+                    ) {
+                        throw new Error('wrong `if` directive syntax');
                     }
+                    branchNodeStack.push({node: node, type: ifNodeType});
+                }
+                // /if
+                else if (ifNodeType === 4) {
+                    branchNodeStack.push({node: node, type: ifNodeType});
+                }
+
+                // 是 if 节点或者 elif 节点，搜集表达式
+                if (ifNodeType < 3) {
+                    var expr = curNode.nodeValue.replace(this.config.getAllIfRegExp(), '');
+                    this.exprs.push(expr);
+
+                    if (!this.exprFns[expr]) {
+                        this.exprFns[expr] = utils.createExprFn(
+                            this.config.getExprRegExp(),
+                            expr,
+                            this.exprCalculater
+                        );
+                    }
+                }
+            });
+            this.branchNodeStack = branchNodeStack;
+
+            var branchTrees = [];
+            for (var i = 0, il = branchNodeStack.length - 1; i < il; ++i) {
+                var curNode = branchNodeStack[i];
+                var nextNode = branchNodeStack[i + 1];
+
+                var curNodeNextSibling = curNode.getNextSibling();
+                // curNode 和 nextNode 之间没有节点
+                if (curNodeNextSibling.equal(nextNode)) {
+                    branchTrees.push(new Tree({}));
                 }
                 else {
-                    if (!branches[branchIndex].startNode) {
-                        branches[branchIndex].startNode = curNode;
-                    }
-                }
-
-                curNode = curNode.nextSibling;
-                if (!curNode || curNode === this.endNode) {
-                    setEndNode(curNode, branches, branchIndex);
-                    return true;
-                }
-            }, this);
-
-            this.branches = branches;
-            return branches;
-
-            function setEndNode(curNode, branches, branchIndex) {
-                if (branchIndex + 1 && branches[branchIndex].startNode) {
-                    branches[branchIndex].endNode = curNode.previousSibling;
+                    branchTrees.push(new Tree({
+                        startNode: curNodeNextSibling,
+                        endNode: nextNode.getPreviousSibling()
+                    }));
                 }
             }
         },

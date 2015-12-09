@@ -8,6 +8,7 @@ var ExprCalculater = require('../ExprCalculater');
 var DomUpdater = require('../DomUpdater');
 var ScopeModel = require('../ScopeModel');
 var Base = require('../Base');
+var Node = require('../nodes/Node');
 
 var ParserClasses = [];
 
@@ -28,6 +29,8 @@ module.exports = Base.extends(
             this.treeVars = {};
 
             this.rootScope = new ScopeModel();
+            // for test
+            this.rootScope.set('name', 'zhangsan');
         },
 
         /**
@@ -90,7 +93,44 @@ module.exports = Base.extends(
          * @public
          */
         traverse: function () {
-            walkDom(this, this.startNode, this.endNode, this.tree, this.rootScope);
+            var me = this;
+            Node.iterate(this.startNode, this.endNode, function (node) {
+                var options = {
+                    startNode: node,
+                    node: node,
+                    config: me.config,
+                    exprCalculater: me.exprCalculater,
+                    domUpdater: me.domUpdater,
+                    tree: me
+                };
+
+                var parserObj;
+                for (var i = 0, il = ParserClasses.length; i < il; ++i) {
+                    var ParserClass = ParserClasses[i];
+                    parserObj = {
+                        parser: me.createParser(ParserClass, options)
+                    };
+
+                    if (!parserObj || !parserObj.parser) {
+                        continue;
+                    }
+
+                    parserObj.collectResult = parserObj.parser.collectExprs();
+                    // 将解析器对象和对应树的scope绑定起来
+                    parserObj.parser.linkScope();
+                    break;
+                }
+
+                if (!parserObj || !parserObj.parser) {
+                    throw new Error('no such parser');
+                }
+
+                if (parserObj.parser.getStartNode().equal(parserObj.parser.getEndNode())) {
+                    return;
+                }
+
+                return parserObj.parser.getEndNode();
+            });
         },
 
         setData: function (data) {
@@ -195,14 +235,16 @@ module.exports = Base.extends(
                 }
             }
 
-            var parser = new ParserClass(utils.extend(options, {
-                endNode: endNode
-            }));
+            var parser = new ParserClass(
+                utils.extend(
+                    options,
+                    {
+                        endNode: endNode
+                    }
+                )
+            );
 
-            return {
-                parser: parser,
-                endNode: endNode || options.node
-            };
+            return parser;
         }
     },
     {
@@ -222,29 +264,9 @@ module.exports = Base.extends(
         registeParser: function (ParserClass) {
             ParserClasses.push(ParserClass);
 
-            utils.each(ParserClasses, function (PC, index) {
-                
+            ParserClasses.sort(function (prev, next) {
+                return utils.isSubClassOf(prev, next);
             });
-
-
-            var isExitsChildClass = false;
-            utils.each(ParserClasses, function (PC, index) {
-                // 如果ParserClass是PC的父类
-                if (utils.isSubClassOf(PC, ParserClass)) {
-                    isExitsChildClass = true;
-                }
-                // 如果PC是ParserClass的父类
-                else if (utils.isSubClassOf(ParserClass, PC)) {
-                    ParserClasses[index] = ParserClass;
-                    isExitsChildClass = true;
-                }
-
-                return isExitsChildClass;
-            });
-
-            if (!isExitsChildClass) {
-                ParserClasses.push(ParserClass);
-            }
         },
 
         $name: 'Tree'
@@ -252,86 +274,6 @@ module.exports = Base.extends(
 );
 
 
-function walkDom(tree, startNode, endNode, container, scopeModel) {
-    if (startNode === endNode) {
-        add(startNode);
-        return;
-    }
-
-    for (var curNode = startNode; curNode;) {
-        curNode = add(curNode);
-    }
-
-    function add(curNode) {
-        if (!curNode) {
-            return;
-        }
-
-        var options = {
-            startNode: curNode,
-            node: curNode,
-            config: tree.config,
-            exprCalculater: tree.exprCalculater,
-            domUpdater: tree.domUpdater,
-            tree: tree
-        };
-
-        var parserObj;
-
-        utils.each(ParserClasses, function (ParserClass) {
-            parserObj = tree.createParser(ParserClass, options);
-            if (!parserObj || !parserObj.parser) {
-                return;
-            }
-            parserObj.collectResult = parserObj.parser.collectExprs();
-
-            parserObj.parser.setScope(scopeModel);
-
-            if (utils.isArray(parserObj.collectResult)) {
-                var branches = parserObj.collectResult;
-                container.push({parser: parserObj.parser, children: branches});
-                utils.each(branches, function (branch, i) {
-                    if (!branch.startNode || !branch.endNode) {
-                        return;
-                    }
-
-                    var con = [];
-                    walkDom(tree, branch.startNode, branch.endNode, con, parserObj.parser.getScope());
-                    branches[i] = con;
-                }, this);
-
-                if (parserObj.endNode !== endNode) {
-                    curNode = parserObj.parser.getEndNode().nextSibling;
-                }
-                else {
-                    curNode = null;
-                }
-            }
-            else {
-                var con = [];
-                container.push({parser: parserObj.parser, children: con});
-                if (curNode.nodeType === 1 && curNode.childNodes.length) {
-                    walkDom(tree, curNode.firstChild, curNode.lastChild, con, parserObj.parser.getScope());
-                }
-
-                if (curNode !== endNode) {
-                    curNode = parserObj.parser.getEndNode().nextSibling;
-                }
-                else {
-                    curNode = null;
-                }
-            }
-
-            return true;
-        }, this);
-
-        if (!parserObj) {
-            curNode = curNode.nextSibling;
-        }
-
-        return curNode;
-    }
-}
 
 
 

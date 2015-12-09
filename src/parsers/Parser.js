@@ -40,11 +40,11 @@ module.exports = Base.extends(
          * @public
          * @param {ScopeModel} scopeModel scope model
          */
-        setScope: function (scopeModel) {
-            this.scopeModel = scopeModel;
+        linkScope: function () {
+            this.tree.rootScope.on('change', this.onChange, this);
+            this.tree.rootScope.on('parentchange', this.onChange, this);
 
-            this.scopeModel.on('change', this.onChange, this);
-            this.scopeModel.on('parentchange', this.onChange, this);
+            this.domUpdater.execute();
         },
 
         /**
