@@ -29,8 +29,6 @@ module.exports = Base.extends(
             this.treeVars = {};
 
             this.rootScope = new ScopeModel();
-            // for test
-            this.rootScope.set('name', 'zhangsan');
         },
 
         /**

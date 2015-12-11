@@ -1,12 +1,18 @@
 /**
- * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例
+ * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例。
+ *       包含的比较重要的几个属性：
+ *       - 1、node ：当前节点，是nodes/Node类型的，可能为元素节点和文本节点；
+ *       - 2、exprs ：当前节点上所有的表达式，比如：['----${name}', '$name']；
+ *       - 3、exprFns ：表达式函数和节点更新函数
+ *           - 1、exprFns[i].exprFn ：计算表达式值的函数，类型是`function(ScopeModel):*`；
+ *           - 2、exprFns[i].updateFns ：根据表达式值去更新dom的函数数组，类型是`[function(*)]`。
+ *       - 4、tree ：当前解析器挂靠的树。
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
 var Parser = require('./Parser');
 var utils = require('../utils');
 var Tree = require('../trees/Tree');
-var DomUpdater = require('../DomUpdater');
 var Node = require('../nodes/Node');
 
 module.exports = Parser.extends(
@@ -26,9 +32,6 @@ module.exports = Parser.extends(
 
             this.exprs = [];
             this.exprFns = {};
-            this.updateFns = {};
-            // 恢复原貌的函数
-            this.restoreFns = {};
             this.exprOldValues = {};
 
             /**
@@ -42,81 +45,83 @@ module.exports = Parser.extends(
          * 搜集过程
          *
          * @public
-         * @return {boolean} 返回布尔值
          */
         collectExprs: function () {
+            var me = this;
             var nodeType = this.node.getNodeType();
 
             // 文本节点
             if (nodeType === Node.TEXT_NODE) {
-                this.addExpr();
-                return true;
+                var nodeValue = this.node.getNodeValue();
+                if (isExpr(nodeValue)) {
+                    this.addExpr(
+                        nodeValue,
+                        utils.bind(
+                            function (taskId, domUpdater, node, exprValue) {
+                                domUpdater.addTaskFn(taskId, function () {
+                                    node.setNodeValue(exprValue);
+                                });
+                            },
+                            null,
+                            this.domUpdater.generateTaskId(),
+                            this.domUpdater,
+                            this.node
+                        )
+                    );
+                }
+                return;
             }
 
             // 元素节点
             if (nodeType === Node.ELEMENT_NODE) {
                 var attributes = this.node.getAttributes();
                 for (var i = 0, il = attributes.length; i < il; i++) {
-                    this.addExpr(attributes[i]);
+                    var attribute = attributes[i];
+                    if (!isExpr(attribute.value)) {
+                        continue;
+                    }
+                    this.addExpr(
+                        attribute.value,
+                        utils.bind(
+                            updateAttr,
+                            null,
+                            this.getTaskId(attribute.name),
+                            this.domUpdater,
+                            this.node,
+                            attribute.name
+                        )
+                    );
                 }
-                return true;
             }
 
-            return false;
+            function updateAttr(taskId, domUpdater, node, attrName, exprValue) {
+                domUpdater.addTaskFn(taskId, function () {
+                    node.attr(attrName, exprValue);
+                });
+            }
+
+            function isExpr(expr) {
+                return me.config.getExprRegExp().test(expr);
+            }
         },
 
         /**
          * 添加表达式
          *
-         * @protected
-         * @param {Attr} attr 如果当前是元素节点，则要传入遍历到的属性，
-         *                    所以attr存在与否是判断当前元素是否是文本节点的一个依据
+         * @private
+         * @param {string} expr     表达式，比如： `${name}` 或者 `prefix string ${name}suffix string`
+         * @param {function(*)} updateFn 根据表达式值更新界面的函数
          */
-        addExpr: function (attr) {
-            var expr = attr ? attr.value : this.node.getNodeValue();
-            if (!this.config.getExprRegExp().test(expr)) {
-                return;
-            }
-
-            addExpr(
-                this,
-                expr,
-                attr
-                    ? createAttrUpdateFn(this.getTaskId(attr.name), this.node, attr.name, this.domUpdater)
-                    : (function (me, curNode) {
-                        var taskId = me.domUpdater.generateTaskId();
-                        return function (exprValue) {
-                            me.domUpdater.addTaskFn(
-                                taskId,
-                                utils.bind(function (curNode, exprValue) {
-                                    curNode.setNodeValue(exprValue);
-                                }, null, curNode, exprValue)
-                            );
-                        };
-                    })(this, this.node)
-            );
-
-            this.restoreFns[expr] = this.restoreFns[expr] || [];
-            if (attr) {
-                this.restoreFns[expr].push(utils.bind(
-                    function (curNode, attrName, attrValue) {
-                        curNode.setAttribute(attrName, attrValue);
-                    },
-                    null,
-                    this.node,
-                    attr.name,
-                    attr.value
-                ));
+        addExpr: function (expr, updateFn) {
+            if (!this.exprFns[expr]) {
+                this.exprs.push(expr);
+                this.exprFns[expr] = {
+                    exprFn: createExprFn(this, expr),
+                    updateFns: [updateFn]
+                };
             }
             else {
-                this.restoreFns[expr].push(utils.bind(
-                    function (curNode, nodeValue) {
-                        curNode.setNodeValue(nodeValue);
-                    },
-                    null,
-                    this.node,
-                    this.node.nodeValue
-                ));
+                this.exprFns[expr].updateFns.push(updateFn);
             }
         },
 
@@ -126,9 +131,9 @@ module.exports = Parser.extends(
             var exprOldValues = this.exprOldValues;
             for (var i = 0, il = exprs.length; i < il; i++) {
                 var expr = exprs[i];
-                var exprValue = this.exprFns[expr](this.tree.rootScope);
+                var exprValue = this.exprFns[expr].exprFn(this.tree.rootScope);
 
-                var updateFns = this.updateFns[expr];
+                var updateFns = this.exprFns[expr].updateFns;
                 for (var j = 0, jl = updateFns.length; j < jl; j++) {
                     updateFns[j](exprValue);
                 }
@@ -167,18 +172,13 @@ module.exports = Parser.extends(
          * @inheritDoc
          */
         destroy: function () {
-            utils.each(this.exprs, function (expr) {
-                utils.each(this.restoreFns[expr], function (restoreFn) {
-                    restoreFn();
-                }, this);
-            }, this);
+            this.node.destroy();
 
             this.node = null;
             this.exprs = null;
             this.exprFns = null;
-            this.updateFns = null;
+            this.attrToDomTaskIdMap = null;
             this.exprOldValues = null;
-            this.restoreFns = null;
 
             Parser.prototype.destroy.call(this);
         },
@@ -207,10 +207,10 @@ module.exports = Parser.extends(
             var exprOldValues = this.exprOldValues;
             for (var i = 0, il = exprs.length; i < il; i++) {
                 var expr = exprs[i];
-                var exprValue = this.exprFns[expr](this.scopeModel);
+                var exprValue = this.exprFns[expr].exprFn(this.tree.rootScope);
 
                 if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
-                    var updateFns = this.updateFns[expr];
+                    var updateFns = this.exprFns[expr].updateFns;
                     for (var j = 0, jl = updateFns.length; j < jl; j++) {
                         updateFns[j](exprValue);
                     }
@@ -244,32 +244,6 @@ module.exports = Parser.extends(
                 this.attrToDomTaskIdMap[attrName] = this.domUpdater.generateTaskId();
             }
             return this.attrToDomTaskIdMap[attrName];
-        },
-
-        /**
-         * 设置当前节点的属性
-         *
-         * @public
-         * @param {string} name 属性名
-         * @param {*} value 属性值
-         */
-        setAttr: function (name, value) {
-            var taskId = this.getTaskId(name);
-            var me = this;
-            this.domUpdater.addTaskFn(taskId, function () {
-                me.tree.domUpdater.setAttr(me.node, name, value);
-            });
-        },
-
-        /**
-         * 获取属性
-         *
-         * @public
-         * @param  {string} name 属性名
-         * @return {*}      属性值
-         */
-        getAttr: function (name) {
-            return this.tree.domUpdater.getAttr(this.node, name);
         }
     },
     {
@@ -291,36 +265,6 @@ module.exports = Parser.extends(
 );
 
 Tree.registeParser(module.exports);
-
-/**
- * 创建DOM节点属性更新函数
- *
- * @inner
- * @param {number} taskId dom任务id
- * @param  {Node} node    DOM中的节点
- * @param {string} name 要更新的属性名
- * @param  {DomUpdater} domUpdater DOM更新器
- * @return {function(Object)}      更新函数
- */
-function createAttrUpdateFn(taskId, node, name, domUpdater) {
-    return function (exprValue) {
-        domUpdater.addTaskFn(
-            taskId,
-            utils.bind(function (node, name, exprValue) {
-                domUpdater.setAttr(node, name, exprValue);
-            }, null, node, name, exprValue)
-        );
-    };
-}
-
-function addExpr(parser, expr, updateFn) {
-    parser.exprs.push(expr);
-    if (!parser.exprFns[expr]) {
-        parser.exprFns[expr] = createExprFn(parser, expr);
-    }
-    parser.updateFns[expr] = parser.updateFns[expr] || [];
-    parser.updateFns[expr].push(updateFn);
-}
 
 /**
  * 创建根据scopeModel计算表达式值的函数

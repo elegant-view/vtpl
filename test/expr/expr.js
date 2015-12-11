@@ -12,3 +12,7 @@ var tree = new Tree({
 });
 
 tree.traverse();
+
+setInterval(function () {
+    tree.rootScope.set('name', new Date().getTime());
+}, 1000);

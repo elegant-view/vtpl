@@ -6,6 +6,7 @@
 
 var Base = require('../Base');
 var utils = require('../utils');
+var Event = require('../Event');
 
 var Node = Base.extends(
     {
@@ -18,6 +19,9 @@ var Node = Base.extends(
             }
 
             this.$node = node;
+
+            this.$event = new Event();
+            this.$nodeEventFns = {};
         },
 
         getNodeType: function () {
@@ -102,6 +106,118 @@ var Node = Base.extends(
 
         isBrotherWith: function (node) {
             return this.getParentNode().equal(node.getParentNode());
+        },
+
+        /**
+         * 获取或设定属性值。
+         * 如果参数只有一个，并且第一个参数是字符串类型，说明是获取属性值；
+         * 如果参数有两个，并且第一个参数是字符串类型，说明是设置属性值；
+         *
+         * TODO: 完善
+         *
+         * @param {string} name  节点属性名
+         * @param {*=} value 节点属性值
+         * @return {*}
+         */
+        attr: function (name, value) {
+            // 只有一个参数，那就归到获取属性的范畴
+            if (arguments.length === 1) {
+                return this.getAttribute(name);
+            }
+
+            if (this.getNodeType() === Node.ELEMENT_NODE) {
+                if (name === 'style' && utils.isPureObject(value)) {
+                    return this.setStyle(value);
+                }
+
+                if (name === 'class') {
+                    return this.setClass(value);
+                }
+
+                if (Node.isEventName(name)) {
+                    return this.on(name.replace('on', ''), value);
+                }
+
+                // 外部点击事件
+                if (name === 'onoutclick') {
+                    return this.setOutClick(value);
+                }
+            }
+
+            this.setAttribute(name, value);
+        },
+
+        // outclick 支持
+        setOutClick: function (callback) {
+            var eventName = 'outclick';
+
+            this.$event.on(eventName, callback);
+            if (!utils.isFunction(this.$nodeEventFns[eventName])) {
+                var me = this;
+                this.$nodeEventFns[eventName] = function (event) {
+                    event = event || window.event;
+                    if (me.$node !== event.target && !me.$node.contains(event.target)) {
+                        me.$event.trigger(eventName, event);
+                    }
+                };
+                window.addEventListener('click', this.$nodeEventFns[eventName]);
+            }
+        },
+
+        setClass: function (klass) {
+            if (!klass) {
+                return;
+            }
+
+            this.$node.className = this.getClassList(klass).join(' ');
+        },
+
+        setStyle: function (styleObj) {
+            for (var k in styleObj) {
+                if (styleObj.hasOwnProperty(k)) {
+                    this.$node.style[k] = styleObj[k];
+                }
+            }
+        },
+
+        on: function (eventName, callback) {
+            this.$event.on(eventName, callback);
+
+            if (!utils.isFunction(this.$nodeEventFns[eventName])) {
+                var me = this;
+                this.$nodeEventFns[eventName] = function (event) {
+                    event = event || window.event;
+                    me.$event.trigger(eventName, event);
+                };
+                this.$node.addEventListener(eventName, this.$nodeEventFns[eventName]);
+            }
+        },
+
+        off: function (eventName, callback) {
+            this.$event.off(eventName, callback);
+
+            if (this.$event.isAllRemoved()) {
+                var eventFn;
+                eventFn = this.$nodeEventFns[eventName];
+                if (eventName === 'outclick') {
+                    window.removeEventListener('click', eventFn);
+                }
+                else {
+                    this.$node.removeEventListener(eventName, this.$nodeEventFns[eventName]);
+                }
+                this.$nodeEventFns[eventName] = null;
+            }
+        },
+
+        /**
+         * 销毁，做一些清理工作：
+         * 1、清理outclick；
+         * 2、清理事件；
+         *
+         * @public
+         */
+        destroy: function () {
+
         }
     },
     {
@@ -119,6 +235,45 @@ var Node = Base.extends(
         DOCUMENT_TYPE_NODE: 10,
         DOCUMENT_FRAGMENT_NODE: 11,
         NOTATION_NODE: 12,
+
+        eventList: ('blur focus focusin focusout load resize scroll unload click dblclick '
+            + 'mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave '
+            + 'change select submit keydown keypress keyup error contextmenu').split(' '),
+
+        getClassList: function (klass) {
+            var klasses = [];
+            if (utils.isClass(klass, 'String')) {
+                klasses = klass.split(' ');
+            }
+            else if (utils.isPureObject(klass)) {
+                for (var k in klass) {
+                    if (klass[k]) {
+                        klasses.push(klass[k]);
+                    }
+                }
+            }
+            else if (utils.isArray(klass)) {
+                klasses = klass;
+            }
+
+            return utils.distinctArr(klasses);
+        },
+
+        isEventName: function (str) {
+            var eventList = this.eventList;
+
+            if (str.indexOf('on') !== 0) {
+                return;
+            }
+            str = str.slice(2);
+            for (var i = 0, il = eventList.length; i < il; ++i) {
+                if (str === eventList[i]) {
+                    return true;
+                }
+            }
+
+            return false;
+        },
 
         /**
          * 将NodeList转换成真正的数组
