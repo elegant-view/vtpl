@@ -23,7 +23,7 @@ module.exports = Parser.extends(
          *
          * @inheritDoc
          * @param  {Object} options 参数
-         * @param  {Node} options.node DOM节点
+         * @param  {Node} options.node 要解析的DOM节点
          */
         initialize: function (options) {
             Parser.prototype.initialize.apply(this, arguments);
@@ -49,6 +49,7 @@ module.exports = Parser.extends(
         collectExprs: function () {
             var me = this;
             var nodeType = this.node.getNodeType();
+            var domUpdater = this.tree.getTreeVar('domUpdater');
 
             // 文本节点
             if (nodeType === Node.TEXT_NODE) {
@@ -63,8 +64,8 @@ module.exports = Parser.extends(
                                 });
                             },
                             null,
-                            this.domUpdater.generateTaskId(),
-                            this.domUpdater,
+                            domUpdater.generateTaskId(),
+                            domUpdater,
                             this.node
                         )
                     );
@@ -86,7 +87,7 @@ module.exports = Parser.extends(
                             updateAttr,
                             null,
                             this.getTaskId(attribute.name),
-                            this.domUpdater,
+                            domUpdater,
                             this.node,
                             attribute.name
                         )
@@ -101,7 +102,7 @@ module.exports = Parser.extends(
             }
 
             function isExpr(expr) {
-                return me.config.getExprRegExp().test(expr);
+                return me.tree.getTreeVar('config').getExprRegExp().test(expr);
             }
         },
 
@@ -116,7 +117,7 @@ module.exports = Parser.extends(
             if (!this.exprFns[expr]) {
                 this.exprs.push(expr);
                 this.exprFns[expr] = {
-                    exprFn: createExprFn(this, expr),
+                    exprFn: this.createExprFn(expr),
                     updateFns: [updateFn]
                 };
             }
@@ -241,9 +242,47 @@ module.exports = Parser.extends(
          */
         getTaskId: function (attrName) {
             if (!this.attrToDomTaskIdMap[attrName]) {
-                this.attrToDomTaskIdMap[attrName] = this.domUpdater.generateTaskId();
+                this.attrToDomTaskIdMap[attrName] = this.tree.getTreeVar('domUpdater').generateTaskId();
             }
             return this.attrToDomTaskIdMap[attrName];
+        },
+
+        /**
+         * 创建根据scopeModel计算表达式值的函数
+         *
+         * @protected
+         * @param  {string} expr   含有表达式的字符串
+         * @return {function(Scope):*}
+         */
+        createExprFn: function (expr) {
+            var parser = this;
+            return function (scopeModel) {
+                // 此处要分两种情况：
+                // 1、expr并不是纯正的表达式，如`==${name}==`。
+                // 2、expr是纯正的表达式，如`${name}`。
+                // 对于不纯正表达式的情况，此处的返回值肯定是字符串；
+                // 而对于纯正的表达式，此处就不要将其转换成字符串形式了。
+
+                var config = parser.tree.getTreeVar('config');
+                var exprCalculater = parser.tree.getTreeVar('exprCalculater');
+                var regExp = config.getExprRegExp();
+
+                var possibleExprCount = expr.match(new RegExp(utils.regExpEncode(config.exprPrefix), 'g'));
+                possibleExprCount = possibleExprCount ? possibleExprCount.length : 0;
+
+                // 不纯正
+                if (possibleExprCount !== 1 || expr.replace(regExp, '')) {
+                    return expr.replace(regExp, function () {
+                        exprCalculater.createExprFn(arguments[1]);
+                        return exprCalculater.calculate(arguments[1], false, scopeModel);
+                    });
+                }
+
+                // 纯正
+                var pureExpr = expr.slice(config.exprPrefix.length, -config.exprSuffix.length);
+                exprCalculater.createExprFn(pureExpr);
+                return exprCalculater.calculate(pureExpr, false, scopeModel);
+            };
         }
     },
     {
@@ -266,38 +305,3 @@ module.exports = Parser.extends(
 
 Tree.registeParser(module.exports);
 
-/**
- * 创建根据scopeModel计算表达式值的函数
- *
- * @inner
- * @param  {Parser} parser 解析器实例
- * @param  {string} expr   含有表达式的字符串
- * @return {function(Scope):*}
- */
-function createExprFn(parser, expr) {
-    return function (scopeModel) {
-        // 此处要分两种情况：
-        // 1、expr并不是纯正的表达式，如`==${name}==`。
-        // 2、expr是纯正的表达式，如`${name}`。
-        // 对于不纯正表达式的情况，此处的返回值肯定是字符串；
-        // 而对于纯正的表达式，此处就不要将其转换成字符串形式了。
-
-        var regExp = parser.config.getExprRegExp();
-
-        var possibleExprCount = expr.match(new RegExp(utils.regExpEncode(parser.config.exprPrefix), 'g'));
-        possibleExprCount = possibleExprCount ? possibleExprCount.length : 0;
-
-        // 不纯正
-        if (possibleExprCount !== 1 || expr.replace(regExp, '')) {
-            return expr.replace(regExp, function () {
-                parser.exprCalculater.createExprFn(arguments[1]);
-                return parser.exprCalculater.calculate(arguments[1], false, scopeModel);
-            });
-        }
-
-        // 纯正
-        var pureExpr = expr.slice(parser.config.exprPrefix.length, -parser.config.exprSuffix.length);
-        parser.exprCalculater.createExprFn(pureExpr);
-        return parser.exprCalculater.calculate(pureExpr, false, scopeModel);
-    };
-}

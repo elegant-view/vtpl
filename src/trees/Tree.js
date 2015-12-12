@@ -4,8 +4,6 @@
  */
 
 var utils = require('../utils');
-var ExprCalculater = require('../ExprCalculater');
-var DomUpdater = require('../DomUpdater');
 var ScopeModel = require('../ScopeModel');
 var Base = require('../Base');
 var Node = require('../nodes/Node');
@@ -14,16 +12,20 @@ var ParserClasses = [];
 
 module.exports = Base.extends(
     {
+
+        /**
+         * 树的初始化方法。
+         *
+         * @protected
+         * @param  {Object} options 初始化参数
+         * @param {nodes/Node} options.startNode 这棵树要解析的dom块的开始节点
+         * @param {nodes/Node} options.endNode 这棵树要解析的dom块的结束节点
+         */
         initialize: function (options) {
             Base.prototype.initialize.apply(this, arguments);
 
             this.startNode = options.startNode;
             this.endNode = options.endNode;
-            this.config = options.config;
-
-            this.exprCalculater = options.exprCalculater || new ExprCalculater();
-            this.domUpdater = options.domUpdater || new DomUpdater();
-            this.dirtyChecker = options.dirtyChecker;
 
             this.tree = [];
             this.treeVars = {};

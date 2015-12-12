@@ -26,11 +26,9 @@ module.exports = Base.extends(
          *
          * @protected
          * @param {Object} options 来自于构造函数
+         * @param {Tree} options.tree 该解析器挂靠的树
          */
         initialize: function (options) {
-            this.exprCalculater = options.exprCalculater;
-            this.config = options.config;
-            this.domUpdater = options.domUpdater;
             this.tree = options.tree;
         },
 
@@ -44,7 +42,7 @@ module.exports = Base.extends(
             this.tree.rootScope.on('change', this.onChange, this);
             this.tree.rootScope.on('parentchange', this.onChange, this);
 
-            this.domUpdater.execute();
+            this.tree.getTreeVar('domUpdater').execute();
         },
 
         /**
@@ -53,27 +51,7 @@ module.exports = Base.extends(
          * @protected
          */
         onChange: function () {
-            this.domUpdater.execute();
-        },
-
-        /**
-         * 获取scope model
-         *
-         * @public
-         * @return {ScopeModel} scope model对象
-         */
-        getScope: function () {
-            return this.scopeModel;
-        },
-
-        /**
-         * 向scope model里面设置数据
-         *
-         * @public
-         * @param {Object} data 要设置的数据
-         */
-        setData: function (data) {
-            this.scopeModel.set(data);
+            this.tree.getTreeVar('domUpdater').execute();
         },
 
         /**
@@ -133,19 +111,10 @@ module.exports = Base.extends(
          * @return {boolean}              两次的值是否相同
          */
         dirtyCheck: function (expr, exprValue, exprOldValue) {
-            var dirtyCheckerFn = this.dirtyChecker ? this.dirtyChecker.getChecker(expr) : null;
+            var dirtyChecker = this.tree.getTreeVar('dirtyChecker');
+            var dirtyCheckerFn = dirtyChecker ? dirtyChecker.getChecker(expr) : null;
             return (dirtyCheckerFn && dirtyCheckerFn(expr, exprValue, exprOldValue))
                     || (!dirtyCheckerFn && exprValue !== exprOldValue);
-        },
-
-        /**
-         * 设置脏检测器
-         *
-         * @public
-         * @param {DirtyChecker} dirtyChecker 脏检测器
-         */
-        setDirtyChecker: function (dirtyChecker) {
-            this.dirtyChecker = dirtyChecker;
         },
 
         /**
@@ -154,11 +123,7 @@ module.exports = Base.extends(
          * @public
          */
         destroy: function () {
-            this.exprCalculater = null;
-            this.config = null;
-            this.domUpdater = null;
             this.tree = null;
-            this.dirtyChecker = null;
         }
     },
     {

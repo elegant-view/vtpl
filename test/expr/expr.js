@@ -1,14 +1,10 @@
-require('../../src/parsers/ExprParser');
-
-var Tree = require('../../src/trees/Tree');
-var Config = require('../../src/Config');
+var vtpl = require('../../src/main');
 var Node = require('../../src/nodes/Node');
 
 var mainNode = new Node(document.getElementById('main'));
-var tree = new Tree({
+var tree = vtpl.render({
     startNode: mainNode,
-    endNode: mainNode,
-    config: new Config()
+    endNode: mainNode
 });
 
 tree.traverse();
