@@ -1,14 +1,12 @@
 require('../../src/parsers/IfDirectiveParser');
 
-var Tree = require('../../src/trees/Tree');
-var Config = require('../../src/Config');
+var vtpl = require('../../src/main');
 var Node = require('../../src/nodes/Node');
 
 var mainNode = new Node(document.getElementById('main'));
-var tree = new Tree({
+var tree = new vtpl.render({
     startNode: mainNode,
-    endNode: mainNode,
-    config: new Config()
+    endNode: mainNode
 });
 
 tree.traverse();

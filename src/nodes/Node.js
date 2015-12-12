@@ -46,19 +46,23 @@ var Node = Base.extends(
         },
 
         getNextSibling: function () {
-            if (!this.$node.nextSibling) {
+            var nextSibling = this.$node.nextSibling
+                || (this.$commentNode && this.$commentNode.nextSibling);
+            if (!nextSibling) {
                 return null;
             }
 
-            return new Node(this.$node.nextSibling);
+            return new Node(nextSibling);
         },
 
         getPreviousSibling: function () {
-            if (!this.$node.previousSibling) {
+            var previousSibling = this.$node.previousSibling
+                || (this.$commentNode && this.$commentNode.previousSibling);
+            if (!previousSibling) {
                 return null;
             }
 
-            return new Node(this.$node.previousSibling);
+            return new Node(previousSibling);
         },
 
         getAttribute: function (name) {
@@ -207,6 +211,35 @@ var Node = Base.extends(
                 }
                 this.$nodeEventFns[eventName] = null;
             }
+        },
+
+        show: function () {
+            if (this.$node.parentNode || !this.$commentNode) {
+                return;
+            }
+
+            var parentNode = this.$commentNode.parentNode;
+            if (parentNode) {
+                parentNode.replaceChild(this.$node, this.$commentNode);
+            }
+        },
+
+        hide: function () {
+            if (!this.$node.parentNode) {
+                return;
+            }
+
+            var parentNode = this.$node.parentNode;
+            if (parentNode) {
+                if (!this.$commentNode) {
+                    this.$commentNode = document.createComment('node placeholder');
+                }
+                parentNode.replaceChild(this.$commentNode, this.$node);
+            }
+        },
+
+        isInDom: function () {
+            return !!this.$node.parentNode;
         },
 
         /**

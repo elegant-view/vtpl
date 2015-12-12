@@ -190,7 +190,7 @@ module.exports = Parser.extends(
          * @public
          */
         goDark: function () {
-            utils.goDark(this.node);
+            this.node.hide();
             this.isGoDark = true;
         },
 
@@ -229,7 +229,7 @@ module.exports = Parser.extends(
          * @public
          */
         restoreFromDark: function () {
-            utils.restoreFromDark(this.node);
+            this.node.show();
             this.isGoDark = false;
         },
 

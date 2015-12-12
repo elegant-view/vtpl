@@ -4,13 +4,15 @@
  */
 
 var Parser = require('./Parser');
+var Node = require('../nodes/Node');
 
 module.exports = Parser.extends(
     {},
     {
         isProperNode: function (node, config) {
-            return node.nodeType === 8;
+            return node.nodeType === Node.COMMENT_NODE;
         },
+
         $name: 'DirectiveParser'
     }
 );

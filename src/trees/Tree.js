@@ -98,9 +98,6 @@ module.exports = Base.extends(
                 var options = {
                     startNode: node,
                     node: node,
-                    config: me.config,
-                    exprCalculater: me.exprCalculater,
-                    domUpdater: me.domUpdater,
                     tree: me
                 };
 
@@ -115,7 +112,7 @@ module.exports = Base.extends(
                         continue;
                     }
 
-                    parserObj.collectResult = parserObj.parser.collectExprs();
+                    parserObj.parser.collectExprs();
                     // 将解析器对象和对应树的scope绑定起来
                     parserObj.parser.linkScope();
                     break;
@@ -129,7 +126,7 @@ module.exports = Base.extends(
                     return;
                 }
 
-                return parserObj.parser.getEndNode();
+                return parserObj.parser.getEndNode().getNextSibling();
             });
         },
 
@@ -139,19 +136,21 @@ module.exports = Base.extends(
         },
 
         goDark: function () {
-            utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
-                if (curNode.nodeType === 1 || curNode.nodeType === 3) {
-                    utils.goDark(curNode);
+            Node.iterate(this.startNode, this.endNode, function (node) {
+                var nodeType = node.getNodeType();
+                if (nodeType === Node.ELEMENT_NODE || nodeType === Node.TEXT_NODE) {
+                    node.hide();
                 }
-            }, this);
+            });
         },
 
         restoreFromDark: function () {
-            utils.traverseNoChangeNodes(this.startNode, this.endNode, function (curNode) {
-                if (curNode.nodeType === 1 || curNode.nodeType === 3) {
-                    utils.restoreFromDark(curNode);
+            Node.iterate(this.startNode, this.endNode, function (node) {
+                var nodeType = node.getNodeType();
+                if (nodeType === Node.ELEMENT_NODE || nodeType === Node.TEXT_NODE) {
+                    node.show();
                 }
-            }, this);
+            });
         },
 
         setDirtyChecker: function (dirtyChecker) {
@@ -219,13 +218,14 @@ module.exports = Base.extends(
          */
         createParser: function (ParserClass, options) {
             var startNode = options.startNode || options.node;
-            if (!ParserClass.isProperNode(startNode, options.config)) {
+            var config = this.getTreeVar('config');
+            if (!ParserClass.isProperNode(startNode, config)) {
                 return;
             }
 
             var endNode;
             if (ParserClass.findEndNode) {
-                endNode = ParserClass.findEndNode(startNode, options.config);
+                endNode = ParserClass.findEndNode(startNode, config);
 
                 if (!endNode) {
                     throw ParserClass.getNoEndNodeError();
@@ -265,7 +265,7 @@ module.exports = Base.extends(
             ParserClasses.push(ParserClass);
 
             ParserClasses.sort(function (prev, next) {
-                return utils.isSubClassOf(prev, next);
+                return utils.isSubClassOf(prev, next) ? -1 : 1;
             });
         },
 
