@@ -397,7 +397,7 @@ var Node = Base.extends(
 
                 if (nextNode instanceof Node) {
                     if (!nextNode.isAfter(curNode)) {
-                        throw new Error('wrong return value');
+                        throw new Error('wrong next node');
                     }
 
                     curNode = nextNode;

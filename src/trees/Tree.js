@@ -118,6 +118,9 @@ module.exports = Base.extends(
                 }
 
                 if (!parser) {
+                    if (node.getNodeType() === Node.COMMENT_NODE) {
+                        return;
+                    }
                     throw new Error('no such parser');
                 }
 

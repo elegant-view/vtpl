@@ -18,6 +18,9 @@ var ForDirectiveParser = DirectiveParser.extends(
             this.endNode = options.endNode;
 
             this.tplSeg = null;
+            this.expr = null;
+            this.exprFn = null;
+            this.updateFn = null;
             this.trees = [];
         },
 
