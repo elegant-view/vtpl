@@ -32,7 +32,7 @@ module.exports = Parser.extends(
     },
     {
         isProperNode: function (node, config) {
-            return node.nodeType === Node.COMMENT_NODE;
+            return node.getNodeType() === Node.COMMENT_NODE;
         },
 
         $name: 'DirectiveParser'

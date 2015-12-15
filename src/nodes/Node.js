@@ -92,6 +92,20 @@ var Node = Base.extends(
             this.$node.nodeValue = value;
         },
 
+        appendChild: function (node) {
+            this.$node.appendChild(node.$node);
+        },
+
+        cloneNode: function () {
+            return this.$manager.getNode(this.$node.cloneNode.apply(this.$node, arguments));
+        },
+
+        insertBefore: function (newNode, referenceNode) {
+            return this.$manager.getNode(
+                this.$node.insertBefore(newNode.$node, referenceNode.$node)
+            );
+        },
+
         /**
          * 判断当前节点是否和node是兄弟关系，并且在node之后。
          *

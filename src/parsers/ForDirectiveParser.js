@@ -5,9 +5,10 @@
 
 var DirectiveParser = require('./DirectiveParser');
 var utils = require('../utils');
-var ForTree = require('../trees/ForTree');
+var Tree = require('../trees/Tree');
+var Node = require('../nodes/Node');
 
-module.exports = DirectiveParser.extends(
+var ForDirectiveParser = DirectiveParser.extends(
     {
 
         initialize: function (options) {
@@ -15,34 +16,46 @@ module.exports = DirectiveParser.extends(
 
             this.startNode = options.startNode;
             this.endNode = options.endNode;
+
+            this.tplSeg = null;
+            this.trees = [];
         },
 
         collectExprs: function () {
-            if (this.startNode.nextSibling === this.endNode) {
+            if (this.startNode.getNextSibling().equal(this.endNode)) {
                 return;
             }
 
-            var tplSeg = document.createElement('div');
-            utils.traverseNodes(this.startNode, this.endNode, function (curNode) {
-                if (curNode === this.startNode || curNode === this.endNode) {
-                    return;
-                }
+            // for指令之间没有节点
+            if (this.startNode.getNextSibling().equal(this.endNode)) {
+                return;
+            }
 
-                tplSeg.appendChild(curNode);
-            }, this);
-            this.tplSeg = tplSeg;
+            var nodesManager = this.tree.getTreeVar('nodesManager');
+            this.tplSeg = nodesManager.getNode(document.createElement('div'));
+            for (var curNode = this.startNode.getNextSibling();
+                curNode && !curNode.isAfter(this.endNode.getPreviousSibling());
+            ) {
+                var nextNode = curNode.getNextSibling();
+                this.tplSeg.appendChild(curNode);
+                curNode = nextNode;
+            }
 
-            this.expr = this.startNode.nodeValue.match(this.config.getForExprsRegExp())[1];
-            this.exprFn = utils.createExprFn(this.config.getExprRegExp(), this.expr, this.exprCalculater);
-            this.updateFn = createUpdateFn(
-                this,
-                this.startNode.nextSibling,
-                this.endNode.previousSibling,
-                this.config,
-                this.startNode.nodeValue
+            var config = this.tree.getTreeVar('config');
+            var exprCalculater = this.tree.getTreeVar('exprCalculater');
+
+            this.expr = this.startNode.getNodeValue().match(config.getForExprsRegExp())[1];
+            this.exprFn = utils.createExprFn(config.getExprRegExp(), this.expr, exprCalculater);
+            this.updateFn = this.createUpdateFn(
+                this.startNode.getNextSibling(),
+                this.endNode.getPreviousSibling(),
+                this.startNode.getNodeValue()
             );
+        },
 
-            return true;
+        linkScope: function () {
+            this.onChange();
+            DirectiveParser.prototype.linkScope.apply(this, arguments);
         },
 
         onChange: function () {
@@ -50,9 +63,9 @@ module.exports = DirectiveParser.extends(
                 return;
             }
 
-            var exprValue = this.exprFn(this.scopeModel);
+            var exprValue = this.exprFn(this.tree.rootScope);
             if (this.dirtyCheck(this.expr, exprValue, this.exprOldValue)) {
-                this.updateFn(exprValue, this.scopeModel);
+                this.updateFn(exprValue, this.tree.rootScope);
             }
 
             this.exprOldValue = exprValue;
@@ -61,10 +74,6 @@ module.exports = DirectiveParser.extends(
         },
 
         destroy: function () {
-            utils.traverseNodes(this.tplSeg.firstChild, this.tplSeg.lastChild, function (curNode) {
-                this.endNode.parentNode.insertBefore(curNode, this.endNode);
-            }, this);
-
             utils.each(this.trees, function (tree) {
                 tree.destroy();
             });
@@ -75,40 +84,88 @@ module.exports = DirectiveParser.extends(
             this.updateFn = null;
             this.startNode = null;
             this.endNode = null;
+
             DirectiveParser.prototype.destroy.apply(this, arguments);
         },
 
-        createTree: function (config) {
+        createTree: function () {
             var parser = this;
             var copySeg = parser.tplSeg.cloneNode(true);
-            var startNode = copySeg.firstChild;
-            var endNode = copySeg.lastChild;
-            utils.traverseNodes(startNode, endNode, function (curNode) {
-                parser.endNode.parentNode.insertBefore(curNode, parser.endNode);
+
+            var childNodes = copySeg.getChildNodes();
+            var startNode = childNodes[0];
+            var endNode = childNodes[childNodes.length - 1];
+
+            Node.iterate(startNode, endNode, function (curNode) {
+                parser.endNode.getParentNode().insertBefore(curNode, parser.endNode);
             });
 
-            var tree = new ForTree({
-                startNode: startNode,
-                endNode: endNode,
-                config: config,
-                domUpdater: parser.tree.domUpdater,
-                exprCalculater: parser.tree.exprCalculater
-            });
-            tree.setParent(parser.tree);
+            var tree = DirectiveParser.prototype.createTree.call(
+                this,
+                this.tree,
+                startNode,
+                endNode
+            );
             tree.traverse();
             return tree;
+        },
+
+        createUpdateFn: function (startNode, endNode, fullExpr) {
+            var parser = this;
+            var config = this.tree.getTreeVar('config');
+            var domUpdater = this.tree.getTreeVar('domUpdater');
+            var itemVariableName = fullExpr.match(config.getForItemValueNameRegExp())[1];
+            var taskId = domUpdater.generateTaskId();
+            return function (exprValue, scopeModel) {
+                var index = 0;
+                for (var k in exprValue) {
+                    if (!parser.trees[index]) {
+                        parser.trees[index] = parser.createTree();
+                    }
+
+                    parser.trees[index].restoreFromDark();
+                    parser.trees[index].setDirtyChecker(parser.dirtyChecker);
+
+                    var local = {
+                        key: k,
+                        index: index
+                    };
+                    local[itemVariableName] = exprValue[k];
+
+                    parser.trees[index].rootScope.setParent(scopeModel);
+                    scopeModel.addChild(parser.trees[index].rootScope);
+
+                    parser.trees[index].setData(local);
+
+                    ++index;
+                }
+
+                domUpdater.addTaskFn(
+                    taskId,
+                    utils.bind(
+                        function (trees, index) {
+                            for (var i = index, il = trees.length; i < il; i++) {
+                                trees[i].goDark();
+                            }
+                        },
+                        null,
+                        parser.trees,
+                        index
+                    )
+                );
+            };
         }
     },
     {
         isProperNode: function (node, config) {
             return DirectiveParser.isProperNode(node, config)
-                && config.forPrefixRegExp.test(node.nodeValue);
+                && config.forPrefixRegExp.test(node.getNodeValue());
         },
 
         findEndNode: function (forStartNode, config) {
             var curNode = forStartNode;
-            while ((curNode = curNode.nextSibling)) {
-                if (isForEndNode(curNode, config)) {
+            while ((curNode = curNode.getNextSibling())) {
+                if (ForDirectiveParser.isForEndNode(curNode, config)) {
                     return curNode;
                 }
             }
@@ -118,49 +175,16 @@ module.exports = DirectiveParser.extends(
             return new Error('the `for` directive is not properly ended!');
         },
 
+        isForEndNode: function (node, config) {
+            var nodeType = node.getNodeType();
+            return nodeType === Node.COMMENT_NODE
+                && config.forEndPrefixRegExp.test(node.getNodeValue());
+        },
+
         $name: 'ForDirectiveParser'
     }
 );
 
-ForTree.registeParser(module.exports);
+Tree.registeParser(ForDirectiveParser);
+module.exports = ForDirectiveParser;
 
-function isForEndNode(node, config) {
-    return node.nodeType === 8 && config.forEndPrefixRegExp.test(node.nodeValue);
-}
-
-function createUpdateFn(parser, startNode, endNode, config, fullExpr) {
-    var trees = [];
-    parser.trees = trees;
-    var itemVariableName = fullExpr.match(parser.config.getForItemValueNameRegExp())[1];
-    var taskId = parser.domUpdater.generateTaskId();
-    return function (exprValue, scopeModel) {
-        var index = 0;
-        for (var k in exprValue) {
-            if (!trees[index]) {
-                trees[index] = parser.createTree(config);
-            }
-
-            trees[index].restoreFromDark();
-            trees[index].setDirtyChecker(parser.dirtyChecker);
-
-            var local = {
-                key: k,
-                index: index
-            };
-            local[itemVariableName] = exprValue[k];
-
-            trees[index].rootScope.setParent(scopeModel);
-            scopeModel.addChild(trees[index].rootScope);
-
-            trees[index].setData(local);
-
-            index++;
-        }
-
-        parser.domUpdater.addTaskFn(taskId, utils.bind(function (trees, index) {
-            for (var i = index, il = trees.length; i < il; i++) {
-                trees[i].goDark();
-            }
-        }, null, trees, index));
-    };
-}
