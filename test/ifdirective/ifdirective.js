@@ -1,12 +1,17 @@
-require('../../src/parsers/IfDirectiveParser');
+var Vtpl = require('../../src/main');
 
-var vtpl = require('../../src/main');
-var Node = require('../../src/nodes/Node');
-
-var mainNode = new Node(document.getElementById('main'));
-var tree = new vtpl.render({
-    startNode: mainNode,
-    endNode: mainNode
+var vtpl = new Vtpl({
+    startNode: document.getElementById('main'),
+    endNode: document.getElementById('main')
 });
 
-tree.traverse();
+vtpl.render();
+
+vtpl.$tree.rootScope.set({
+    name: 'haha'
+});
+
+document.getElementById('destroy').addEventListener('click', function () {
+    vtpl.destroy();
+});
+

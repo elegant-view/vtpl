@@ -33,6 +33,10 @@ Event.prototype.trigger = function (eventName) {
 };
 
 Event.prototype.off = function (eventName, fn) {
+    if (arguments.length === 0) {
+        this.events = {};
+    }
+
     if (!fn) {
         this.evnts[eventName] = null;
         return;

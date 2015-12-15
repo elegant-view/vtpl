@@ -1,3 +1,8 @@
+/**
+ * @file vtpl主文件
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
 require('./parsers/ForDirectiveParser');
 require('./parsers/IfDirectiveParser');
 require('./parsers/ScopeDirectiveParser');
@@ -9,19 +14,52 @@ var ExprCalculater = require('./ExprCalculater');
 var DomUpdater = require('./DomUpdater');
 var utils = require('./utils');
 var Config = require('./Config');
+var NodesManager = require('./nodes/NodesManager');
 
-module.exports = {
-    utils: require('./utils'),
-    Config: Config,
-    render: function (options) {
-        options = utils.extend({
-            config: new Config()
-        }, options);
+function Vtpl(options) {
+    options = utils.extend({
+        config: new Config()
+    }, options);
 
-        var tree = new Tree(options);
-        tree.setTreeVar('exprCalculater', new ExprCalculater());
-        tree.setTreeVar('domUpdater', new DomUpdater());
-        tree.setTreeVar('config', options.config);
-        return tree;
+    this.$nodesManager = new NodesManager();
+    if (options.startNode) {
+        options.startNode = this.$nodesManager.getNode(options.startNode);
     }
+    if (options.endNode) {
+        options.endNode = this.$nodesManager.getNode(options.endNode);
+    }
+    if (options.node) {
+        options.node = this.$nodesManager.getNode(options.node);
+    }
+
+    this.$options = options;
+
+    var tree = new Tree(this.$options);
+    tree.setTreeVar('exprCalculater', new ExprCalculater());
+    tree.setTreeVar('domUpdater', new DomUpdater());
+    tree.setTreeVar('config', this.$options.config);
+    tree.setTreeVar('nodesManager', this.$nodesManager);
+    this.$tree = tree;
+}
+
+Vtpl.prototype.render = function () {
+    this.$tree.traverse();
 };
+
+Vtpl.prototype.destroy = function () {
+    this.$tree.getTreeVar('exprCalculater').destroy();
+    this.$tree.getTreeVar('domUpdater').destroy();
+
+    this.$tree.destroy();
+    this.$nodesManager.destroy();
+
+    this.$nodesManager = null;
+    this.$options = null;
+    this.$tree = null;
+};
+
+Vtpl.utils = utils;
+Vtpl.Config = Config;
+
+module.exports = Vtpl;
+

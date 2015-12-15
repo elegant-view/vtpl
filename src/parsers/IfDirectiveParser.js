@@ -18,6 +18,7 @@ var IfDirectiveParser = DirectiveParser.extends(
 
             this.exprs = [];
             this.exprFns = {};
+            this.$branchTrees = [];
 
             var domUpdater = this.tree.getTreeVar('domUpdater');
             this.handleBranchesTaskId = domUpdater.generateTaskId();
@@ -71,10 +72,12 @@ var IfDirectiveParser = DirectiveParser.extends(
                         );
                     }
                 }
-            });
-            this.branchNodeStack = branchNodeStack;
 
-            var branchTrees = [];
+                if (ifNodeType === IfDirectiveParser.ELSE) {
+                    me.$$hasElseBranch = true;
+                }
+            });
+
             for (var i = 0, il = branchNodeStack.length - 1; i < il; ++i) {
                 var curNode = branchNodeStack[i];
                 var nextNode = branchNodeStack[i + 1];
@@ -82,22 +85,23 @@ var IfDirectiveParser = DirectiveParser.extends(
                 var curNodeNextSibling = curNode.node.getNextSibling();
                 // curNode 和 nextNode 之间没有节点
                 if (curNodeNextSibling.equal(nextNode.node)) {
-                    branchTrees.push(new Tree({}));
+                    this.$branchTrees.push(null);
                 }
                 else {
-                    branchTrees.push(new Tree({
-                        startNode: curNodeNextSibling,
-                        endNode: nextNode.node.getPreviousSibling()
-                    }));
+                    var tree = this.createTree(
+                        this.tree,
+                        curNodeNextSibling,
+                        nextNode.node.getPreviousSibling()
+                    );
+                    this.$branchTrees.push(tree);
+                    tree.traverse();
                 }
             }
-            this.branchTrees = branchTrees;
         },
 
         linkScope: function () {
-            this.onChange();
-
             DirectiveParser.prototype.linkScope.apply(this, arguments);
+            this.onChange();
         },
 
         onChange: function () {
@@ -108,26 +112,33 @@ var IfDirectiveParser = DirectiveParser.extends(
                 var expr = exprs[i];
                 var exprValue = this.exprFns[expr](this.tree.rootScope);
                 if (exprValue) {
-                    showIndex = exprValue;
+                    showIndex = i;
                     break;
                 }
             }
 
-            if (this.hasElseBranch) {
+            if (this.$$hasElseBranch) {
                 showIndex = i;
             }
 
             domUpdater.addTaskFn(
                 this.handleBranchesTaskId,
-                utils.bind(handleBranches, null, this.branchTrees, showIndex)
+                utils.bind(handleBranches, null, this.$branchTrees, showIndex)
             );
         },
 
         destroy: function () {
+            for (var i = 0, il = this.$branchTrees.length; i < il; ++i) {
+                var branchTree = this.$branchTrees[i];
+                branchTree.destroy();
+            }
+
             this.startNode = null;
             this.endNode = null;
             this.exprs = null;
             this.exprFns = null;
+            this.handleBranchesTaskId = null;
+            this.branchTrees = null;
 
             DirectiveParser.prototype.destroy.call(this);
         }
@@ -164,6 +175,10 @@ Tree.registeParser(module.exports);
 
 function handleBranches(branches, showIndex) {
     utils.each(branches, function (branchTree, j) {
+        if (!branchTree) {
+            return;
+        }
+
         var fn = j === showIndex ? 'restoreFromDark' : 'goDark';
         branchTree[fn]();
     });

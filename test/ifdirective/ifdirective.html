@@ -5,10 +5,17 @@
 </head>
 <body>
     <div id="main">
-        <!-- if: 12 < 0 -->
-            <div>true</div>
+        <!-- if: ${12 < 0} -->
+            <div>12小于0</div>
+        <!-- else -->
+            <div>12大于等于0</div>
+        <!-- /if -->
+
+        <!-- if: ${name.length} === 4 -->
+            `${name}` 的长度是4。
         <!-- /if -->
     </div>
+    <button id="destroy">销毁</button>
     <script type="text/javascript" src="../../dist/ifdirective/ifdirective.js"></script>
 </body>
 </html>

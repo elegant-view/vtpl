@@ -173,13 +173,11 @@ module.exports = Parser.extends(
          * @inheritDoc
          */
         destroy: function () {
-            this.node.destroy();
-
             this.node = null;
             this.exprs = null;
             this.exprFns = null;
-            this.attrToDomTaskIdMap = null;
             this.exprOldValues = null;
+            this.attrToDomTaskIdMap = null;
 
             Parser.prototype.destroy.call(this);
         },

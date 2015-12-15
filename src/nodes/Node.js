@@ -10,15 +10,16 @@ var Event = require('../Event');
 
 var Node = Base.extends(
     {
-        initialize: function (node) {
+        initialize: function (node, manager) {
             Base.prototype.initialize.apply(this, arguments);
 
             // 弱弱地判断一下node是不是节点
-            if (node.ownerDocument !== document) {
+            if (!node || node.ownerDocument !== document) {
                 throw new TypeError('wrong `node` argument');
             }
 
             this.$node = node;
+            this.$manager = manager;
 
             this.$event = new Event();
             this.$nodeEventFns = {};
@@ -32,7 +33,7 @@ var Node = Base.extends(
             var nodes = [];
             var childNodes = this.$node.childNodes;
             for (var i = 0, il = childNodes.length; i < il; ++i) {
-                nodes.push(new Node(childNodes[i]));
+                nodes.push(this.$manager.getNode(childNodes[i]));
             }
             return nodes;
         },
@@ -42,7 +43,13 @@ var Node = Base.extends(
         },
 
         getParentNode: function () {
-            return new Node(this.$node.parentNode);
+            var parentNode = this.$node.parentNode
+                || (this.$commentNode && this.$commentNode.parentNode);
+            if (!parentNode) {
+                return null;
+            }
+
+            return this.$manager.getNode(parentNode);
         },
 
         getNextSibling: function () {
@@ -52,7 +59,7 @@ var Node = Base.extends(
                 return null;
             }
 
-            return new Node(nextSibling);
+            return this.$manager.getNode(nextSibling);
         },
 
         getPreviousSibling: function () {
@@ -62,7 +69,7 @@ var Node = Base.extends(
                 return null;
             }
 
-            return new Node(previousSibling);
+            return this.$manager.getNode(previousSibling);
         },
 
         getAttribute: function (name) {
@@ -144,28 +151,11 @@ var Node = Base.extends(
 
                 // 外部点击事件
                 if (name === 'onoutclick') {
-                    return this.setOutClick(value);
+                    return this.on('outclick', value);
                 }
             }
 
             this.setAttribute(name, value);
-        },
-
-        // outclick 支持
-        setOutClick: function (callback) {
-            var eventName = 'outclick';
-
-            this.$event.on(eventName, callback);
-            if (!utils.isFunction(this.$nodeEventFns[eventName])) {
-                var me = this;
-                this.$nodeEventFns[eventName] = function (event) {
-                    event = event || window.event;
-                    if (me.$node !== event.target && !me.$node.contains(event.target)) {
-                        me.$event.trigger(eventName, event);
-                    }
-                };
-                window.addEventListener('click', this.$nodeEventFns[eventName]);
-            }
         },
 
         setClass: function (klass) {
@@ -187,13 +177,24 @@ var Node = Base.extends(
         on: function (eventName, callback) {
             this.$event.on(eventName, callback);
 
+            var me = this;
             if (!utils.isFunction(this.$nodeEventFns[eventName])) {
-                var me = this;
-                this.$nodeEventFns[eventName] = function (event) {
-                    event = event || window.event;
-                    me.$event.trigger(eventName, event);
-                };
-                this.$node.addEventListener(eventName, this.$nodeEventFns[eventName]);
+                if (eventName === 'outclick') {
+                    this.$nodeEventFns[eventName] = function (event) {
+                        event = event || window.event;
+                        if (me.$node !== event.target && !me.$node.contains(event.target)) {
+                            me.$event.trigger(eventName, event);
+                        }
+                    };
+                    window.addEventListener('click', this.$nodeEventFns[eventName]);
+                }
+                else {
+                    this.$nodeEventFns[eventName] = function (event) {
+                        event = event || window.event;
+                        me.$event.trigger(eventName, event);
+                    };
+                    this.$node.addEventListener(eventName, this.$nodeEventFns[eventName]);
+                }
             }
         },
 
@@ -233,6 +234,7 @@ var Node = Base.extends(
             if (parentNode) {
                 if (!this.$commentNode) {
                     this.$commentNode = document.createComment('node placeholder');
+                    this.$commentNode.$nodeId = ++this.$manager.$idCounter;
                 }
                 parentNode.replaceChild(this.$commentNode, this.$node);
             }
@@ -250,7 +252,17 @@ var Node = Base.extends(
          * @public
          */
         destroy: function () {
+            this.$event.off();
 
+            for (var eventName in this.$nodeEventFns) {
+                var eventFn = this.$nodeEventFns[eventName];
+                if (eventName === 'outclick') {
+                    window.removeEventListener('click', eventFn);
+                }
+                else {
+                    this.$node.removeEventListener(eventName, eventFn);
+                }
+            }
         }
     },
     {

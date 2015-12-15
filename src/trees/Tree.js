@@ -27,8 +27,8 @@ module.exports = Base.extends(
             this.startNode = options.startNode;
             this.endNode = options.endNode;
 
-            this.tree = [];
             this.treeVars = {};
+            this.$parsers = [];
 
             this.rootScope = new ScopeModel();
         },
@@ -101,32 +101,35 @@ module.exports = Base.extends(
                     tree: me
                 };
 
-                var parserObj;
+                var parser;
                 for (var i = 0, il = ParserClasses.length; i < il; ++i) {
                     var ParserClass = ParserClasses[i];
-                    parserObj = {
-                        parser: me.createParser(ParserClass, options)
-                    };
+                    parser = me.createParser(ParserClass, options);
 
-                    if (!parserObj || !parserObj.parser) {
+                    if (!parser) {
                         continue;
                     }
+                    me.$parsers.push(parser);
 
-                    parserObj.parser.collectExprs();
+                    parser.collectExprs();
                     // 将解析器对象和对应树的scope绑定起来
-                    parserObj.parser.linkScope();
+                    parser.linkScope();
                     break;
                 }
 
-                if (!parserObj || !parserObj.parser) {
+                if (!parser) {
                     throw new Error('no such parser');
                 }
 
-                if (parserObj.parser.getStartNode().equal(parserObj.parser.getEndNode())) {
+                if (parser.getStartNode().equal(parser.getEndNode())) {
                     return;
                 }
 
-                return parserObj.parser.getEndNode().getNextSibling();
+                var nextNode = parser.getEndNode().getNextSibling();
+                if (!nextNode) {
+                    return true;
+                }
+                return nextNode;
             });
         },
 
@@ -136,21 +139,33 @@ module.exports = Base.extends(
         },
 
         goDark: function () {
-            Node.iterate(this.startNode, this.endNode, function (node) {
+            var node = this.startNode;
+            while (node) {
                 var nodeType = node.getNodeType();
                 if (nodeType === Node.ELEMENT_NODE || nodeType === Node.TEXT_NODE) {
                     node.hide();
                 }
-            });
+
+                node = node.getNextSibling();
+                if (!node || node.equal(this.endNode)) {
+                    break;
+                }
+            }
         },
 
         restoreFromDark: function () {
-            Node.iterate(this.startNode, this.endNode, function (node) {
+            var node = this.startNode;
+            while (node) {
                 var nodeType = node.getNodeType();
                 if (nodeType === Node.ELEMENT_NODE || nodeType === Node.TEXT_NODE) {
                     node.show();
                 }
-            });
+
+                node = node.getNextSibling();
+                if (!node || node.equal(this.endNode)) {
+                    break;
+                }
+            }
         },
 
         setDirtyChecker: function (dirtyChecker) {
@@ -158,19 +173,13 @@ module.exports = Base.extends(
         },
 
         destroy: function () {
-            walk(this.tree);
+            walk(this.$parsers);
 
             this.startNode = null;
             this.endNode = null;
             this.config = null;
 
-            this.exprCalculater.destroy();
-            this.exprCalculater = null;
-
-            this.domUpdater.destroy();
-            this.domUpdater = null;
-
-            this.tree = null;
+            this.$parser = null;
             this.treeVars = null;
 
             if (this.dirtyChecker) {
@@ -178,13 +187,9 @@ module.exports = Base.extends(
                 this.dirtyChecker = null;
             }
 
-            function walk(parserObjs) {
-                utils.each(parserObjs, function (curParserObj) {
-                    curParserObj.parser.destroy();
-
-                    if (curParserObj.children && curParserObj.children.length) {
-                        walk(curParserObj.children);
-                    }
+            function walk(parsers) {
+                utils.each(parsers, function (parser) {
+                    parser.destroy();
                 });
             }
         },
