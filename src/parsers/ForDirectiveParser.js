@@ -91,6 +91,12 @@ var ForDirectiveParser = DirectiveParser.extends(
             DirectiveParser.prototype.destroy.apply(this, arguments);
         },
 
+        /**
+         * 创建树
+         *
+         * @protected
+         * @return {Tree}
+         */
         createTree: function () {
             var parser = this;
             var nodesManager = this.tree.getTreeVar('nodesManager');
@@ -118,6 +124,18 @@ var ForDirectiveParser = DirectiveParser.extends(
             return tree;
         },
 
+        /**
+         * 创建更新函数。
+         * 更新函数会根据迭代的数据动态地创建Tree实例：迭代了多少次，就会创建多少个。
+         * for指令下的Tree实例目前是不会销毁的，除非解析器实例被销毁。
+         * for指令下的Tree实例只会随着迭代次数的增加而增多，并不会消减。
+         *
+         * @private
+         * @param  {nodes/Node} startNode 起始节点
+         * @param  {nodes/Node} endNode   结束节点
+         * @param  {string} fullExpr  for指令中完整的表达式，比如`<!-- for: ${list} as ${item} -->`就是`for: ${list} as ${item}`。
+         * @return {function(*,ScopeModel)}           dom更新函数
+         */
         createUpdateFn: function (startNode, endNode, fullExpr) {
             var parser = this;
             var config = this.tree.getTreeVar('config');
