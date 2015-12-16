@@ -2,7 +2,7 @@
   "name": "vtpl",
   "version": "1.0.0-alpha.2",
   "description": "This is a template library. Unlike those traditional templates (such as [Jade](http://jade-lang.com/)), It is based on DOM.",
-  "main": "main.js",
+  "main": "./src/main.js",
   "directories": {
     "test": "test"
   },
@@ -22,10 +22,6 @@
   },
   "homepage": "https://github.com/elegant-view/vtpl#readme",
   "devDependencies": {
-    "gulp": "^3.9.0",
-    "gulp-browserify": "^0.5.1",
-    "gulp-util": "^3.0.6",
-    "through2": "^2.0.0"
   },
   "edp": {
     "wwwroot": "/",

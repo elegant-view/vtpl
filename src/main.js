@@ -5,8 +5,6 @@
 
 require('./parsers/ForDirectiveParser');
 require('./parsers/IfDirectiveParser');
-// require('./parsers/ScopeDirectiveParser');
-// require('./parsers/VarDirectiveParser');
 require('./parsers/ExprParser');
 
 var Tree = require('./trees/Tree');
@@ -44,6 +42,11 @@ function Vtpl(options) {
 
 Vtpl.prototype.render = function () {
     this.$tree.traverse();
+};
+
+Vtpl.prototype.setData = function () {
+    var scope = this.$tree.rootScope;
+    scope.set.apply(scope, arguments);
 };
 
 Vtpl.prototype.destroy = function () {
