@@ -40,6 +40,10 @@ var NodesManager = Base.extends(
             for (var id in this.$nodesMap) {
                 this.$nodesMap[id].destroy();
             }
+        },
+
+        createElement: function () {
+            return this.getNode(document.createElement.apply(document, arguments));
         }
     },
     {

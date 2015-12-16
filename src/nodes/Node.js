@@ -106,6 +106,14 @@ var Node = Base.extends(
             );
         },
 
+        getInnerHTML: function () {
+            return this.$node.innerHTML;
+        },
+
+        setInnerHTML: function (html) {
+            this.$node.innerHTML = html;
+        },
+
         /**
          * 判断当前节点是否和node是兄弟关系，并且在node之后。
          *
@@ -377,9 +385,6 @@ var Node = Base.extends(
             var curNode = startNode;
             while (curNode) {
                 var nextNode = iterateFn(curNode);
-                if (nextNode === true) {
-                    return true;
-                }
 
                 if (Node.ELEMENT_NODE === curNode.getNodeType()) {
                     var childNodes = curNode.getChildNodes();
@@ -395,7 +400,10 @@ var Node = Base.extends(
                     }
                 }
 
-                if (nextNode instanceof Node) {
+                if (nextNode === true) {
+                    return true;
+                }
+                else if (nextNode instanceof Node) {
                     if (!nextNode.isAfter(curNode)) {
                         throw new Error('wrong next node');
                     }

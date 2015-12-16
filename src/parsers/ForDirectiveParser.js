@@ -35,7 +35,7 @@ var ForDirectiveParser = DirectiveParser.extends(
             }
 
             var nodesManager = this.tree.getTreeVar('nodesManager');
-            this.tplSeg = nodesManager.getNode(document.createElement('div'));
+            this.tplSeg = nodesManager.createElement('div');
             for (var curNode = this.startNode.getNextSibling();
                 curNode && !curNode.isAfter(this.endNode.getPreviousSibling());
             ) {
@@ -93,15 +93,20 @@ var ForDirectiveParser = DirectiveParser.extends(
 
         createTree: function () {
             var parser = this;
-            var copySeg = parser.tplSeg.cloneNode(true);
+            var nodesManager = this.tree.getTreeVar('nodesManager');
+            var copySeg = nodesManager.createElement('div');
+            copySeg.setInnerHTML(this.tplSeg.getInnerHTML());
 
             var childNodes = copySeg.getChildNodes();
             var startNode = childNodes[0];
             var endNode = childNodes[childNodes.length - 1];
 
-            Node.iterate(startNode, endNode, function (curNode) {
+            var curNode = startNode;
+            while (curNode && !curNode.isAfter(endNode)) {
+                var nextNode = curNode.getNextSibling();
                 parser.endNode.getParentNode().insertBefore(curNode, parser.endNode);
-            });
+                curNode = nextNode;
+            }
 
             var tree = DirectiveParser.prototype.createTree.call(
                 this,

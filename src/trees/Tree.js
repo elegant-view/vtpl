@@ -118,9 +118,9 @@ module.exports = Base.extends(
                 }
 
                 if (!parser) {
-                    if (node.getNodeType() === Node.COMMENT_NODE) {
-                        return;
-                    }
+                    // if (node.getNodeType() === Node.COMMENT_NODE) {
+                    //     return;
+                    // }
                     throw new Error('no such parser');
                 }
 
@@ -129,7 +129,7 @@ module.exports = Base.extends(
                 }
 
                 var nextNode = parser.getEndNode().getNextSibling();
-                if (!nextNode) {
+                if (!nextNode || nextNode.isAfter(me.endNode)) {
                     return true;
                 }
                 return nextNode;
