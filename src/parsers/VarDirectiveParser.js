@@ -6,7 +6,7 @@
 var DirectiveParser = require('./DirectiveParser');
 var Tree = require('../trees/Tree');
 
-module.exports = DirectiveParser.extends(
+var VarDirectiveParser = DirectiveParser.extends(
     {
         initialize: function (options) {
             DirectiveParser.prototype.initialize.apply(this, arguments);
@@ -15,24 +15,27 @@ module.exports = DirectiveParser.extends(
         },
 
         collectExprs: function () {
-            var expr = this.node.nodeValue.replace(this.config.varName + ':', '');
-            this.exprCalculater.createExprFn(expr);
+            var nodeValue = this.node.getNodeValue();
+            var config = this.tree.getTreeVar('config');
+            var expr = nodeValue.replace(config.varName + ':', '');
+
+            var exprCalculater = this.tree.getTreeVar('exprCalculater');
+            exprCalculater.createExprFn(expr);
 
             var leftValueName = expr.match(/\s*.+(?=\=)/)[0].replace(/\s+/g, '');
 
-            var me = this;
             this.exprFn = function (scopeModel) {
                 var oldValue = scopeModel.get(leftValueName);
-                var newValue = me.exprCalculater.calculate(expr, false, scopeModel);
+                var newValue = exprCalculater.calculate(expr, false, scopeModel);
                 if (oldValue !== newValue) {
                     scopeModel.set(leftValueName, newValue);
                 }
             };
         },
 
-        setScope: function (scopeModel) {
-            DirectiveParser.prototype.setScope.apply(this, arguments);
-            this.exprFn(this.scopeModel);
+        linkScope: function () {
+            DirectiveParser.prototype.linkScope.apply(this, arguments);
+            this.exprFn(this.tree.rootScope);
         },
 
         /**
@@ -59,13 +62,15 @@ module.exports = DirectiveParser.extends(
     },
     {
         isProperNode: function (node, config) {
-            return node.nodeType === 8
-                && node.nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;
+            var nodeValue = node.getNodeValue();
+            return DirectiveParser.isProperNode(node)
+                && nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;
         },
 
         $name: 'VarDirectiveParser'
     }
 );
 
+module.exports = VarDirectiveParser;
 Tree.registeParser(module.exports);
 

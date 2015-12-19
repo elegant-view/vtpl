@@ -4,7 +4,8 @@ module.exports = {
         // 'nodes/node.js': './test/nodes/node.js',
         // 'ifdirective/ifdirective.js': './test/ifdirective/ifdirective.js',
         // 'fordirective/fordirective.js': './test/fordirective/fordirective.js',
-        // 'expr/expr.js': './test/expr/expr.js'
+        // 'expr/expr.js': './test/expr/expr.js',
+        // 'vardirective/vardirective.js': './test/vardirective/vardirective.js',
     },
     output: {
         path: __dirname,

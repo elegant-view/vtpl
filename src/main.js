@@ -6,6 +6,7 @@
 require('./parsers/ForDirectiveParser');
 require('./parsers/IfDirectiveParser');
 require('./parsers/ExprParser');
+require('./parsers/VarDirectiveParser');
 
 var Tree = require('./trees/Tree');
 var ExprCalculater = require('./ExprCalculater');

@@ -7,7 +7,7 @@ var DirectiveParser = require('./DirectiveParser');
 var ScopeModel = require('../ScopeModel');
 var Tree = require('../trees/Tree');
 
-module.exports = DirectiveParser.extends(
+var ScopeDirectiveParser = DirectiveParser.extends(
     {
         initialize: function (options) {
             DirectiveParser.prototype.initialize.call(this, options);
@@ -67,6 +67,7 @@ module.exports = DirectiveParser.extends(
     }
 );
 
+module.exports = ScopeDirectiveParser;
 Tree.registeParser(module.exports);
 
 function isEndNode(node, config) {
