@@ -38,6 +38,14 @@ var Node = Base.extends(
             return nodes;
         },
 
+        getFirstChild: function () {
+            return this.$manager.getNode(this.$node.firstChild);
+        },
+
+        getLastChild: function () {
+            return this.$manager.getNode(this.$node.lastChild);
+        },
+
         equal: function (node) {
             return this.$node === node.$node;
         },
@@ -112,6 +120,10 @@ var Node = Base.extends(
 
         setInnerHTML: function (html) {
             this.$node.innerHTML = html;
+        },
+
+        getTagName: function () {
+            return this.$node.tagName.toLowerCase();
         },
 
         /**
@@ -194,6 +206,13 @@ var Node = Base.extends(
                     this.$node.style[k] = styleObj[k];
                 }
             }
+        },
+
+        remove: function () {
+            if (!this.$node.parentNode) {
+                return;
+            }
+            this.$node.parentNode.removeChild(this.$node);
         },
 
         on: function (eventName, callback) {
@@ -368,13 +387,23 @@ var Node = Base.extends(
         },
 
         /**
-         * 遍历DOM树
+         * 遍历DOM树。
+         *
+         * 遍历过程会受iterateFn影响：
+         * - 如果iterateFn返回true，则说明要跳出遍历了（即不会遍历当前节点的下一个兄弟节点），但是在跳出之前，还是要遍历完当前节点的子孙节点的；
+         * - 如果iterateFn返回一个节点对象，做如下判断：
+         *     - 如果这个节点不是当前节点之后的兄弟节点，则抛出异常；
+         *     - 如果是，则将当前节点设为这个节点对象。
+         * - 如果返回的是其他值，则自动将当前节点设为下一个兄弟节点。
+         *
+         * 此处有个很蛋碎的问题，就是如果iterateFn里面做了破坏DOM树形结构的操作的话，遍历就会出现困难。
+         * 所以在实际操作中建议延迟处理（即遍历完之后）这种破坏结构的DOM操作。
          *
          * @static
          * @param {Node} startNode 起始节点
          * @param {Node} endNode 终止节点
          * @param {function(Node):(Node|undefined|boolean)} iterateFn 迭代函数。
-         *                                                            如果这个函数返回了一个Node对象，则把这个Node对象当成下一个要遍历的节点
+         *                             如果这个函数返回了一个Node对象，则把这个Node对象当成下一个要遍历的节点。
          * @return {boolean} 如果是true，说明在遍历子节点的时候中途中断了，不需要继续遍历了。
          */
         iterate: function (startNode, endNode, iterateFn) {
@@ -389,11 +418,7 @@ var Node = Base.extends(
                 if (Node.ELEMENT_NODE === curNode.getNodeType()) {
                     var childNodes = curNode.getChildNodes();
                     if (childNodes.length) {
-                        if (true === Node.iterate(
-                            childNodes[0],
-                            childNodes[childNodes.length - 1],
-                            iterateFn)
-                        ) {
+                        if (true === Node.iterate(childNodes[0], childNodes[childNodes.length - 1], iterateFn)) {
                             curNode = null;
                             return true;
                         }

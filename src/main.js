@@ -5,6 +5,7 @@
 
 require('./parsers/ForDirectiveParser');
 require('./parsers/IfDirectiveParser');
+require('./parsers/DirectiveParser');
 require('./parsers/ExprParser');
 require('./parsers/VarDirectiveParser');
 
@@ -14,8 +15,9 @@ var DomUpdater = require('./DomUpdater');
 var utils = require('./utils');
 var Config = require('./Config');
 var NodesManager = require('./nodes/NodesManager');
+var DirtyChecker = require('./DirtyChecker');
 
-function Vtpl(options) {
+function VTpl(options) {
     options = utils.extend({
         config: new Config()
     }, options);
@@ -38,21 +40,23 @@ function Vtpl(options) {
     tree.setTreeVar('domUpdater', new DomUpdater());
     tree.setTreeVar('config', this.$options.config);
     tree.setTreeVar('nodesManager', this.$nodesManager);
+    tree.setTreeVar('dirtyChecker', new DirtyChecker());
     this.$tree = tree;
 }
 
-Vtpl.prototype.render = function () {
+VTpl.prototype.render = function () {
     this.$tree.traverse();
 };
 
-Vtpl.prototype.setData = function () {
+VTpl.prototype.setData = function () {
     var scope = this.$tree.rootScope;
     scope.set.apply(scope, arguments);
 };
 
-Vtpl.prototype.destroy = function () {
+VTpl.prototype.destroy = function () {
     this.$tree.getTreeVar('exprCalculater').destroy();
     this.$tree.getTreeVar('domUpdater').destroy();
+    this.$tree.getTreeVar('dirtyChecker').destroy();
 
     this.$tree.destroy();
     this.$nodesManager.destroy();
@@ -62,8 +66,8 @@ Vtpl.prototype.destroy = function () {
     this.$tree = null;
 };
 
-Vtpl.utils = utils;
-Vtpl.Config = Config;
+VTpl.utils = utils;
+VTpl.Config = Config;
 
-module.exports = Vtpl;
+module.exports = VTpl;
 

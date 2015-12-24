@@ -161,7 +161,7 @@ var ForDirectiveParser = DirectiveParser.extends(
                     parser.trees[index].rootScope.setParent(scopeModel);
                     scopeModel.addChild(parser.trees[index].rootScope);
 
-                    parser.trees[index].setData(local);
+                    parser.trees[index].rootScope.set(local);
 
                     ++index;
                 }

@@ -29,6 +29,7 @@ module.exports = Base.extends(
 
             this.treeVars = {};
             this.$parsers = [];
+            this.$parent = null;
 
             this.rootScope = new ScopeModel();
         },
@@ -94,6 +95,7 @@ module.exports = Base.extends(
          */
         traverse: function () {
             var me = this;
+            var delayFns = [];
             Node.iterate(this.startNode, this.endNode, function (node) {
                 var options = {
                     startNode: node,
@@ -110,30 +112,38 @@ module.exports = Base.extends(
                         continue;
                     }
                     me.$parsers.push(parser);
-
-                    parser.collectExprs();
-                    // 将解析器对象和对应树的scope绑定起来
-                    parser.linkScope();
                     break;
                 }
 
                 if (!parser) {
-                    // if (node.getNodeType() === Node.COMMENT_NODE) {
-                    //     return;
-                    // }
                     throw new Error('no such parser');
                 }
 
                 if (parser.getStartNode().equal(parser.getEndNode())) {
+                    delayFns.push(handle);
                     return;
                 }
 
                 var nextNode = parser.getEndNode().getNextSibling();
                 if (!nextNode || nextNode.isAfter(me.endNode)) {
+                    delayFns.push(handle);
                     return true;
                 }
+
+                delayFns.push(handle);
+
+                function handle() {
+                    parser.collectExprs();
+                    // 将解析器对象和对应树的scope绑定起来
+                    parser.linkScope();
+                }
+
                 return nextNode;
             });
+
+            for (var i = 0, il = delayFns.length; i < il; ++i) {
+                delayFns[i]();
+            }
         },
 
         setData: function (data) {

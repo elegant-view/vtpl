@@ -2,11 +2,10 @@
  * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例。
  *       包含的比较重要的几个属性：
  *       - 1、node ：当前节点，是nodes/Node类型的，可能为元素节点和文本节点；
- *       - 2、exprs ：当前节点上所有的表达式，比如：['----${name}', '$name']；
- *       - 3、exprFns ：表达式函数和节点更新函数
+ *       - 2、exprFns ：表达式函数和节点更新函数
  *           - 1、exprFns[i].exprFn ：计算表达式值的函数，类型是`function(ScopeModel):*`；
  *           - 2、exprFns[i].updateFns ：根据表达式值去更新dom的函数数组，类型是`[function(*)]`。
- *       - 4、tree ：当前解析器挂靠的树。
+ *       - 3、tree ：当前解析器挂靠的树。
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
@@ -30,7 +29,6 @@ module.exports = Parser.extends(
 
             this.node = options.node;
 
-            this.exprs = [];
             this.exprFns = {};
             this.exprOldValues = {};
 
@@ -56,6 +54,7 @@ module.exports = Parser.extends(
                 var nodeValue = this.node.getNodeValue();
                 if (isExpr(nodeValue)) {
                     this.addExpr(
+                        this.exprFns,
                         nodeValue,
                         utils.bind(
                             function (taskId, domUpdater, node, exprValue) {
@@ -82,6 +81,7 @@ module.exports = Parser.extends(
                         continue;
                     }
                     this.addExpr(
+                        this.exprFns,
                         attribute.value,
                         utils.bind(
                             updateAttr,
@@ -110,39 +110,53 @@ module.exports = Parser.extends(
          * 添加表达式
          *
          * @private
-         * @param {string} expr     表达式，比如： `${name}` 或者 `prefix string ${name}suffix string`
+         * @param {Object} mountObj 挂靠在的对象
+         * @param {string} expr   表达式，比如： `${name}` 或者 `prefix string ${name}suffix string`
          * @param {function(*)} updateFn 根据表达式值更新界面的函数
          */
-        addExpr: function (expr, updateFn) {
-            if (!this.exprFns[expr]) {
-                this.exprs.push(expr);
-                this.exprFns[expr] = {
+        addExpr: function (mountObj, expr, updateFn) {
+            if (!mountObj[expr]) {
+                mountObj[expr] = {
                     exprFn: this.createExprFn(expr),
                     updateFns: [updateFn]
                 };
             }
             else {
-                this.exprFns[expr].updateFns.push(updateFn);
+                mountObj[expr].updateFns.push(updateFn);
             }
         },
 
         linkScope: function () {
-            // 拿scope里面的数据初始化一下
-            var exprs = this.exprs;
-            var exprOldValues = this.exprOldValues;
-            for (var i = 0, il = exprs.length; i < il; i++) {
-                var expr = exprs[i];
-                var exprValue = this.exprFns[expr].exprFn(this.tree.rootScope);
-
-                var updateFns = this.exprFns[expr].updateFns;
-                for (var j = 0, jl = updateFns.length; j < jl; j++) {
-                    updateFns[j](exprValue);
-                }
-
-                exprOldValues[expr] = exprValue;
-            }
-
+            this.renderToDom(this.exprFns, this.exprOldValues, this.tree.rootScope);
             Parser.prototype.linkScope.call(this);
+        },
+
+        /**
+         * 在model发生改变的时候计算一下表达式的值->脏检测->更新界面。
+         *
+         * @protected
+         */
+        onChange: function () {
+            if (this.isGoDark) {
+                return;
+            }
+            this.renderToDom(this.exprFns, this.exprOldValues, this.tree.rootScope);
+            Parser.prototype.onChange.apply(this, arguments);
+        },
+
+        renderToDom: function (exprFns, exprOldValues, scopeModel) {
+            for (var expr in exprFns) {
+                var exprValue = exprFns[expr].exprFn(scopeModel);
+
+                if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
+                    var updateFns = exprFns[expr].updateFns;
+                    for (var j = 0, jl = updateFns.length; j < jl; j++) {
+                        updateFns[j](exprValue);
+                    }
+
+                    exprOldValues[expr] = exprValue;
+                }
+            }
         },
 
         /**
@@ -174,7 +188,6 @@ module.exports = Parser.extends(
          */
         destroy: function () {
             this.node = null;
-            this.exprs = null;
             this.exprFns = null;
             this.exprOldValues = null;
             this.attrToDomTaskIdMap = null;
@@ -190,35 +203,6 @@ module.exports = Parser.extends(
         goDark: function () {
             this.node.hide();
             this.isGoDark = true;
-        },
-
-        /**
-         * 在model发生改变的时候计算一下表达式的值->脏检测->更新界面。
-         *
-         * @protected
-         */
-        onChange: function () {
-            if (this.isGoDark) {
-                return;
-            }
-
-            var exprs = this.exprs;
-            var exprOldValues = this.exprOldValues;
-            for (var i = 0, il = exprs.length; i < il; i++) {
-                var expr = exprs[i];
-                var exprValue = this.exprFns[expr].exprFn(this.tree.rootScope);
-
-                if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
-                    var updateFns = this.exprFns[expr].updateFns;
-                    for (var j = 0, jl = updateFns.length; j < jl; j++) {
-                        updateFns[j](exprValue);
-                    }
-                }
-
-                exprOldValues[expr] = exprValue;
-            }
-
-            Parser.prototype.onChange.apply(this, arguments);
         },
 
         /**

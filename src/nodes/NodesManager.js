@@ -17,10 +17,14 @@ var NodesManager = Base.extends(
          * 根据 domNode 拿到对应的经过包装的 nodes/Node 实例
          *
          * @public
-         * @param  {Node} domNode dom节点
+         * @param  {Node|Undefined}  domNode dom节点
          * @return {nodes/Node}      nodes/Node 实例
          */
         getNode: function (domNode) {
+            if (!domNode) {
+                return null;
+            }
+
             var nodeId = domNode.$nodeId;
 
             if (!nodeId) {

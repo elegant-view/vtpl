@@ -9,6 +9,11 @@ var Tree = require('../trees/Tree');
 
 module.exports = Parser.extends(
     {
+        initialize: function (options) {
+            Parser.prototype.initialize.apply(this, arguments);
+
+            this.node = options.node;
+        },
 
         /**
          * 根据父级数创建子树。
@@ -28,6 +33,14 @@ module.exports = Parser.extends(
             tree.rootScope.setParent(parentTree.rootScope);
             parentTree.rootScope.addChild(tree.rootScope);
             return tree;
+        },
+
+        getStartNode: function () {
+            return this.node;
+        },
+
+        getEndNode: function () {
+            return this.node;
         }
     },
     {
@@ -38,3 +51,5 @@ module.exports = Parser.extends(
         $name: 'DirectiveParser'
     }
 );
+
+Tree.registeParser(module.exports);

@@ -43,6 +43,16 @@ ScopeModel.prototype.get = function (name) {
     }
 };
 
+ScopeModel.prototype.iterate = function (fn, context) {
+    if (!utils.isFunction(fn)) {
+        return;
+    }
+
+    for (var key in this.store) {
+        fn.call(context, this.store[key], key);
+    }
+};
+
 module.exports = inherit(ScopeModel, Event);
 
 function change(me, changeObj) {
