@@ -148,13 +148,12 @@ var IfDirectiveParser = DirectiveParser.extends(
             return getIfNodeType(node, config) === IfDirectiveParser.IF_START;
         },
 
-        findEndNode: function (ifStartNode, config) {
-            var curNode = ifStartNode;
-            while ((curNode = curNode.getNextSibling())) {
-                if (isIfEndNode(curNode, config)) {
-                    return curNode;
-                }
-            }
+        isEndNode: function (node, config) {
+            return getIfNodeType(node, config) === IfDirectiveParser.IF_END;
+        },
+
+        findEndNode: function () {
+            return this.walkToEnd.apply(this, arguments);
         },
 
         getNoEndNodeError: function () {
@@ -182,10 +181,6 @@ function handleBranches(branches, showIndex) {
         var fn = j === showIndex ? 'restoreFromDark' : 'goDark';
         branchTree[fn]();
     });
-}
-
-function isIfEndNode(node, config) {
-    return getIfNodeType(node, config) === IfDirectiveParser.IF_END;
 }
 
 function getIfNodeType(node, config) {

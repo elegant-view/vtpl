@@ -255,6 +255,10 @@ var Node = Base.extends(
             }
         },
 
+        getNodeId: function () {
+            return this.$node.$nodeId;
+        },
+
         show: function () {
             if (this.$node.parentNode || !this.$commentNode) {
                 return;

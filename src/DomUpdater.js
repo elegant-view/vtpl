@@ -10,10 +10,21 @@ function DomUpdater() {
     this.isExecuting = false;
     this.doneFns = [];
     this.counter = 0;
+
+    this.$$nodeAttrNameTaskIdMap = {};
 }
 
 DomUpdater.prototype.generateTaskId = function () {
     return this.counter++;
+};
+
+DomUpdater.prototype.generateNodeAttrUpdateId = function (node, attrName) {
+    var key = node.getNodeId() + '-' + attrName;
+    if (!this.$$nodeAttrNameTaskIdMap[key]) {
+        this.$$nodeAttrNameTaskIdMap[key] = this.generateTaskId();
+    }
+
+    return this.$$nodeAttrNameTaskIdMap[key];
 };
 
 DomUpdater.prototype.addTaskFn = function (taskId, taskFn) {

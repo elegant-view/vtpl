@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style type="text/css">
+        body > div {
+            display: none;
+        }
+    </style>
+    <title></title>
+</head>
+<body>
+    <div id="forBase">
+        <!-- for: ${['a', 'b', 'c']} as ${item} -->
+            ${item},${key},${index}<br />
+        <!-- /for -->
+    </div>
+    <div id="forNest">
+        <!-- for: ${[['a', 'b', 'c'], ['d', 'e']]} as ${item1} -->
+            item1: ${item1}<br>
+            <!-- for: ${item1} as ${item2} -->
+                item2: ${item2}<br>
+            <!-- /for -->
+        <!-- /for -->
+    </div>
+    <div id="ifBase">
+        <!-- if: ${12 < 0} -->
+            <div>12小于0</div>
+        <!-- else -->
+            <div>12大于等于0</div>
+        <!-- /if -->
+
+        <!-- if: ${name.length} === 4 -->
+            `${name}` 的长度是4。
+        <!-- /if -->
+    </div>
+    <div id="exprBase" title="----${name}">${name}</div>
+    <script type="text/javascript" src="../dist/test/main.js"></script>
+</body>
+</html>

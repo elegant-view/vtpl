@@ -30,6 +30,7 @@ module.exports = Base.extends(
             this.treeVars = {};
             this.$parsers = [];
             this.$parent = null;
+            this.$$nodeIdParserMap = {};
 
             this.rootScope = new ScopeModel();
         },
@@ -97,6 +98,7 @@ module.exports = Base.extends(
             var me = this;
             var delayFns = [];
             Node.iterate(this.startNode, this.endNode, function (node) {
+                console.log(node.$node);
                 var options = {
                     startNode: node,
                     node: node,
@@ -119,17 +121,6 @@ module.exports = Base.extends(
                     throw new Error('no such parser');
                 }
 
-                if (parser.getStartNode().equal(parser.getEndNode())) {
-                    delayFns.push(handle);
-                    return;
-                }
-
-                var nextNode = parser.getEndNode().getNextSibling();
-                if (!nextNode || nextNode.isAfter(me.endNode)) {
-                    delayFns.push(handle);
-                    return true;
-                }
-
                 delayFns.push(handle);
 
                 function handle() {
@@ -138,6 +129,7 @@ module.exports = Base.extends(
                     parser.linkScope();
                 }
 
+                var nextNode = parser.getEndNode().getNextSibling();
                 return nextNode;
             });
 
@@ -195,6 +187,8 @@ module.exports = Base.extends(
             this.$parser = null;
             this.treeVars = null;
 
+            this.$$nodeIdParserMap = null;
+
             if (this.dirtyChecker) {
                 this.dirtyChecker.destroy();
                 this.dirtyChecker = null;
@@ -208,29 +202,10 @@ module.exports = Base.extends(
         },
 
         /**
-         * 创建解析器实例，其返回值的结构为：
-         * {
-         *     parser: ...,
-         *     collectResult: ...
-         * }
-         *
-         * 返回值存在如下几种情况：
-         *
-         * 1、如果 parser 属性存在且 collectResult 为 true ，则说明当前解析器解析了所有相应的节点（包括起止节点间的节点、当前节点和子孙节点）；
-         * 2、直接返回假值或者 parser 不存在，说明没有处理任何节点，当前节点不属于当前解析器处理；
-         * 3、parser 存在且 collectResult 为数组，结构如下：
-         *     [
-         *         {
-         *             startNode: Node.<...>,
-         *             endNode: Node.<...>
-         *         }
-         *     ]
-         *
-         *  则说明当前是带有很多分支的节点，要依次解析数组中每个元素指定的节点范围。
-         *  而且，该解析器对应的 setData() 方法将会返回整数，指明使用哪一个分支的节点。
+         * 创建解析器实例。
          *
          * @inner
-         * @param {Constructor} ParserClass parser 类
+         * @param {Class} ParserClass parser 类
          * @param  {Object} options 初始化参数
          * @return {Object}         返回值
          */
@@ -262,6 +237,11 @@ module.exports = Base.extends(
                 )
             );
 
+            var key = !endNode || startNode.equal(endNode)
+                ? startNode.getNodeId()
+                : startNode.getNodeId() + '-' + endNode.getNodeId();
+            this.$$nodeIdParserMap[key] = parser;
+
             return parser;
         }
     },
@@ -277,7 +257,7 @@ module.exports = Base.extends(
          *
          * 在注册解析器类的时候，这个顺序就会定下来，并且子类拥有比父类更高的优先级。
          *
-         * @param  {Constructor} ParserClass 解析器类
+         * @param  {Class} ParserClass 解析器类
          */
         registeParser: function (ParserClass) {
             ParserClasses.push(ParserClass);

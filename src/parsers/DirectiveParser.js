@@ -48,6 +48,36 @@ module.exports = Parser.extends(
             return node.getNodeType() === Node.COMMENT_NODE;
         },
 
+        isEndNode: function () {
+            return true;
+        },
+
+        /**
+         * 对于分起始部分和结束部分的指令，找到结束部分指令对应的节点。
+         * 仅供内部使用。
+         *
+         * @param {nodes/Node} startNode 开始寻找的节点
+         * @param {Config} config 配置
+         * @return {nodes/Node}
+         */
+        walkToEnd: function (startNode, config) {
+            var curNode = startNode;
+            // 为了应对嵌套型的指令
+            var stackCounter = 0;
+            while ((curNode = curNode.getNextSibling())) {
+                if (this.isProperNode(curNode, config)) {
+                    ++stackCounter;
+                }
+
+                if (this.isEndNode(curNode, config)) {
+                    if (stackCounter === 0) {
+                        return curNode;
+                    }
+                    --stackCounter;
+                }
+            }
+        },
+
         $name: 'DirectiveParser'
     }
 );

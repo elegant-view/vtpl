@@ -188,23 +188,18 @@ var ForDirectiveParser = DirectiveParser.extends(
                 && config.forPrefixRegExp.test(node.getNodeValue());
         },
 
-        findEndNode: function (forStartNode, config) {
-            var curNode = forStartNode;
-            while ((curNode = curNode.getNextSibling())) {
-                if (ForDirectiveParser.isForEndNode(curNode, config)) {
-                    return curNode;
-                }
-            }
+        isEndNode: function (node, config) {
+            var nodeType = node.getNodeType();
+            return nodeType === Node.COMMENT_NODE
+                && config.forEndPrefixRegExp.test(node.getNodeValue());
+        },
+
+        findEndNode: function () {
+            return this.walkToEnd.apply(this, arguments);
         },
 
         getNoEndNodeError: function () {
             return new Error('the `for` directive is not properly ended!');
-        },
-
-        isForEndNode: function (node, config) {
-            var nodeType = node.getNodeType();
-            return nodeType === Node.COMMENT_NODE
-                && config.forEndPrefixRegExp.test(node.getNodeValue());
         },
 
         $name: 'ForDirectiveParser'

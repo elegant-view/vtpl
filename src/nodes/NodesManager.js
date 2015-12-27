@@ -29,6 +29,9 @@ var NodesManager = Base.extends(
 
             if (!nodeId) {
                 nodeId = domNode.$nodeId = ++this.$idCounter;
+            }
+
+            if (!this.$nodesMap[nodeId]) {
                 this.$nodesMap[nodeId] = new Node(domNode, this);
             }
 
