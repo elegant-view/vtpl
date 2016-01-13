@@ -31,7 +31,7 @@ ScopeModel.prototype.set = function (name, value) {
 
 ScopeModel.prototype.get = function (name) {
     if (arguments.length > 1 || name === undefined) {
-        return this.store;
+        return utils.extend({}, this.store);
     }
 
     if (name in this.store) {

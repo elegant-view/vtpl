@@ -58,11 +58,12 @@ module.exports = Parser.extends(
                         nodeValue,
                         utils.bind(
                             function (taskId, domUpdater, node, exprValue) {
+                                var parser = this;
                                 domUpdater.addTaskFn(taskId, function () {
-                                    node.setNodeValue(exprValue);
+                                    parser.setTextNodeValue(node, exprValue);
                                 });
                             },
-                            null,
+                            this,
                             domUpdater.generateTaskId(),
                             domUpdater,
                             this.node
@@ -106,10 +107,14 @@ module.exports = Parser.extends(
             }
         },
 
+        setTextNodeValue: function (textNode, value) {
+            textNode.setNodeValue(value);
+        },
+
         /**
          * 添加表达式
          *
-         * @private
+         * @protected
          * @param {Object} mountObj 挂靠在的对象
          * @param {string} expr   表达式，比如： `${name}` 或者 `prefix string ${name}suffix string`
          * @param {function(*)} updateFn 根据表达式值更新界面的函数

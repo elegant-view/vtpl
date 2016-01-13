@@ -98,7 +98,6 @@ module.exports = Base.extends(
             var me = this;
             var delayFns = [];
             Node.iterate(this.startNode, this.endNode, function (node) {
-                console.log(node.$node);
                 var options = {
                     startNode: node,
                     node: node,

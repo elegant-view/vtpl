@@ -6,11 +6,14 @@
 var Base = require('../Base');
 var Node = require('./Node');
 
+var managerIdCounter = 0;
+
 var NodesManager = Base.extends(
     {
         initialize: function () {
             this.$idCounter = 0;
             this.$nodesMap = {};
+            this.$$domNodeIdKey = 'nodeId-' + ++managerIdCounter;
         },
 
         /**
@@ -25,10 +28,10 @@ var NodesManager = Base.extends(
                 return null;
             }
 
-            var nodeId = domNode.$nodeId;
+            var nodeId = domNode[this.$$domNodeIdKey];
 
             if (!nodeId) {
-                nodeId = domNode.$nodeId = ++this.$idCounter;
+                nodeId = domNode[this.$$domNodeIdKey] = ++this.$idCounter;
             }
 
             if (!this.$nodesMap[nodeId]) {
@@ -51,6 +54,10 @@ var NodesManager = Base.extends(
 
         createElement: function () {
             return this.getNode(document.createElement.apply(document, arguments));
+        },
+
+        createComment: function () {
+            return this.getNode(document.createComment.apply(document, arguments));
         }
     },
     {

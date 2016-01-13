@@ -165,6 +165,11 @@ var Node = Base.extends(
          * @return {*}
          */
         attr: function (name, value) {
+            // 目前仅适用于元素节点
+            if (this.getNodeType() !== Node.ELEMENT_NODE) {
+                return;
+            }
+
             // 只有一个参数，那就归到获取属性的范畴
             if (arguments.length === 1) {
                 return this.getAttribute(name);
@@ -197,7 +202,7 @@ var Node = Base.extends(
                 return;
             }
 
-            this.$node.className = this.getClassList(klass).join(' ');
+            this.$node.className = Node.getClassList(klass).join(' ');
         },
 
         setStyle: function (styleObj) {
@@ -256,7 +261,7 @@ var Node = Base.extends(
         },
 
         getNodeId: function () {
-            return this.$node.$nodeId;
+            return this.$node[this.$manager.$$domNodeIdKey];
         },
 
         show: function () {
@@ -279,7 +284,7 @@ var Node = Base.extends(
             if (parentNode) {
                 if (!this.$commentNode) {
                     this.$commentNode = document.createComment('node placeholder');
-                    this.$commentNode.$nodeId = ++this.$manager.$idCounter;
+                    this.$commentNode[this.$manager.$$domNodeIdKey] = ++this.$manager.$idCounter;
                 }
                 parentNode.replaceChild(this.$commentNode, this.$node);
             }

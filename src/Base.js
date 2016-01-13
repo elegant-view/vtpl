@@ -21,12 +21,14 @@ Base.prototype.initialize = function () {};
  * @return {Class}             子类
  */
 Base.extends = function (props, staticProps) {
+    var baseCls = this;
+
+    staticProps = utils.extend({}, staticProps);
+
     // 每个类都必须有一个名字
-    if (!staticProps || !staticProps.$name) {
+    if (!staticProps.$name) {
         throw new SyntaxError('each class must have a `$name`.');
     }
-
-    var baseCls = this;
 
     var cls = function () {
         baseCls.apply(this, arguments);
@@ -38,6 +40,15 @@ Base.extends = function (props, staticProps) {
     cls.$superClass = baseCls;
 
     return inherit(cls, baseCls);
+};
+
+Base.trait = function (props) {
+    var proto = this.prototype;
+    for (var key in props) {
+        proto[key] = props[key];
+    }
+
+    return this;
 };
 
 module.exports = Base;

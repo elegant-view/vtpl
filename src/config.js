@@ -3,6 +3,8 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
+var utils = require('./utils');
+
 function Config() {
     this.exprPrefix = '${';
     this.exprSuffix = '}';
@@ -41,7 +43,7 @@ Config.prototype.setExprSuffix = function (suffix) {
 
 Config.prototype.getExprRegExp = function () {
     if (!this.exprRegExp) {
-        this.exprRegExp = new RegExp(regExpEncode(this.exprPrefix) + '(.+?)' + regExpEncode(this.exprSuffix), 'g');
+        this.exprRegExp = new RegExp(utils.regExpEncode(this.exprPrefix) + '(.+?)' + utils.regExpEncode(this.exprSuffix), 'g');
     }
     this.exprRegExp.lastIndex = 0;
     return this.exprRegExp;
@@ -94,9 +96,9 @@ Config.prototype.getForExprsRegExp = function () {
         this.forExprsRegExp = new RegExp('\\s*'
             + this.forName
             + ':\\s*'
-            + regExpEncode(this.exprPrefix)
-            + '([^' + regExpEncode(this.exprSuffix)
-            + ']+)' + regExpEncode(this.exprSuffix));
+            + utils.regExpEncode(this.exprPrefix)
+            + '([^' + utils.regExpEncode(this.exprSuffix)
+            + ']+)' + utils.regExpEncode(this.exprSuffix));
     }
     this.forExprsRegExp.lastIndex = 0;
     return this.forExprsRegExp;
@@ -105,9 +107,9 @@ Config.prototype.getForExprsRegExp = function () {
 Config.prototype.getForItemValueNameRegExp = function () {
     if (!this.forItemValueNameRegExp) {
         this.forItemValueNameRegExp = new RegExp(
-            'as\\s*' + regExpEncode(this.exprPrefix)
-            + '([^' + regExpEncode(this.exprSuffix) + ']+)'
-            + regExpEncode(this.exprSuffix)
+            'as\\s*' + utils.regExpEncode(this.exprPrefix)
+            + '([^' + utils.regExpEncode(this.exprSuffix) + ']+)'
+            + utils.regExpEncode(this.exprSuffix)
         );
     }
     this.forItemValueNameRegExp.lastIndex = 0;
@@ -124,6 +126,3 @@ Config.prototype.setVarName = function (name) {
 
 module.exports = Config;
 
-function regExpEncode(str) {
-    return '\\' + str.split('').join('\\');
-}

@@ -239,6 +239,10 @@ exports.distinctArr = function (arr, hashFn) {
     return ret;
 };
 
+exports.regExpEncode = function (str) {
+    return '\\' + str.split('').join('\\');
+};
+
 
 function setHeaders(headers, xhr) {
     if (!headers) {
