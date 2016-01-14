@@ -180,6 +180,19 @@ var ForDirectiveParser = DirectiveParser.extends(
                     )
                 );
             };
+        },
+
+        // 主要用于遍历的时候，不让遍历器进入子孙节点
+        getChildNodes: function () {
+            return [];
+        },
+
+        getEndNode: function () {
+            return this.endNode;
+        },
+
+        getStartNode: function () {
+            return this.startNode;
         }
     },
     {

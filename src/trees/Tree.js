@@ -128,8 +128,18 @@ module.exports = Base.extends(
                     parser.linkScope();
                 }
 
-                var nextNode = parser.getEndNode().getNextSibling();
-                return nextNode;
+                return {
+                    type: 'options',
+                    getNextNode: function (curNode) {
+                        return parser.getEndNode().getNextSibling();
+                    },
+                    getChildNodes: function (curNode) {
+                        if (parser.getChildNodes instanceof Function) {
+                            return parser.getChildNodes();
+                        }
+                        return curNode.getChildNodes();
+                    }
+                };
             });
 
             for (var i = 0, il = delayFns.length; i < il; ++i) {
