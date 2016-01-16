@@ -4,6 +4,22 @@ testForBase();
 testForNest();
 testIfBase();
 testExprBase();
+testEvent();
+
+function testEvent() {
+    var vtpl = new Vtpl({
+        startNode: getNode('event'),
+        endNode: getNode('event')
+    });
+
+    vtpl.render();
+
+    vtpl.setData({
+        onClick(event) {
+            alert('你点了按钮');
+        }
+    });
+}
 
 function testExprBase() {
     var vtpl = new Vtpl({

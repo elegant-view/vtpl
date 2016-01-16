@@ -357,10 +357,10 @@ var Node = Base.extends(
         isEventName: function (str) {
             var eventList = this.eventList;
 
-            if (str.indexOf('on') !== 0) {
+            if (str.indexOf('on-') !== 0) {
                 return;
             }
-            str = str.slice(2);
+            str = str.slice(3);
             for (var i = 0, il = eventList.length; i < il; ++i) {
                 if (str === eventList[i]) {
                     return true;

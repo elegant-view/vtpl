@@ -9,6 +9,8 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
+import ScopeModel from '../ScopeModel';
+
 var Parser = require('./Parser');
 var utils = require('../utils');
 var Tree = require('../trees/Tree');
@@ -87,7 +89,7 @@ module.exports = Parser.extends(
                 for (var i = 0, il = attributes.length; i < il; i++) {
                     var attribute = attributes[i];
                     if (!isExpr(attribute.value)) {
-                        this.setLiteralAttr(this.node, attribute.name, attribute.value);
+                        this.setAttr(this.node, attribute.name, attribute.value);
                         continue;
                     }
                     this.addExpr(
@@ -120,11 +122,21 @@ module.exports = Parser.extends(
             textNode.setNodeValue(value);
         },
 
-        // attrValue不含有表达式
-        setLiteralAttr: function (node, attrName, attrValue) {},
-
         setAttr: function (node, attrName, attrValue) {
-            node.attr(attrName, attrValue);
+            if (Node.isEventName(attrName)) {
+                node.on(attrName.replace('on-', ''), event => {
+                    let exprCalculater = this.tree.getTreeVar('exprCalculater');
+                    exprCalculater.createExprFn(attrValue, true);
+
+                    let localScope = new ScopeModel();
+                    localScope.setParent(this.tree.rootScope);
+                    localScope.set('event', event);
+                    exprCalculater.calculate(attrValue, true, localScope);
+                });
+            }
+            else {
+                node.attr(attrName, attrValue);
+            }
         },
 
         /**
