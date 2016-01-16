@@ -1,3 +1,8 @@
+/**
+ * @file 数据容器
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
 var utils = require('./utils');
 var Event = require('./Event');
 var inherit = require('./inherit');
@@ -19,13 +24,27 @@ ScopeModel.prototype.addChild = function (child) {
 };
 
 ScopeModel.prototype.set = function (name, value) {
+    var changeObj;
+
     if (utils.isClass(name, 'String')) {
-        this.store[name] = value;
-        change(this, {name: name, value: value});
+        changeObj = setProperty(this, name, value);
+        if (changeObj) {
+            change(this, [changeObj]);
+        }
     }
-    else if (utils.isPureObject(name)) {
-        utils.extend(this.store, name);
-        change(this, name);
+    else if (typeof name === 'object') {
+        var changes = [];
+        for (var key in name) {
+            if (!name.hasOwnProperty(key)) {
+                continue;
+            }
+
+            changeObj = setProperty(this, key, name[key]);
+            if (changeObj) {
+                changes.push(changeObj);
+            }
+        }
+        change(this, changes);
     }
 };
 
@@ -48,16 +67,51 @@ ScopeModel.prototype.iterate = function (fn, context) {
         return;
     }
 
+    /* eslint-disable guard-for-in */
     for (var key in this.store) {
         fn.call(context, this.store[key], key);
     }
+    /* eslint-enable guard-for-in */
 };
 
 module.exports = inherit(ScopeModel, Event);
 
-function change(me, changeObj) {
-    me.trigger('change', me, changeObj);
-    utils.each(me.children, function (scope) {
-        scope.trigger('parentchange', me, changeObj);
+/**
+ * 设置单个属性值
+ *
+ * @param {ScopeModel} model 作为容器的Model对象
+ * @param {string} name 属性名
+ * @param {Mixed} value 对应的值
+ * @return {meta.ChangeRecord} 一个变化记录项
+ * @ignore
+ */
+function setProperty(model, name, value) {
+    var type = model.store.hasOwnProperty(name) ? 'change' : 'add';
+    var oldValue = model.store[name];
+    model.store[name] = value;
+
+    // 只在新旧值不同的情况下才有变化记录项
+    if (oldValue !== value) {
+        return {
+            type: type,
+            name: name,
+            oldValue: oldValue,
+            newValue: value
+        };
+    }
+
+    return null;
+}
+
+/**
+ * 触发change事件，并向子scopeModel广播
+ *
+ * @param {ScopeModel} model model对象
+ * @param {Array.<Object>} changes 值改变记录
+ */
+function change(model, changes) {
+    model.trigger('change', model, changes);
+    utils.each(model.children, function (scope) {
+        scope.trigger('parentchange', model, changes);
     });
 }

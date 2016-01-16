@@ -70,7 +70,7 @@ module.exports = Base.extends(
             var val = this.treeVars[name];
             if (!shouldNotFindInParent
                 && val === undefined
-                && this.$parent !== undefined
+                && this.$parent
             ) {
                 val = this.$parent.getTreeVar(name);
             }

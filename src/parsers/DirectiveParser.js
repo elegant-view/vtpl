@@ -62,7 +62,7 @@ module.exports = Parser.extends(
          */
         walkToEnd: function (startNode, config) {
             var curNode = startNode;
-            // 为了应对嵌套型的指令
+            // 为了应对指令嵌套
             var stackCounter = 0;
             while ((curNode = curNode.getNextSibling())) {
                 if (this.isProperNode(curNode, config)) {

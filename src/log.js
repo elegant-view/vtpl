@@ -5,5 +5,12 @@ module.exports = {
         }
 
         console.warn.apply(console, arguments);
+    },
+    info: function () {
+        if (!console || !console.info) {
+            return;
+        }
+
+        console.info.apply(console, arguments);
     }
 };

@@ -49,8 +49,9 @@ module.exports = Base.extends(
          * model 发生变化的回调函数
          *
          * @protected
+         * @param {Array.<Object>} changes 产生的改变
          */
-        onChange: function () {
+        onChange: function (changes) {
             this.tree.getTreeVar('domUpdater').execute();
         },
 

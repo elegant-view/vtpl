@@ -44,16 +44,13 @@ DomUpdater.prototype.execute = function (doneFn) {
     if (!this.isExecuting) {
         this.isExecuting = true;
         requestAnimationFrame(function () {
-            utils.each(me.tasks, function (taskFn) {
-                // try {
-                //     taskFn();
-                // }
-                // catch (e) {
-                //     log.warn(e);
-                // }
-                taskFn();
-            });
-            me.tasks = {};
+            do {
+                var taskFns = getTaskFns(me.tasks);
+                me.tasks = {};
+                for (var i = 0, il = taskFns.length; i < il; ++i) {
+                    taskFns[i]();
+                }
+            } while (taskFns.length);
 
             setTimeout(utils.bind(function (doneFns) {
                 utils.each(doneFns, function (doneFn) {
@@ -64,6 +61,14 @@ DomUpdater.prototype.execute = function (doneFn) {
 
             me.isExecuting = false;
         });
+    }
+
+    function getTaskFns(tasks) {
+        var fns = [];
+        for (var k in tasks) {
+            fns.push(tasks[k]);
+        }
+        return fns;
     }
 };
 

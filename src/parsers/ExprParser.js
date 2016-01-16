@@ -13,6 +13,7 @@ var Parser = require('./Parser');
 var utils = require('../utils');
 var Tree = require('../trees/Tree');
 var Node = require('../nodes/Node');
+var log = require('../log');
 
 module.exports = Parser.extends(
     {
@@ -37,6 +38,13 @@ module.exports = Parser.extends(
              * @type {Object}
              */
             this.attrToDomTaskIdMap = {};
+
+            /**
+             * 变量名到表达式的映射。也就是说这个表达式依赖于这个变量，
+             * 只要这个变量发生了改变，这个表达式的值就可能发生改变。
+             * @type {Object}
+             */
+            this.$paramNameToExprMap = {};
         },
 
         /**
@@ -64,7 +72,7 @@ module.exports = Parser.extends(
                                 });
                             },
                             this,
-                            domUpdater.generateTaskId(),
+                            domUpdater.generateNodeAttrUpdateId(this.node, 'nodeValue'),
                             domUpdater,
                             this.node
                         )
@@ -79,6 +87,7 @@ module.exports = Parser.extends(
                 for (var i = 0, il = attributes.length; i < il; i++) {
                     var attribute = attributes[i];
                     if (!isExpr(attribute.value)) {
+                        this.setLiteralAttr(this.node, attribute.name, attribute.value);
                         continue;
                     }
                     this.addExpr(
@@ -98,7 +107,7 @@ module.exports = Parser.extends(
 
             function updateAttr(taskId, domUpdater, node, attrName, exprValue) {
                 domUpdater.addTaskFn(taskId, function () {
-                    node.attr(attrName, exprValue);
+                    me.setAttr(node, attrName, exprValue);
                 });
             }
 
@@ -111,6 +120,13 @@ module.exports = Parser.extends(
             textNode.setNodeValue(value);
         },
 
+        // attrValue不含有表达式
+        setLiteralAttr: function (node, attrName, attrValue) {},
+
+        setAttr: function (node, attrName, attrValue) {
+            node.attr(attrName, attrValue);
+        },
+
         /**
          * 添加表达式
          *
@@ -121,8 +137,12 @@ module.exports = Parser.extends(
          */
         addExpr: function (mountObj, expr, updateFn) {
             if (!mountObj[expr]) {
+                var calculaterObj = this.createExprFn(expr);
+
+                this.addParamName2ExprMap(calculaterObj.paramNames, expr);
+
                 mountObj[expr] = {
-                    exprFn: this.createExprFn(expr),
+                    exprFn: calculaterObj.fn,
                     updateFns: [updateFn]
                 };
             }
@@ -131,35 +151,76 @@ module.exports = Parser.extends(
             }
         },
 
+        // 添加变量名到表达式的映射
+        addParamName2ExprMap(names, expr) {
+            for (var i = 0, il = names.length; i < il; ++i) {
+                var paramName = names[i];
+                var exprArr = this.$paramNameToExprMap[paramName] || [];
+                exprArr.push(expr);
+                this.$paramNameToExprMap[paramName] = exprArr;
+            }
+        },
+
         linkScope: function () {
             this.renderToDom(this.exprFns, this.exprOldValues, this.tree.rootScope);
             Parser.prototype.linkScope.call(this);
         },
 
-        /**
-         * 在model发生改变的时候计算一下表达式的值->脏检测->更新界面。
-         *
-         * @protected
-         */
-        onChange: function () {
+        // 在model发生改变的时候计算一下表达式的值->脏检测->更新界面。
+        onChange: function (model, changes) {
             if (this.isGoDark) {
                 return;
             }
-            this.renderToDom(this.exprFns, this.exprOldValues, this.tree.rootScope);
+
+            this.renderToDom(this.exprFns, this.exprOldValues, this.tree.rootScope, changes);
             Parser.prototype.onChange.apply(this, arguments);
         },
 
-        renderToDom: function (exprFns, exprOldValues, scopeModel) {
-            for (var expr in exprFns) {
-                var exprValue = exprFns[expr].exprFn(scopeModel);
+        // 用当前的scopeModel扫描一下exprFns，做相应的更新。
+        renderToDom: function (exprFns, exprOldValues, scopeModel, changes) {
+            var exprValue;
+            var updateFns;
+            var i;
+            var j;
+            var jl;
+            var il;
+            var expr;
 
-                if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
-                    var updateFns = exprFns[expr].updateFns;
-                    for (var j = 0, jl = updateFns.length; j < jl; j++) {
-                        updateFns[j](exprValue);
+            if (changes) {
+                for (i = 0, il = changes.length; i < il; ++i) {
+                    var exprs = this.$paramNameToExprMap[changes[i].name] || [];
+
+                    // log.info(`param: '${changes[i].name}' changed, and will update these exprs: ${exprs}`);
+
+                    for (j = 0, jl = exprs.length; j < jl; ++j) {
+                        expr = exprs[j];
+                        exprValue = exprFns[expr].exprFn(scopeModel);
+
+                        // log.info(`get the value of expr: '${expr}', it is ${exprValue}`);
+
+                        if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
+                            updateFns = exprFns[expr].updateFns;
+                            for (var k = 0, kl = updateFns.length; k < kl; ++k) {
+                                updateFns[k](exprValue);
+                            }
+
+                            exprOldValues[expr] = exprValue;
+                        }
                     }
+                }
+            }
+            else {
+                for (expr in exprFns) {
+                    exprValue = exprFns[expr].exprFn(scopeModel);
 
-                    exprOldValues[expr] = exprValue;
+                    if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
+                        updateFns = exprFns[expr].updateFns;
+                        for (j = 0, jl = updateFns.length; j < jl; j++) {
+                            updateFns[j](exprValue);
+                        }
+
+                        exprOldValues[expr] = exprValue;
+                    }
                 }
             }
         },
@@ -237,39 +298,66 @@ module.exports = Parser.extends(
         /**
          * 创建根据scopeModel计算表达式值的函数
          *
+         * 此处要分两种情况：
+         * 1、expr并不是纯正的表达式，如`==${name}==`。
+         * 2、expr是纯正的表达式，如`${name}`。
+         * 对于不纯正表达式的情况，此处的返回值肯定是字符串；
+         * 而对于纯正的表达式，此处就不要将其转换成字符串形式了。
+         *
          * @protected
          * @param  {string} expr   含有表达式的字符串
          * @return {function(Scope):*}
          */
         createExprFn: function (expr) {
             var parser = this;
-            return function (scopeModel) {
-                // 此处要分两种情况：
-                // 1、expr并不是纯正的表达式，如`==${name}==`。
-                // 2、expr是纯正的表达式，如`${name}`。
-                // 对于不纯正表达式的情况，此处的返回值肯定是字符串；
-                // 而对于纯正的表达式，此处就不要将其转换成字符串形式了。
 
-                var config = parser.tree.getTreeVar('config');
-                var exprCalculater = parser.tree.getTreeVar('exprCalculater');
-                var regExp = config.getExprRegExp();
+            var config = parser.tree.getTreeVar('config');
+            var exprCalculater = parser.tree.getTreeVar('exprCalculater');
+            var regExp = config.getExprRegExp();
 
-                var possibleExprCount = expr.match(new RegExp(utils.regExpEncode(config.exprPrefix), 'g'));
-                possibleExprCount = possibleExprCount ? possibleExprCount.length : 0;
+            var exprCalculaterObj = genMultiExprFnObj(expr, regExp);
+            return exprCalculaterObj;
 
-                // 不纯正
-                if (possibleExprCount !== 1 || expr.replace(regExp, '')) {
-                    return expr.replace(regExp, function () {
-                        exprCalculater.createExprFn(arguments[1]);
-                        return exprCalculater.calculate(arguments[1], false, scopeModel);
-                    });
+            /**
+             * 生成计算表达式值的函数，并拿到该表达式所依赖的变量名，
+             * 这样就可以在后面数据变化的时候，选择性地更新表达式值。
+             *
+             * @inner
+             * @param  {string} expr   原始的表达式，可能包含干扰字符串，比如`---${name}---`
+             * @param  {RegExp} regExp 能匹配出表达式的正则对象
+             * @return {Object}
+             */
+            function genMultiExprFnObj(expr, regExp) {
+                var exprs = expr.match(regExp);
+                var paramNames = [];
+                for (var i = 0, il = exprs.length; i < il; ++i) {
+                    exprs[i] = exprs[i].slice(config.exprPrefix.length, -config.exprSuffix.length);
+                    var names = exprCalculater.createExprFn(exprs[i]).paramNames;
+                    paramNames.push.apply(paramNames, names);
                 }
 
-                // 纯正
-                var pureExpr = expr.slice(config.exprPrefix.length, -config.exprSuffix.length);
-                exprCalculater.createExprFn(pureExpr);
-                return exprCalculater.calculate(pureExpr, false, scopeModel);
-            };
+                // 是否是纯正的表达式
+                var isPure = !(exprs.length !== 1 || expr.replace(regExp, ''));
+
+                var calculateFn = isPure
+                    ? function (scopeModel) {
+                        return exprCalculater.calculate(
+                            exprs[0],
+                            false,
+                            scopeModel
+                        );
+                    }
+                    : function (scopeModel) {
+                        return expr.replace(regExp, function () {
+                            return exprCalculater.calculate(arguments[1], false, scopeModel);
+                        });
+                    };
+
+                return {
+                    paramNames: paramNames,
+                    fn: calculateFn
+                };
+            }
         }
     },
     {

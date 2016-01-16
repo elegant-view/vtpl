@@ -12,6 +12,14 @@ function ExprCalculater() {
     this.exprNameRegExp = /\.?\$?([a-z|A-Z]+|([a-z|A-Z]+[0-9]+[a-z|A-Z]*))/g;
 }
 
+/**
+ * 创建表达式计算函数
+ *
+ * @public
+ * @param  {string} expr        纯正的表达式字符串。`---${name}---`就不是纯正的，而`name`就算是纯正的。
+ * @param  {boolean} avoidReturn 最后生成的表达式计算函数是否需要返回值
+ * @return {Object}             返回生成的表达式计算对象。
+ */
 ExprCalculater.prototype.createExprFn = function (expr, avoidReturn) {
     if (expr === 'klass') {
         throw new Error('`klass` is the preserved word for `class`');
@@ -24,16 +32,18 @@ ExprCalculater.prototype.createExprFn = function (expr, avoidReturn) {
     avoidReturn = !!avoidReturn;
     this.fns[expr] = this.fns[expr] || {};
     if (this.fns[expr][avoidReturn]) {
-        return;
+        return this.fns[expr][avoidReturn];
     }
 
     var params = getVariableNamesFromExpr(this, expr);
     var fn = new Function(params, (avoidReturn ? '' : 'return ') + expr);
 
-    this.fns[expr][avoidReturn] = {
+    var exprObj = {
         paramNames: params,
         fn: fn
     };
+    this.fns[expr][avoidReturn] = exprObj;
+    return exprObj;
 };
 
 ExprCalculater.prototype.calculate = function (expr, avoidReturn, scopeModel) {
