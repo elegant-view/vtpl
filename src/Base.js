@@ -3,8 +3,8 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var inherit = require('./inherit');
-var utils = require('./utils');
+import inherit from './inherit';
+import {extend} from './utils';
 
 function Base() {
     this.initialize.apply(this, arguments);
@@ -23,7 +23,7 @@ Base.prototype.initialize = function () {};
 Base.extends = function (props, staticProps) {
     var baseCls = this;
 
-    staticProps = utils.extend({}, staticProps);
+    staticProps = extend({}, staticProps);
 
     // 每个类都必须有一个名字
     if (!staticProps.$name) {
@@ -33,8 +33,8 @@ Base.extends = function (props, staticProps) {
     var cls = function () {
         baseCls.apply(this, arguments);
     };
-    utils.extend(cls.prototype, props);
-    utils.extend(cls, staticProps);
+    extend(cls.prototype, props);
+    extend(cls, staticProps);
 
     // 记录一下父类
     cls.$superClass = baseCls;
@@ -51,4 +51,4 @@ Base.trait = function (props) {
     return this;
 };
 
-module.exports = Base;
+export default Base;

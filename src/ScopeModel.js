@@ -3,78 +3,79 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var utils = require('./utils');
-var Event = require('./Event');
-var inherit = require('./inherit');
+import {isClass, extend, each} from './utils';
+import Event from './Event';
 
-function ScopeModel() {
-    Event.call(this);
+class ScopeModel extends Event {
+    constructor(...args) {
+        super(...args);
 
-    this.store = {};
-    this.parent;
-    this.children = [];
+        this.store = {};
+        this.parent;
+        this.children = [];
+    }
+
+    setParent(parent) {
+        this.parent = parent;
+    }
+
+    addChild(child) {
+        this.children.push(child);
+    }
+
+    set(name, value) {
+        var changeObj;
+
+        if (isClass(name, 'String')) {
+            changeObj = setProperty(this, name, value);
+            if (changeObj) {
+                change(this, [changeObj]);
+            }
+        }
+        else if (typeof name === 'object') {
+            var changes = [];
+            for (var key in name) {
+                if (!name.hasOwnProperty(key)) {
+                    continue;
+                }
+
+                changeObj = setProperty(this, key, name[key]);
+                if (changeObj) {
+                    changes.push(changeObj);
+                }
+            }
+            change(this, changes);
+        }
+    }
+
+    get(name) {
+        if (arguments.length > 1 || name === undefined) {
+            return extend({}, this.store);
+        }
+
+        if (name in this.store) {
+            return this.store[name];
+        }
+
+        if (this.parent) {
+            return this.parent.get(name);
+        }
+    }
+
+    iterate(fn, context) {
+        if (!isFunction(fn)) {
+            return;
+        }
+
+        /* eslint-disable guard-for-in */
+        for (var key in this.store) {
+            fn.call(context, this.store[key], key);
+        }
+        /* eslint-enable guard-for-in */
+    }
 }
 
-ScopeModel.prototype.setParent = function (parent) {
-    this.parent = parent;
-};
-
-ScopeModel.prototype.addChild = function (child) {
-    this.children.push(child);
-};
-
-ScopeModel.prototype.set = function (name, value) {
-    var changeObj;
-
-    if (utils.isClass(name, 'String')) {
-        changeObj = setProperty(this, name, value);
-        if (changeObj) {
-            change(this, [changeObj]);
-        }
-    }
-    else if (typeof name === 'object') {
-        var changes = [];
-        for (var key in name) {
-            if (!name.hasOwnProperty(key)) {
-                continue;
-            }
-
-            changeObj = setProperty(this, key, name[key]);
-            if (changeObj) {
-                changes.push(changeObj);
-            }
-        }
-        change(this, changes);
-    }
-};
-
-ScopeModel.prototype.get = function (name) {
-    if (arguments.length > 1 || name === undefined) {
-        return utils.extend({}, this.store);
-    }
-
-    if (name in this.store) {
-        return this.store[name];
-    }
-
-    if (this.parent) {
-        return this.parent.get(name);
-    }
-};
-
-ScopeModel.prototype.iterate = function (fn, context) {
-    if (!utils.isFunction(fn)) {
-        return;
-    }
-
-    /* eslint-disable guard-for-in */
-    for (var key in this.store) {
-        fn.call(context, this.store[key], key);
-    }
-    /* eslint-enable guard-for-in */
-};
-
-module.exports = inherit(ScopeModel, Event);
+export default ScopeModel;
 
 /**
  * 设置单个属性值
@@ -111,7 +112,7 @@ function setProperty(model, name, value) {
  */
 function change(model, changes) {
     model.trigger('change', model, changes);
-    utils.each(model.children, function (scope) {
+    each(model.children, function (scope) {
         scope.trigger('parentchange', model, changes);
     });
 }

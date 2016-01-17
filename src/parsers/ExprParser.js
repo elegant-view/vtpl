@@ -11,13 +11,13 @@
 
 import ScopeModel from '../ScopeModel';
 
-var Parser = require('./Parser');
-var utils = require('../utils');
-var Tree = require('../trees/Tree');
-var Node = require('../nodes/Node');
-var log = require('../log');
+import Parser from './Parser';
+import {bind} from '../utils';
+import Tree from '../trees/Tree';
+import Node from '../nodes/Node';
+import log from '../log';
 
-module.exports = Parser.extends(
+const ExprParser = Parser.extends(
     {
 
         /**
@@ -27,7 +27,7 @@ module.exports = Parser.extends(
          * @param  {Object} options 参数
          * @param  {Node} options.node 要解析的DOM节点
          */
-        initialize: function (options) {
+        initialize(options) {
             Parser.prototype.initialize.apply(this, arguments);
 
             this.node = options.node;
@@ -54,7 +54,7 @@ module.exports = Parser.extends(
          *
          * @public
          */
-        collectExprs: function () {
+        collectExprs() {
             var me = this;
             var nodeType = this.node.getNodeType();
             var domUpdater = this.tree.getTreeVar('domUpdater');
@@ -66,7 +66,7 @@ module.exports = Parser.extends(
                     this.addExpr(
                         this.exprFns,
                         nodeValue,
-                        utils.bind(
+                        bind(
                             function (taskId, domUpdater, node, exprValue) {
                                 var parser = this;
                                 domUpdater.addTaskFn(taskId, function () {
@@ -95,7 +95,7 @@ module.exports = Parser.extends(
                     this.addExpr(
                         this.exprFns,
                         attribute.value,
-                        utils.bind(
+                        bind(
                             updateAttr,
                             null,
                             this.getTaskId(attribute.name),
@@ -118,11 +118,11 @@ module.exports = Parser.extends(
             }
         },
 
-        setTextNodeValue: function (textNode, value) {
+        setTextNodeValue(textNode, value) {
             textNode.setNodeValue(value);
         },
 
-        setAttr: function (node, attrName, attrValue) {
+        setAttr(node, attrName, attrValue) {
             if (Node.isEventName(attrName)) {
                 node.on(attrName.replace('on-', ''), event => {
                     let exprCalculater = this.tree.getTreeVar('exprCalculater');
@@ -147,7 +147,7 @@ module.exports = Parser.extends(
          * @param {string} expr   表达式，比如： `${name}` 或者 `prefix string ${name}suffix string`
          * @param {function(*)} updateFn 根据表达式值更新界面的函数
          */
-        addExpr: function (mountObj, expr, updateFn) {
+        addExpr(mountObj, expr, updateFn) {
             if (!mountObj[expr]) {
                 var calculaterObj = this.createExprFn(expr);
 
@@ -173,13 +173,13 @@ module.exports = Parser.extends(
             }
         },
 
-        linkScope: function () {
+        linkScope() {
             this.renderToDom(this.exprFns, this.exprOldValues, this.tree.rootScope);
             Parser.prototype.linkScope.call(this);
         },
 
         // 在model发生改变的时候计算一下表达式的值->脏检测->更新界面。
-        onChange: function (model, changes) {
+        onChange(model, changes) {
             if (this.isGoDark) {
                 return;
             }
@@ -189,7 +189,7 @@ module.exports = Parser.extends(
         },
 
         // 用当前的scopeModel扫描一下exprFns，做相应的更新。
-        renderToDom: function (exprFns, exprOldValues, scopeModel, changes) {
+        renderToDom(exprFns, exprOldValues, scopeModel, changes) {
             var exprValue;
             var updateFns;
             var i;
@@ -244,7 +244,7 @@ module.exports = Parser.extends(
          * @inheritDoc
          * @return {Node}
          */
-        getStartNode: function () {
+        getStartNode() {
             return this.node;
         },
 
@@ -255,7 +255,7 @@ module.exports = Parser.extends(
          * @inheritDoc
          * @return {Node}
          */
-        getEndNode: function () {
+        getEndNode() {
             return this.node;
         },
 
@@ -264,7 +264,7 @@ module.exports = Parser.extends(
          *
          * @inheritDoc
          */
-        destroy: function () {
+        destroy() {
             this.node = null;
             this.exprFns = null;
             this.exprOldValues = null;
@@ -278,7 +278,7 @@ module.exports = Parser.extends(
          *
          * @public
          */
-        goDark: function () {
+        goDark() {
             this.node.hide();
             this.isGoDark = true;
         },
@@ -288,7 +288,7 @@ module.exports = Parser.extends(
          *
          * @public
          */
-        restoreFromDark: function () {
+        restoreFromDark() {
             this.node.show();
             this.isGoDark = false;
         },
@@ -300,7 +300,7 @@ module.exports = Parser.extends(
          * @param  {string} attrName 属性名字
          * @return {string}          任务id
          */
-        getTaskId: function (attrName) {
+        getTaskId(attrName) {
             if (!this.attrToDomTaskIdMap[attrName]) {
                 this.attrToDomTaskIdMap[attrName] = this.tree.getTreeVar('domUpdater').generateTaskId();
             }
@@ -320,7 +320,7 @@ module.exports = Parser.extends(
          * @param  {string} expr   含有表达式的字符串
          * @return {function(Scope):*}
          */
-        createExprFn: function (expr) {
+        createExprFn(expr) {
             var parser = this;
 
             var config = parser.tree.getTreeVar('config');
@@ -381,7 +381,7 @@ module.exports = Parser.extends(
          * @param  {Node}  node 节点
          * @return {boolean}
          */
-        isProperNode: function (node) {
+        isProperNode(node) {
             var nodeType = node.getNodeType();
             return nodeType === Node.ELEMENT_NODE || nodeType === Node.TEXT_NODE;
         },
@@ -390,5 +390,5 @@ module.exports = Parser.extends(
     }
 );
 
-Tree.registeParser(module.exports);
-
+Tree.registeParser(ExprParser);
+export default ExprParser;

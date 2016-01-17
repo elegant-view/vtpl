@@ -3,20 +3,20 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-function DirtyChecker() {
-    this.checkers = {};
+export default class DirtyChecker {
+    constructor() {
+        this.checkers = {};
+    }
+
+    setChecker(expr, checkerFn) {
+        this.checkers[expr] = checkerFn;
+    }
+
+    getChecker(expr) {
+        return this.checkers[expr];
+    }
+
+    destroy() {
+        this.checkers = null;
+    }
 }
-
-DirtyChecker.prototype.setChecker = function (expr, checkerFn) {
-    this.checkers[expr] = checkerFn;
-};
-
-DirtyChecker.prototype.getChecker = function (expr) {
-    return this.checkers[expr];
-};
-
-DirtyChecker.prototype.destroy = function () {
-    this.checkers = null;
-};
-
-module.exports = DirtyChecker;

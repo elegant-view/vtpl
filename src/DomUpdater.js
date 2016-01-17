@@ -3,73 +3,73 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var utils = require('./utils');
+import {isFunction, bind, each} from './utils';
 
-function DomUpdater() {
-    this.tasks = {};
-    this.isExecuting = false;
-    this.doneFns = [];
-    this.counter = 0;
+export default class DomUpdater {
+    constructor() {
+        this.tasks = {};
+        this.isExecuting = false;
+        this.doneFns = [];
+        this.counter = 0;
 
-    this.$$nodeAttrNameTaskIdMap = {};
-}
-
-DomUpdater.prototype.generateTaskId = function () {
-    return this.counter++;
-};
-
-DomUpdater.prototype.generateNodeAttrUpdateId = function (node, attrName) {
-    var key = node.getNodeId() + '-' + attrName;
-    if (!this.$$nodeAttrNameTaskIdMap[key]) {
-        this.$$nodeAttrNameTaskIdMap[key] = this.generateTaskId();
+        this.$$nodeAttrNameTaskIdMap = {};
     }
 
-    return this.$$nodeAttrNameTaskIdMap[key];
-};
-
-DomUpdater.prototype.addTaskFn = function (taskId, taskFn) {
-    this.tasks[taskId] = taskFn;
-};
-
-DomUpdater.prototype.destroy = function () {
-    this.tasks = null;
-};
-
-DomUpdater.prototype.execute = function (doneFn) {
-    if (utils.isFunction(doneFn)) {
-        this.doneFns.push(doneFn);
+    generateTaskId() {
+        return this.counter++;
     }
 
-    var me = this;
-    if (!this.isExecuting) {
-        this.isExecuting = true;
-        requestAnimationFrame(function () {
-            do {
-                var taskFns = getTaskFns(me.tasks);
-                me.tasks = {};
-                for (var i = 0, il = taskFns.length; i < il; ++i) {
-                    taskFns[i]();
-                }
-            } while (taskFns.length);
-
-            setTimeout(utils.bind(function (doneFns) {
-                utils.each(doneFns, function (doneFn) {
-                    doneFn();
-                });
-            }, null, me.doneFns));
-            me.doneFns = [];
-
-            me.isExecuting = false;
-        });
-    }
-
-    function getTaskFns(tasks) {
-        var fns = [];
-        for (var k in tasks) {
-            fns.push(tasks[k]);
+    generateNodeAttrUpdateId(node, attrName) {
+        var key = node.getNodeId() + '-' + attrName;
+        if (!this.$$nodeAttrNameTaskIdMap[key]) {
+            this.$$nodeAttrNameTaskIdMap[key] = this.generateTaskId();
         }
-        return fns;
-    }
-};
 
-module.exports = DomUpdater;
+        return this.$$nodeAttrNameTaskIdMap[key];
+    }
+
+    addTaskFn(taskId, taskFn) {
+        this.tasks[taskId] = taskFn;
+    }
+
+    destroy() {
+        this.tasks = null;
+    }
+
+    execute(doneFn) {
+        if (isFunction(doneFn)) {
+            this.doneFns.push(doneFn);
+        }
+
+        var me = this;
+        if (!this.isExecuting) {
+            this.isExecuting = true;
+            requestAnimationFrame(function () {
+                do {
+                    var taskFns = getTaskFns(me.tasks);
+                    me.tasks = {};
+                    for (var i = 0, il = taskFns.length; i < il; ++i) {
+                        taskFns[i]();
+                    }
+                } while (taskFns.length);
+
+                setTimeout(bind(function (doneFns) {
+                    each(doneFns, function (doneFn) {
+                        doneFn();
+                    });
+                }, null, me.doneFns));
+                me.doneFns = [];
+
+                me.isExecuting = false;
+            });
+        }
+
+        function getTaskFns(tasks) {
+            var fns = [];
+            for (var k in tasks) {
+                fns.push(tasks[k]);
+            }
+            return fns;
+        }
+    }
+}

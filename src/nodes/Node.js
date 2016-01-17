@@ -4,13 +4,13 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var Base = require('../Base');
-var utils = require('../utils');
-var Event = require('../Event');
+import Base from '../Base';
+import {isFunction, isPureObject, isClass, isArray, distinctArr, slice} from '../utils';
+import Event from '../Event';
 
-var Node = Base.extends(
+const Node = Base.extends(
     {
-        initialize: function (node, manager) {
+        initialize(node, manager) {
             Base.prototype.initialize.apply(this, arguments);
 
             // 弱弱地判断一下node是不是节点
@@ -25,33 +25,33 @@ var Node = Base.extends(
             this.$nodeEventFns = {};
         },
 
-        getNodeType: function () {
+        getNodeType() {
             return this.$node.nodeType;
         },
 
-        getChildNodes: function () {
-            var nodes = [];
-            var childNodes = this.$node.childNodes;
-            for (var i = 0, il = childNodes.length; i < il; ++i) {
+        getChildNodes() {
+            let nodes = [];
+            let childNodes = this.$node.childNodes;
+            for (let i = 0, il = childNodes.length; i < il; ++i) {
                 nodes.push(this.$manager.getNode(childNodes[i]));
             }
             return nodes;
         },
 
-        getFirstChild: function () {
+        getFirstChild() {
             return this.$manager.getNode(this.$node.firstChild);
         },
 
-        getLastChild: function () {
+        getLastChild() {
             return this.$manager.getNode(this.$node.lastChild);
         },
 
-        equal: function (node) {
+        equal(node) {
             return this.$node === node.$node;
         },
 
-        getParentNode: function () {
-            var parentNode = this.$node.parentNode
+        getParentNode() {
+            let parentNode = this.$node.parentNode
                 || (this.$commentNode && this.$commentNode.parentNode);
             if (!parentNode) {
                 return null;
@@ -60,8 +60,8 @@ var Node = Base.extends(
             return this.$manager.getNode(parentNode);
         },
 
-        getNextSibling: function () {
-            var nextSibling = this.$node.nextSibling
+        getNextSibling() {
+            let nextSibling = this.$node.nextSibling
                 || (this.$commentNode && this.$commentNode.nextSibling);
             if (!nextSibling) {
                 return null;
@@ -70,8 +70,8 @@ var Node = Base.extends(
             return this.$manager.getNode(nextSibling);
         },
 
-        getPreviousSibling: function () {
-            var previousSibling = this.$node.previousSibling
+        getPreviousSibling() {
+            let previousSibling = this.$node.previousSibling
                 || (this.$commentNode && this.$commentNode.previousSibling);
             if (!previousSibling) {
                 return null;
@@ -80,49 +80,51 @@ var Node = Base.extends(
             return this.$manager.getNode(previousSibling);
         },
 
-        getAttribute: function (name) {
+        getAttribute(name) {
             return this.$node.getAttribute(name);
         },
 
-        setAttribute: function (name, value) {
+        setAttribute(name, value) {
             this.$node.setAttribute(name, value);
         },
 
-        getAttributes: function () {
+        getAttributes() {
             return this.$node.attributes;
         },
 
-        getNodeValue: function () {
+        getNodeValue() {
             return this.$node.nodeValue;
         },
 
-        setNodeValue: function (value) {
+        setNodeValue(value) {
             this.$node.nodeValue = value;
         },
 
-        appendChild: function (node) {
+        appendChild(node) {
             this.$node.appendChild(node.$node);
         },
 
-        cloneNode: function () {
-            return this.$manager.getNode(this.$node.cloneNode.apply(this.$node, arguments));
+        cloneNode() {
+            return this.$manager.getNode(
+                this.$node.cloneNode.apply(this.$node, arguments)
+            );
         },
 
-        insertBefore: function (newNode, referenceNode) {
+        insertBefore(newNode, referenceNode) {
             return this.$manager.getNode(
                 this.$node.insertBefore(newNode.$node, referenceNode.$node)
             );
         },
 
-        getInnerHTML: function () {
+        getInnerHTML() {
             return this.$node.innerHTML;
         },
 
-        setInnerHTML: function (html) {
+        setInnerHTML(html) {
             this.$node.innerHTML = html;
         },
 
-        getTagName: function () {
+        getTagName() {
             return this.$node.tagName.toLowerCase();
         },
 
@@ -133,14 +135,14 @@ var Node = Base.extends(
          * @param  {Node}  node 要对比的节点
          * @return {boolean}
          */
-        isAfter: function (node) {
+        isAfter(node) {
             if (!this.isBrotherWith(node)
                 || this.equal(node)
             ) {
                 return false;
             }
 
-            for (var curNode = node.$node; curNode; curNode = curNode.nextSibling) {
+            for (let curNode = node.$node; curNode; curNode = curNode.nextSibling) {
                 if (curNode === this.$node) {
                     return true;
                 }
@@ -149,7 +151,7 @@ var Node = Base.extends(
             return false;
         },
 
-        isBrotherWith: function (node) {
+        isBrotherWith(node) {
             return this.getParentNode().equal(node.getParentNode());
         },
 
@@ -164,7 +166,7 @@ var Node = Base.extends(
          * @param {*=} value 节点属性值
          * @return {*}
          */
-        attr: function (name, value) {
+        attr(name, value) {
             // 目前仅适用于元素节点
             if (this.getNodeType() !== Node.ELEMENT_NODE) {
                 return;
@@ -176,7 +178,7 @@ var Node = Base.extends(
             }
 
             if (this.getNodeType() === Node.ELEMENT_NODE) {
-                if (name === 'style' && utils.isPureObject(value)) {
+                if (name === 'style' && isPureObject(value)) {
                     return this.setStyle(value);
                 }
 
@@ -197,7 +199,7 @@ var Node = Base.extends(
             this.setAttribute(name, value);
         },
 
-        setClass: function (klass) {
+        setClass(klass) {
             if (!klass) {
                 return;
             }
@@ -205,30 +207,32 @@ var Node = Base.extends(
             this.$node.className = Node.getClassList(klass).join(' ');
         },
 
-        setStyle: function (styleObj) {
-            for (var k in styleObj) {
+        setStyle(styleObj) {
+            for (let k in styleObj) {
                 if (styleObj.hasOwnProperty(k)) {
                     this.$node.style[k] = styleObj[k];
                 }
             }
         },
 
-        remove: function () {
+        remove() {
             if (!this.$node.parentNode) {
                 return;
             }
             this.$node.parentNode.removeChild(this.$node);
         },
 
-        on: function (eventName, callback) {
+        on(eventName, callback) {
             this.$event.on(eventName, callback);
 
-            var me = this;
-            if (!utils.isFunction(this.$nodeEventFns[eventName])) {
+            let me = this;
+            if (!isFunction(this.$nodeEventFns[eventName])) {
                 if (eventName === 'outclick') {
                     this.$nodeEventFns[eventName] = function (event) {
                         event = event || window.event;
-                        if (me.$node !== event.target && !me.$node.contains(event.target)) {
+                        if (me.$node !== event.target
+                            && !me.$node.contains(event.target)
+                        ) {
                             me.$event.trigger(eventName, event);
                         }
                     };
@@ -244,11 +248,11 @@ var Node = Base.extends(
             }
         },
 
-        off: function (eventName, callback) {
+        off(eventName, callback) {
             this.$event.off(eventName, callback);
 
             if (this.$event.isAllRemoved()) {
-                var eventFn;
+                let eventFn;
                 eventFn = this.$nodeEventFns[eventName];
                 if (eventName === 'outclick') {
                     window.removeEventListener('click', eventFn);
@@ -260,27 +264,27 @@ var Node = Base.extends(
             }
         },
 
-        getNodeId: function () {
+        getNodeId() {
             return this.$node[this.$manager.$$domNodeIdKey];
         },
 
-        show: function () {
+        show() {
             if (this.$node.parentNode || !this.$commentNode) {
                 return;
             }
 
-            var parentNode = this.$commentNode.parentNode;
+            let parentNode = this.$commentNode.parentNode;
             if (parentNode) {
                 parentNode.replaceChild(this.$node, this.$commentNode);
             }
         },
 
-        hide: function () {
+        hide() {
             if (!this.$node.parentNode) {
                 return;
             }
 
-            var parentNode = this.$node.parentNode;
+            let parentNode = this.$node.parentNode;
             if (parentNode) {
                 if (!this.$commentNode) {
                     this.$commentNode = document.createComment('node placeholder');
@@ -290,7 +294,7 @@ var Node = Base.extends(
             }
         },
 
-        isInDom: function () {
+        isInDom() {
             return !!this.$node.parentNode;
         },
 
@@ -301,11 +305,11 @@ var Node = Base.extends(
          *
          * @public
          */
-        destroy: function () {
+        destroy() {
             this.$event.off();
 
-            for (var eventName in this.$nodeEventFns) {
-                var eventFn = this.$nodeEventFns[eventName];
+            for (let eventName in this.$nodeEventFns) {
+                let eventFn = this.$nodeEventFns[eventName];
                 if (eventName === 'outclick') {
                     window.removeEventListener('click', eventFn);
                 }
@@ -335,33 +339,33 @@ var Node = Base.extends(
             + 'mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave '
             + 'change select submit keydown keypress keyup error contextmenu').split(' '),
 
-        getClassList: function (klass) {
-            var klasses = [];
-            if (utils.isClass(klass, 'String')) {
+        getClassList(klass) {
+            let klasses = [];
+            if (isClass(klass, 'String')) {
                 klasses = klass.split(' ');
             }
-            else if (utils.isPureObject(klass)) {
-                for (var k in klass) {
+            else if (isPureObject(klass)) {
+                for (let k in klass) {
                     if (klass[k]) {
                         klasses.push(klass[k]);
                     }
                 }
             }
-            else if (utils.isArray(klass)) {
+            else if (isArray(klass)) {
                 klasses = klass;
             }
 
-            return utils.distinctArr(klasses);
+            return distinctArr(klasses);
         },
 
-        isEventName: function (str) {
-            var eventList = this.eventList;
+        isEventName(str) {
+            let eventList = this.eventList;
 
             if (str.indexOf('on-') !== 0) {
                 return;
             }
             str = str.slice(3);
-            for (var i = 0, il = eventList.length; i < il; ++i) {
+            for (let i = 0, il = eventList.length; i < il; ++i) {
                 if (str === eventList[i]) {
                     return true;
                 }
@@ -377,18 +381,18 @@ var Node = Base.extends(
          * @param {(NodeList|Array.<Node>)} nodeList DOM节点列表
          * @return {Array.<Node>}
          */
-        toArray: function (nodeList) {
-            if (utils.isArray(nodeList)) {
+        toArray(nodeList) {
+            if (isArray(nodeList)) {
                 return nodeList;
             }
 
             try {
-                return utils.slice(nodeList, 0);
+                return slice(nodeList, 0);
             }
             catch (e) {
                 // IE8 及更早版本将 NodeList 实现为一个 COM 对象，因此只能一个一个遍历出来。
-                var list = [];
-                for (var i = 0, il = nodeList.length; i < il; ++i) {
+                let list = [];
+                for (let i = 0, il = nodeList.length; i < il; ++i) {
                     list.push(nodeList[i]);
                 }
                 return list;
@@ -415,14 +419,14 @@ var Node = Base.extends(
          *                             如果这个函数返回了一个Node对象，则把这个Node对象当成下一个要遍历的节点。
          * @return {boolean} 如果是true，说明在遍历子节点的时候中途中断了，不需要继续遍历了。
          */
-        iterate: function (startNode, endNode, iterateFn) {
-            if (!utils.isFunction(iterateFn)) {
+        iterate(startNode, endNode, iterateFn) {
+            if (!isFunction(iterateFn)) {
                 return;
             }
 
-            var curNode = startNode;
+            let curNode = startNode;
             while (curNode) {
-                var nextNode = iterateFn(curNode);
+                let nextNode = iterateFn(curNode);
 
                 if (!nextNode) {
                     if (iterateChildren(curNode)) {
@@ -444,7 +448,7 @@ var Node = Base.extends(
                 }
                 // 外部提供获取下一个节点和获取当前节点的子节点方法
                 else if (nextNode.type === 'options') {
-                    var childNodes = nextNode.getChildNodes instanceof Function
+                    let childNodes = nextNode.getChildNodes instanceof Function
                         ? nextNode.getChildNodes(curNode)
                         : (Node.ELEMENT_NODE === curNode.getNodeType() ? curNode.getChildNodes() : []);
 
@@ -465,7 +469,12 @@ var Node = Base.extends(
 
             function iterateChildren(childNodes) {
                 if (childNodes.length) {
-                    if (true === Node.iterate(childNodes[0], childNodes[childNodes.length - 1], iterateFn)) {
+                    let isBreak = Node.iterate(
+                        childNodes[0],
+                        childNodes[childNodes.length - 1],
+                        iterateFn
+                    );
+                    if (isBreak === true) {
                         curNode = null;
                         return true;
                     }
@@ -475,4 +484,4 @@ var Node = Base.extends(
     }
 );
 
-module.exports = Node;
+export default Node;

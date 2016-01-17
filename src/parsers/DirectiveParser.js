@@ -3,13 +3,13 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var Parser = require('./Parser');
-var Node = require('../nodes/Node');
-var Tree = require('../trees/Tree');
+import Parser from './Parser';
+import Node from '../nodes/Node';
+import Tree from '../trees/Tree';
 
-module.exports = Parser.extends(
+const DirectiveParser = Parser.extends(
     {
-        initialize: function (options) {
+        initialize(options) {
             Parser.prototype.initialize.apply(this, arguments);
 
             this.node = options.node;
@@ -24,8 +24,8 @@ module.exports = Parser.extends(
          * @param {nodes/Node} endNode 结束节点
          * @return {Tree}  创建好的子树
          */
-        createTree: function (parentTree, startNode, endNode) {
-            var tree = new Tree({
+        createTree(parentTree, startNode, endNode) {
+            let tree = new Tree({
                 startNode: startNode,
                 endNode: endNode
             });
@@ -35,20 +35,20 @@ module.exports = Parser.extends(
             return tree;
         },
 
-        getStartNode: function () {
+        getStartNode() {
             return this.node;
         },
 
-        getEndNode: function () {
+        getEndNode() {
             return this.node;
         }
     },
     {
-        isProperNode: function (node, config) {
+        isProperNode(node, config) {
             return node.getNodeType() === Node.COMMENT_NODE;
         },
 
-        isEndNode: function () {
+        isEndNode() {
             return true;
         },
 
@@ -60,10 +60,10 @@ module.exports = Parser.extends(
          * @param {Config} config 配置
          * @return {nodes/Node}
          */
-        walkToEnd: function (startNode, config) {
-            var curNode = startNode;
+        walkToEnd(startNode, config) {
+            let curNode = startNode;
             // 为了应对指令嵌套
-            var stackCounter = 0;
+            let stackCounter = 0;
             while ((curNode = curNode.getNextSibling())) {
                 if (this.isProperNode(curNode, config)) {
                     ++stackCounter;
@@ -82,4 +82,5 @@ module.exports = Parser.extends(
     }
 );
 
-Tree.registeParser(module.exports);
+Tree.registeParser(DirectiveParser);
+export default DirectiveParser;

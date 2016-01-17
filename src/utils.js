@@ -3,11 +3,12 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-exports.slice = function (arr, start, end) {
+export function slice(arr, start, end) {
     return Array.prototype.slice.call(arr, start, end);
-};
+}
 
-exports.goDark = function (node) {
+
+export function goDark(node) {
     if (node.nodeType === 1) {
         node.style.display = 'none';
     }
@@ -15,9 +16,9 @@ exports.goDark = function (node) {
         node.__text__ = node.nodeValue;
         node.nodeValue = '';
     }
-};
+}
 
-exports.restoreFromDark = function (node) {
+export function restoreFromDark(node) {
     if (node.nodeType === 1) {
         node.style.display = null;
     }
@@ -27,9 +28,9 @@ exports.restoreFromDark = function (node) {
             node.__text__ = undefined;
         }
     }
-};
+}
 
-exports.createExprFn = function (exprRegExp, expr, exprCalculater) {
+export function createExprFn(exprRegExp, expr, exprCalculater) {
     expr = expr.replace(exprRegExp, function () {
         return arguments[1];
     });
@@ -38,7 +39,7 @@ exports.createExprFn = function (exprRegExp, expr, exprCalculater) {
     return function (scopeModel) {
         return exprCalculater.calculate(expr, false, scopeModel);
     };
-};
+}
 
 /**
  * 超级简单的 extend ，因为本库对 extend 没那高的要求，
@@ -48,8 +49,8 @@ exports.createExprFn = function (exprRegExp, expr, exprCalculater) {
  * @param  {Object} target 目标对象
  * @return {Object}        最终合并后的对象
  */
-exports.extend = function (target) {
-    var srcs = exports.slice(arguments, 1);
+export function extend(target) {
+    var srcs = slice(arguments, 1);
     for (var i = 0, il = srcs.length; i < il; i++) {
         /* eslint-disable guard-for-in */
         for (var key in srcs[i]) {
@@ -58,9 +59,9 @@ exports.extend = function (target) {
         /* eslint-enable guard-for-in */
     }
     return target;
-};
+}
 
-exports.traverseNoChangeNodes = function (startNode, endNode, nodeFn, context) {
+export function traverseNoChangeNodes(startNode, endNode, nodeFn, context) {
     for (var curNode = startNode;
         curNode && curNode !== endNode;
         curNode = curNode.nextSibling
@@ -71,9 +72,9 @@ exports.traverseNoChangeNodes = function (startNode, endNode, nodeFn, context) {
     }
 
     nodeFn.call(context, endNode);
-};
+}
 
-exports.traverseNodes = function (startNode, endNode, nodeFn, context) {
+export function traverseNodes(startNode, endNode, nodeFn, context) {
     var nodes = [];
     for (var curNode = startNode;
         curNode && curNode !== endNode;
@@ -84,11 +85,11 @@ exports.traverseNodes = function (startNode, endNode, nodeFn, context) {
 
     nodes.push(endNode);
 
-    exports.each(nodes, nodeFn, context);
-};
+    each(nodes, nodeFn, context);
+}
 
-exports.each = function (arr, fn, context) {
-    if (exports.isArray(arr)) {
+export function each(arr, fn, context) {
+    if (isArray(arr)) {
         for (var i = 0, il = arr.length; i < il; i++) {
             if (fn.call(context, arr[i], i, arr)) {
                 break;
@@ -102,23 +103,23 @@ exports.each = function (arr, fn, context) {
             }
         }
     }
-};
+}
 
-function isClass(obj, clsName) {
+export function isClass(obj, clsName) {
     return Object.prototype.toString.call(obj) === '[object ' + clsName + ']';
 }
 
-exports.isArray = function (arr) {
+export function isArray(arr) {
     return isClass(arr, 'Array');
-};
+}
 
-exports.isNumber = function (obj) {
+export function isNumber(obj) {
     return isClass(obj, 'Number');
-};
+}
 
-exports.isFunction = function (obj) {
+export function isFunction(obj) {
     return isClass(obj, 'Function');
-};
+}
 
 /**
  * 是否是一个纯对象，满足如下条件：
@@ -129,7 +130,7 @@ exports.isFunction = function (obj) {
  * @param {Any} obj 待判断的变量
  * @return {boolean}
  */
-exports.isPureObject = function (obj) {
+export function isPureObject(obj) {
     if (!isClass(obj, 'Object')) {
         return false;
     }
@@ -141,12 +142,10 @@ exports.isPureObject = function (obj) {
     }
 
     return true;
-};
+}
 
-exports.isClass = isClass;
-
-exports.bind = function (fn, thisArg) {
-    if (!exports.isFunction(fn)) {
+export function bind(fn, thisArg) {
+    if (!isFunction(fn)) {
         return;
     }
 
@@ -160,11 +159,11 @@ exports.bind = function (fn, thisArg) {
         };
     };
     return bind.apply(fn, [thisArg].concat(Array.prototype.slice.call(arguments, 2)));
-};
+}
 
-exports.isSubClassOf = function (SubClass, SuperClass) {
+export function isSubClassOf(SubClass, SuperClass) {
     return SubClass.prototype instanceof SuperClass;
-};
+}
 
 /**
  * 对传入的字符串进行创建正则表达式之前的转义，防止字符串中的一些字符成为关键字。
@@ -172,22 +171,9 @@ exports.isSubClassOf = function (SubClass, SuperClass) {
  * @param  {string} str 待转义的字符串
  * @return {string}     转义之后的字符串
  */
-exports.regExpEncode = function regExpEncode(str) {
+export function regExpEncode(str) {
     return '\\' + str.split('').join('\\');
-};
-
-exports.xhr = function (options, loadFn, errorFn) {
-    options = exports.extend({
-        method: 'GET'
-    }, options);
-
-    var xhr = new XMLHttpRequest();
-    xhr.onerror = errorFn;
-    xhr.onload = loadFn;
-    xhr.open(options.method, options.url, true);
-    setHeaders(options.headers, xhr);
-    xhr.send(options.body);
-};
+}
 
 /**
  * 将字符串中的驼峰命名方式改为短横线的形式
@@ -196,14 +182,14 @@ exports.xhr = function (options, loadFn, errorFn) {
  * @param  {string} str 要转换的字符串
  * @return {string}
  */
-exports.camel2line = function (str) {
+export function camel2line(str) {
     return str.replace(/[A-Z]/g, function (matched, index) {
         if (index === 0) {
             return matched.toLowerCase();
         }
         return '-' + matched.toLowerCase();
     });
-};
+}
 
 /**
  * 将字符串中的短横线命名方式改为驼峰的形式
@@ -212,14 +198,14 @@ exports.camel2line = function (str) {
  * @param  {string} str 要转换的字符串
  * @return {string}
  */
-exports.line2camel = function (str) {
+export function line2camel(str) {
     return str.replace(/-[a-z]/g, function (matched) {
         return matched[1].toUpperCase();
     });
-};
+}
 
-exports.distinctArr = function (arr, hashFn) {
-    hashFn = exports.isFunction(hashFn) ? hashFn : function (elem) {
+export function distinctArr(arr, hashFn) {
+    hashFn = isFunction(hashFn) ? hashFn : function (elem) {
         return String(elem);
     };
     var obj = {};
@@ -237,24 +223,10 @@ exports.distinctArr = function (arr, hashFn) {
     }
 
     return ret;
-};
+}
 
-exports.regExpEncode = function (str) {
+export function regExpEncode(str) {
     return '\\' + str.split('').join('\\');
-};
-
-
-function setHeaders(headers, xhr) {
-    if (!headers) {
-        return;
-    }
-
-    for (var k in headers) {
-        if (!headers.hasOwnProperty(k)) {
-            continue;
-        }
-        xhr.setRequestHeader(k, headers[k]);
-    }
 }
 
 

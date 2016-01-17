@@ -1,4 +1,4 @@
-var Vtpl = require('../src/main');
+import Vtpl from '../src/main';
 
 testForBase();
 testForNest();

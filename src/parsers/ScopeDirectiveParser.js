@@ -3,13 +3,13 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var DirectiveParser = require('./DirectiveParser');
-var ScopeModel = require('../ScopeModel');
-var Tree = require('../trees/Tree');
+import DirectiveParser from './DirectiveParser';
+import ScopeModel from '../ScopeModel';
+import Tree from '../trees/Tree';
 
-var ScopeDirectiveParser = DirectiveParser.extends(
+const ScopeDirectiveParser = DirectiveParser.extends(
     {
-        initialize: function (options) {
+        initialize(options) {
             DirectiveParser.prototype.initialize.call(this, options);
 
             this.startNode = options.startNode;
@@ -20,17 +20,17 @@ var ScopeDirectiveParser = DirectiveParser.extends(
             }
         },
 
-        setScope: function (scopeModel) {
+        setScope(scopeModel) {
             this.scopeModel.setParent(scopeModel);
             scopeModel.addChild(this.scopeModel);
         },
 
-        collectExprs: function () {
-            var scopeName = this.startNode.nodeValue
+        collectExprs() {
+            let scopeName = this.startNode.nodeValue
                 .replace(/\s+/g, '')
                 .replace(this.config.scopeName + ':', '');
             if (scopeName) {
-                var scopes = this.tree.getTreeVar('scopes');
+                let scopes = this.tree.getTreeVar('scopes');
                 this.scopeModel = new ScopeModel();
                 scopes[scopeName] = scopes[scopeName] || [];
                 scopes[scopeName].push(this.scopeModel);
@@ -45,13 +45,13 @@ var ScopeDirectiveParser = DirectiveParser.extends(
         }
     },
     {
-        isProperNode: function (node, config) {
+        isProperNode(node, config) {
             return DirectiveParser.isProperNode(node, config)
                 && node.nodeValue.replace(/\s+/, '').indexOf(config.scopeName + ':') === 0;
         },
 
-        findEndNode: function (startNode, config) {
-            var curNode = startNode;
+        findEndNode(startNode, config) {
+            let curNode = startNode;
             while ((curNode = curNode.nextSibling)) {
                 if (isEndNode(curNode, config)) {
                     return curNode;
@@ -59,7 +59,7 @@ var ScopeDirectiveParser = DirectiveParser.extends(
             }
         },
 
-        getNoEndNodeError: function () {
+        getNoEndNodeError() {
             return new Error('the scope directive is not properly ended!');
         },
 
@@ -67,10 +67,10 @@ var ScopeDirectiveParser = DirectiveParser.extends(
     }
 );
 
-module.exports = ScopeDirectiveParser;
-Tree.registeParser(module.exports);
-
 function isEndNode(node, config) {
     return node.nodeType === 8
         && node.nodeValue.replace(/\s+/g, '') === config.scopeEndName;
 }
+
+Tree.registeParser(ScopeDirectiveParser);
+export default ScopeDirectiveParser;

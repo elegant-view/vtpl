@@ -3,14 +3,14 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var Base = require('../Base');
-var Node = require('./Node');
+import Base from '../Base';
+import Node from './Node';
 
-var managerIdCounter = 0;
+let managerIdCounter = 0;
 
-var NodesManager = Base.extends(
+const NodesManager = Base.extends(
     {
-        initialize: function () {
+        initialize() {
             this.$idCounter = 0;
             this.$nodesMap = {};
             this.$$domNodeIdKey = 'nodeId-' + ++managerIdCounter;
@@ -23,12 +23,12 @@ var NodesManager = Base.extends(
          * @param  {Node|Undefined}  domNode dom节点
          * @return {nodes/Node}      nodes/Node 实例
          */
-        getNode: function (domNode) {
+        getNode(domNode) {
             if (!domNode) {
                 return null;
             }
 
-            var nodeId = domNode[this.$$domNodeIdKey];
+            let nodeId = domNode[this.$$domNodeIdKey];
 
             if (!nodeId) {
                 nodeId = domNode[this.$$domNodeIdKey] = ++this.$idCounter;
@@ -46,17 +46,17 @@ var NodesManager = Base.extends(
          *
          * @public
          */
-        destroy: function () {
-            for (var id in this.$nodesMap) {
+        destroy() {
+            for (let id in this.$nodesMap) {
                 this.$nodesMap[id].destroy();
             }
         },
 
-        createElement: function () {
+        createElement() {
             return this.getNode(document.createElement.apply(document, arguments));
         },
 
-        createComment: function () {
+        createComment() {
             return this.getNode(document.createComment.apply(document, arguments));
         }
     },
@@ -66,4 +66,4 @@ var NodesManager = Base.extends(
 );
 
 
-module.exports = NodesManager;
+export default NodesManager;

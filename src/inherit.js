@@ -28,4 +28,4 @@ function inherit(ChildClass, ParentClass) {
     return ChildClass;
 }
 
-module.exports = inherit;
+export default inherit;

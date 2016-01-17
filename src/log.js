@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     warn: function () {
         if (!console || !console.warn) {
             return;

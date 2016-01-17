@@ -3,15 +3,15 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var DirectiveParser = require('./DirectiveParser');
-var utils = require('../utils');
-var Tree = require('../trees/Tree');
-var Node = require('../nodes/Node');
+import DirectiveParser from './DirectiveParser';
+import {each, createExprFn, bind} from '../utils';
+import Tree from '../trees/Tree';
+import Node from '../nodes/Node';
 
-var ForDirectiveParser = DirectiveParser.extends(
+const ForDirectiveParser = DirectiveParser.extends(
     {
 
-        initialize: function (options) {
+        initialize(options) {
             DirectiveParser.prototype.initialize.apply(this, arguments);
 
             this.startNode = options.startNode;
@@ -24,7 +24,7 @@ var ForDirectiveParser = DirectiveParser.extends(
             this.trees = [];
         },
 
-        collectExprs: function () {
+        collectExprs() {
             if (this.startNode.getNextSibling().equal(this.endNode)) {
                 return;
             }
@@ -34,21 +34,21 @@ var ForDirectiveParser = DirectiveParser.extends(
                 return;
             }
 
-            var nodesManager = this.tree.getTreeVar('nodesManager');
+            let nodesManager = this.tree.getTreeVar('nodesManager');
             this.tplSeg = nodesManager.createElement('div');
-            for (var curNode = this.startNode.getNextSibling();
+            for (let curNode = this.startNode.getNextSibling();
                 curNode && !curNode.isAfter(this.endNode.getPreviousSibling());
             ) {
-                var nextNode = curNode.getNextSibling();
+                let nextNode = curNode.getNextSibling();
                 this.tplSeg.appendChild(curNode);
                 curNode = nextNode;
             }
 
-            var config = this.tree.getTreeVar('config');
-            var exprCalculater = this.tree.getTreeVar('exprCalculater');
+            let config = this.tree.getTreeVar('config');
+            let exprCalculater = this.tree.getTreeVar('exprCalculater');
 
             this.expr = this.startNode.getNodeValue().match(config.getForExprsRegExp())[1];
-            this.exprFn = utils.createExprFn(config.getExprRegExp(), this.expr, exprCalculater);
+            this.exprFn = createExprFn(config.getExprRegExp(), this.expr, exprCalculater);
             this.updateFn = this.createUpdateFn(
                 this.startNode.getNextSibling(),
                 this.endNode.getPreviousSibling(),
@@ -56,17 +56,17 @@ var ForDirectiveParser = DirectiveParser.extends(
             );
         },
 
-        linkScope: function () {
+        linkScope() {
             this.onChange();
             DirectiveParser.prototype.linkScope.apply(this, arguments);
         },
 
-        onChange: function () {
+        onChange() {
             if (!this.expr) {
                 return;
             }
 
-            var exprValue = this.exprFn(this.tree.rootScope);
+            let exprValue = this.exprFn(this.tree.rootScope);
             if (this.dirtyCheck(this.expr, exprValue, this.exprOldValue)) {
                 this.updateFn(exprValue, this.tree.rootScope);
             }
@@ -76,8 +76,8 @@ var ForDirectiveParser = DirectiveParser.extends(
             DirectiveParser.prototype.onChange.apply(this, arguments);
         },
 
-        destroy: function () {
-            utils.each(this.trees, function (tree) {
+        destroy() {
+            each(this.trees, function (tree) {
                 tree.destroy();
             });
 
@@ -97,24 +97,24 @@ var ForDirectiveParser = DirectiveParser.extends(
          * @protected
          * @return {Tree}
          */
-        createTree: function () {
-            var parser = this;
-            var nodesManager = this.tree.getTreeVar('nodesManager');
-            var copySeg = nodesManager.createElement('div');
+        createTree() {
+            let parser = this;
+            let nodesManager = this.tree.getTreeVar('nodesManager');
+            let copySeg = nodesManager.createElement('div');
             copySeg.setInnerHTML(this.tplSeg.getInnerHTML());
 
-            var childNodes = copySeg.getChildNodes();
-            var startNode = childNodes[0];
-            var endNode = childNodes[childNodes.length - 1];
+            let childNodes = copySeg.getChildNodes();
+            let startNode = childNodes[0];
+            let endNode = childNodes[childNodes.length - 1];
 
-            var curNode = startNode;
+            let curNode = startNode;
             while (curNode && !curNode.isAfter(endNode)) {
-                var nextNode = curNode.getNextSibling();
+                let nextNode = curNode.getNextSibling();
                 parser.endNode.getParentNode().insertBefore(curNode, parser.endNode);
                 curNode = nextNode;
             }
 
-            var tree = DirectiveParser.prototype.createTree.call(
+            let tree = DirectiveParser.prototype.createTree.call(
                 this,
                 this.tree,
                 startNode,
@@ -136,15 +136,15 @@ var ForDirectiveParser = DirectiveParser.extends(
          * @param  {string} fullExpr  for指令中完整的表达式，比如`<!-- for: ${list} as ${item} -->`就是`for: ${list} as ${item}`。
          * @return {function(*,ScopeModel)}           dom更新函数
          */
-        createUpdateFn: function (startNode, endNode, fullExpr) {
-            var parser = this;
-            var config = this.tree.getTreeVar('config');
-            var domUpdater = this.tree.getTreeVar('domUpdater');
-            var itemVariableName = fullExpr.match(config.getForItemValueNameRegExp())[1];
-            var taskId = domUpdater.generateTaskId();
+        createUpdateFn(startNode, endNode, fullExpr) {
+            let parser = this;
+            let config = this.tree.getTreeVar('config');
+            let domUpdater = this.tree.getTreeVar('domUpdater');
+            let itemVariableName = fullExpr.match(config.getForItemValueNameRegExp())[1];
+            let taskId = domUpdater.generateTaskId();
             return function (exprValue, scopeModel) {
-                var index = 0;
-                for (var k in exprValue) {
+                let index = 0;
+                for (let k in exprValue) {
                     if (!parser.trees[index]) {
                         parser.trees[index] = parser.createTree();
                     }
@@ -152,7 +152,7 @@ var ForDirectiveParser = DirectiveParser.extends(
                     parser.trees[index].restoreFromDark();
                     parser.trees[index].setDirtyChecker(parser.dirtyChecker);
 
-                    var local = {
+                    let local = {
                         key: k,
                         index: index
                     };
@@ -168,9 +168,9 @@ var ForDirectiveParser = DirectiveParser.extends(
 
                 domUpdater.addTaskFn(
                     taskId,
-                    utils.bind(
+                    bind(
                         function (trees, index) {
-                            for (var i = index, il = trees.length; i < il; i++) {
+                            for (let i = index, il = trees.length; i < il; i++) {
                                 trees[i].goDark();
                             }
                         },
@@ -183,35 +183,35 @@ var ForDirectiveParser = DirectiveParser.extends(
         },
 
         // 主要用于遍历的时候，不让遍历器进入子孙节点
-        getChildNodes: function () {
+        getChildNodes() {
             return [];
         },
 
-        getEndNode: function () {
+        getEndNode() {
             return this.endNode;
         },
 
-        getStartNode: function () {
+        getStartNode() {
             return this.startNode;
         }
     },
     {
-        isProperNode: function (node, config) {
+        isProperNode(node, config) {
             return DirectiveParser.isProperNode(node, config)
                 && config.forPrefixRegExp.test(node.getNodeValue());
         },
 
-        isEndNode: function (node, config) {
-            var nodeType = node.getNodeType();
+        isEndNode(node, config) {
+            let nodeType = node.getNodeType();
             return nodeType === Node.COMMENT_NODE
                 && config.forEndPrefixRegExp.test(node.getNodeValue());
         },
 
-        findEndNode: function () {
+        findEndNode() {
             return this.walkToEnd.apply(this, arguments);
         },
 
-        getNoEndNodeError: function () {
+        getNoEndNodeError() {
             return new Error('the `for` directive is not properly ended!');
         },
 
@@ -220,5 +220,5 @@ var ForDirectiveParser = DirectiveParser.extends(
 );
 
 Tree.registeParser(ForDirectiveParser);
-module.exports = ForDirectiveParser;
+export default ForDirectiveParser;
 

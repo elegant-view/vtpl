@@ -3,37 +3,37 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var DirectiveParser = require('./DirectiveParser');
-var Tree = require('../trees/Tree');
+import DirectiveParser from './DirectiveParser';
+import Tree from '../trees/Tree';
 
-var VarDirectiveParser = DirectiveParser.extends(
+const VarDirectiveParser = DirectiveParser.extends(
     {
-        initialize: function (options) {
+        initialize(options) {
             DirectiveParser.prototype.initialize.apply(this, arguments);
 
             this.node = options.node;
         },
 
-        collectExprs: function () {
-            var nodeValue = this.node.getNodeValue();
-            var config = this.tree.getTreeVar('config');
-            var expr = nodeValue.replace(config.varName + ':', '');
+        collectExprs() {
+            let nodeValue = this.node.getNodeValue();
+            let config = this.tree.getTreeVar('config');
+            let expr = nodeValue.replace(config.varName + ':', '');
 
-            var exprCalculater = this.tree.getTreeVar('exprCalculater');
+            let exprCalculater = this.tree.getTreeVar('exprCalculater');
             exprCalculater.createExprFn(expr);
 
-            var leftValueName = expr.match(/\s*.+(?=\=)/)[0].replace(/\s+/g, '');
+            let leftValueName = expr.match(/\s*.+(?=\=)/)[0].replace(/\s+/g, '');
 
             this.exprFn = function (scopeModel) {
-                var oldValue = scopeModel.get(leftValueName);
-                var newValue = exprCalculater.calculate(expr, false, scopeModel);
+                let oldValue = scopeModel.get(leftValueName);
+                let newValue = exprCalculater.calculate(expr, false, scopeModel);
                 if (oldValue !== newValue) {
                     scopeModel.set(leftValueName, newValue);
                 }
             };
         },
 
-        linkScope: function () {
+        linkScope() {
             DirectiveParser.prototype.linkScope.apply(this, arguments);
             this.exprFn(this.tree.rootScope);
         },
@@ -45,7 +45,7 @@ var VarDirectiveParser = DirectiveParser.extends(
          * @inheritDoc
          * @return {Node}
          */
-        getStartNode: function () {
+        getStartNode() {
             return this.node;
         },
 
@@ -56,13 +56,13 @@ var VarDirectiveParser = DirectiveParser.extends(
          * @inheritDoc
          * @return {Node}
          */
-        getEndNode: function () {
+        getEndNode() {
             return this.node;
         }
     },
     {
-        isProperNode: function (node, config) {
-            var nodeValue = node.getNodeValue();
+        isProperNode(node, config) {
+            let nodeValue = node.getNodeValue();
             return DirectiveParser.isProperNode(node)
                 && nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;
         },
@@ -71,6 +71,6 @@ var VarDirectiveParser = DirectiveParser.extends(
     }
 );
 
-module.exports = VarDirectiveParser;
-Tree.registeParser(module.exports);
+Tree.registeParser(VarDirectiveParser);
+export default VarDirectiveParser;
 

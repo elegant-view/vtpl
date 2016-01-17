@@ -3,14 +3,14 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var utils = require('../utils');
-var ScopeModel = require('../ScopeModel');
-var Base = require('../Base');
-var Node = require('../nodes/Node');
+import {isSubClassOf, each, extend} from '../utils';
+import ScopeModel from '../ScopeModel';
+import Base from '../Base';
+import Node from '../nodes/Node';
 
-var ParserClasses = [];
+const ParserClasses = [];
 
-module.exports = Base.extends(
+export default Base.extends(
     {
 
         /**
@@ -21,7 +21,7 @@ module.exports = Base.extends(
          * @param {nodes/Node} options.startNode 这棵树要解析的dom块的开始节点
          * @param {nodes/Node} options.endNode 这棵树要解析的dom块的结束节点
          */
-        initialize: function (options) {
+        initialize(options) {
             Base.prototype.initialize.apply(this, arguments);
 
             this.startNode = options.startNode;
@@ -45,7 +45,7 @@ module.exports = Base.extends(
          * @param {*} value 变量值
          * @return {boolean} 是否设置成功
          */
-        setTreeVar: function (name, value) {
+        setTreeVar(name, value) {
             if (this.treeVars[name] !== undefined) {
                 return false;
             }
@@ -53,7 +53,7 @@ module.exports = Base.extends(
             return true;
         },
 
-        unsetTreeVar: function (name) {
+        unsetTreeVar(name) {
             this.treeVars[name] = undefined;
         },
 
@@ -66,8 +66,8 @@ module.exports = Base.extends(
          *                                         true就代表不去，false就代表要去
          * @return {*}
          */
-        getTreeVar: function (name, shouldNotFindInParent) {
-            var val = this.treeVars[name];
+        getTreeVar(name, shouldNotFindInParent) {
+            let val = this.treeVars[name];
             if (!shouldNotFindInParent
                 && val === undefined
                 && this.$parent
@@ -77,12 +77,12 @@ module.exports = Base.extends(
             return val;
         },
 
-        setParent: function (parent) {
+        setParent(parent) {
             this.$parent = parent;
         },
 
-        getScopeByName: function (name) {
-            var scopes = this.getTreeVar('scopes');
+        getScopeByName(name) {
+            let scopes = this.getTreeVar('scopes');
             if (!scopes) {
                 return;
             }
@@ -94,19 +94,19 @@ module.exports = Base.extends(
          *
          * @public
          */
-        traverse: function () {
-            var me = this;
-            var delayFns = [];
+        traverse() {
+            let me = this;
+            let delayFns = [];
             Node.iterate(this.startNode, this.endNode, function (node) {
-                var options = {
+                let options = {
                     startNode: node,
                     node: node,
                     tree: me
                 };
 
-                var parser;
-                for (var i = 0, il = ParserClasses.length; i < il; ++i) {
-                    var ParserClass = ParserClasses[i];
+                let parser;
+                for (let i = 0, il = ParserClasses.length; i < il; ++i) {
+                    let ParserClass = ParserClasses[i];
                     parser = me.createParser(ParserClass, options);
 
                     if (!parser) {
@@ -130,10 +130,10 @@ module.exports = Base.extends(
 
                 return {
                     type: 'options',
-                    getNextNode: function (curNode) {
+                    getNextNode(curNode) {
                         return parser.getEndNode().getNextSibling();
                     },
-                    getChildNodes: function (curNode) {
+                    getChildNodes(curNode) {
                         if (parser.getChildNodes instanceof Function) {
                             return parser.getChildNodes();
                         }
@@ -142,20 +142,20 @@ module.exports = Base.extends(
                 };
             });
 
-            for (var i = 0, il = delayFns.length; i < il; ++i) {
+            for (let i = 0, il = delayFns.length; i < il; ++i) {
                 delayFns[i]();
             }
         },
 
-        setData: function (data) {
+        setData(data) {
             data = data || {};
             this.rootScope.set(data);
         },
 
-        goDark: function () {
-            var node = this.startNode;
+        goDark() {
+            let node = this.startNode;
             while (node) {
-                var nodeType = node.getNodeType();
+                let nodeType = node.getNodeType();
                 if (nodeType === Node.ELEMENT_NODE || nodeType === Node.TEXT_NODE) {
                     node.hide();
                 }
@@ -167,10 +167,10 @@ module.exports = Base.extends(
             }
         },
 
-        restoreFromDark: function () {
-            var node = this.startNode;
+        restoreFromDark() {
+            let node = this.startNode;
             while (node) {
-                var nodeType = node.getNodeType();
+                let nodeType = node.getNodeType();
                 if (nodeType === Node.ELEMENT_NODE || nodeType === Node.TEXT_NODE) {
                     node.show();
                 }
@@ -182,11 +182,11 @@ module.exports = Base.extends(
             }
         },
 
-        setDirtyChecker: function (dirtyChecker) {
+        setDirtyChecker(dirtyChecker) {
             this.dirtyChecker = dirtyChecker;
         },
 
-        destroy: function () {
+        destroy() {
             walk(this.$parsers);
 
             this.startNode = null;
@@ -204,7 +204,7 @@ module.exports = Base.extends(
             }
 
             function walk(parsers) {
-                utils.each(parsers, function (parser) {
+                each(parsers, function (parser) {
                     parser.destroy();
                 });
             }
@@ -218,14 +218,14 @@ module.exports = Base.extends(
          * @param  {Object} options 初始化参数
          * @return {Object}         返回值
          */
-        createParser: function (ParserClass, options) {
-            var startNode = options.startNode || options.node;
-            var config = this.getTreeVar('config');
+        createParser(ParserClass, options) {
+            let startNode = options.startNode || options.node;
+            let config = this.getTreeVar('config');
             if (!ParserClass.isProperNode(startNode, config)) {
                 return;
             }
 
-            var endNode;
+            let endNode;
             if (ParserClass.findEndNode) {
                 endNode = ParserClass.findEndNode(startNode, config);
 
@@ -237,8 +237,8 @@ module.exports = Base.extends(
                 }
             }
 
-            var parser = new ParserClass(
-                utils.extend(
+            let parser = new ParserClass(
+                extend(
                     options,
                     {
                         endNode: endNode
@@ -246,7 +246,7 @@ module.exports = Base.extends(
                 )
             );
 
-            var key = !endNode || startNode.equal(endNode)
+            let key = !endNode || startNode.equal(endNode)
                 ? startNode.getNodeId()
                 : startNode.getNodeId() + '-' + endNode.getNodeId();
             this.$$nodeIdParserMap[key] = parser;
@@ -268,20 +268,12 @@ module.exports = Base.extends(
          *
          * @param  {Class} ParserClass 解析器类
          */
-        registeParser: function (ParserClass) {
+        registeParser(ParserClass) {
             ParserClasses.push(ParserClass);
 
-            ParserClasses.sort(function (prev, next) {
-                return utils.isSubClassOf(prev, next) ? -1 : 1;
-            });
+            ParserClasses.sort((prev, next) => isSubClassOf(prev, next) ? -1 : 1);
         },
 
         $name: 'Tree'
     }
 );
-
-
-
-
-
-

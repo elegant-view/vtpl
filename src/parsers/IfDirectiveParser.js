@@ -3,14 +3,14 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-var DirectiveParser = require('./DirectiveParser');
-var utils = require('../utils');
-var Tree = require('../trees/Tree');
-var Node = require('../nodes/Node');
+import DirectiveParser from './DirectiveParser';
+import {createExprFn, each, bind} from '../utils';
+import Tree from '../trees/Tree';
+import Node from '../nodes/Node';
 
-var IfDirectiveParser = DirectiveParser.extends(
+const IfDirectiveParser = DirectiveParser.extends(
     {
-        initialize: function (options) {
+        initialize(options) {
             DirectiveParser.prototype.initialize.apply(this, arguments);
 
             this.startNode = options.startNode;
@@ -20,16 +20,16 @@ var IfDirectiveParser = DirectiveParser.extends(
             this.exprFns = {};
             this.$branchTrees = [];
 
-            var domUpdater = this.tree.getTreeVar('domUpdater');
+            let domUpdater = this.tree.getTreeVar('domUpdater');
             this.handleBranchesTaskId = domUpdater.generateTaskId();
         },
 
-        collectExprs: function () {
-            var branchNodeStack = [];
-            var me = this;
-            var config = this.tree.getTreeVar('config');
+        collectExprs() {
+            let branchNodeStack = [];
+            let me = this;
+            let config = this.tree.getTreeVar('config');
             Node.iterate(this.startNode, this.endNode, function (node) {
-                var ifNodeType = getIfNodeType(node, me.tree.getTreeVar('config'));
+                let ifNodeType = getIfNodeType(node, me.tree.getTreeVar('config'));
                 // if
                 if (ifNodeType === IfDirectiveParser.IF_START) {
                     if (branchNodeStack.length) {
@@ -61,11 +61,11 @@ var IfDirectiveParser = DirectiveParser.extends(
                 if (ifNodeType === IfDirectiveParser.IF_START
                     || ifNodeType === IfDirectiveParser.ELIF
                 ) {
-                    var expr = node.getNodeValue().replace(config.getAllIfRegExp(), '');
+                    let expr = node.getNodeValue().replace(config.getAllIfRegExp(), '');
                     me.exprs.push(expr);
 
                     if (!me.exprFns[expr]) {
-                        me.exprFns[expr] = utils.createExprFn(
+                        me.exprFns[expr] = createExprFn(
                             config.getExprRegExp(),
                             expr,
                             me.tree.getTreeVar('exprCalculater')
@@ -78,17 +78,17 @@ var IfDirectiveParser = DirectiveParser.extends(
                 }
             });
 
-            for (var i = 0, il = branchNodeStack.length - 1; i < il; ++i) {
-                var curNode = branchNodeStack[i];
-                var nextNode = branchNodeStack[i + 1];
+            for (let i = 0, il = branchNodeStack.length - 1; i < il; ++i) {
+                let curNode = branchNodeStack[i];
+                let nextNode = branchNodeStack[i + 1];
 
-                var curNodeNextSibling = curNode.node.getNextSibling();
+                let curNodeNextSibling = curNode.node.getNextSibling();
                 // curNode 和 nextNode 之间没有节点
                 if (curNodeNextSibling.equal(nextNode.node)) {
                     this.$branchTrees.push(null);
                 }
                 else {
-                    var tree = this.createTree(
+                    let tree = this.createTree(
                         this.tree,
                         curNodeNextSibling,
                         nextNode.node.getPreviousSibling()
@@ -99,18 +99,19 @@ var IfDirectiveParser = DirectiveParser.extends(
             }
         },
 
-        linkScope: function () {
+        linkScope() {
             DirectiveParser.prototype.linkScope.apply(this, arguments);
             this.onChange();
         },
 
-        onChange: function () {
-            var domUpdater = this.tree.getTreeVar('domUpdater');
-            var exprs = this.exprs;
-            var showIndex;
-            for (var i = 0, il = exprs.length; i < il; i++) {
-                var expr = exprs[i];
-                var exprValue = this.exprFns[expr](this.tree.rootScope);
+        onChange() {
+            let domUpdater = this.tree.getTreeVar('domUpdater');
+            let exprs = this.exprs;
+            let showIndex;
+            let i = 0;
+            for (let il = exprs.length; i < il; ++i) {
+                let expr = exprs[i];
+                let exprValue = this.exprFns[expr](this.tree.rootScope);
                 if (exprValue) {
                     showIndex = i;
                     break;
@@ -123,13 +124,13 @@ var IfDirectiveParser = DirectiveParser.extends(
 
             domUpdater.addTaskFn(
                 this.handleBranchesTaskId,
-                utils.bind(handleBranches, null, this.$branchTrees, showIndex)
+                bind(handleBranches, null, this.$branchTrees, showIndex)
             );
         },
 
-        destroy: function () {
-            for (var i = 0, il = this.$branchTrees.length; i < il; ++i) {
-                var branchTree = this.$branchTrees[i];
+        destroy() {
+            for (let i = 0, il = this.$branchTrees.length; i < il; ++i) {
+                let branchTree = this.$branchTrees[i];
                 branchTree.destroy();
             }
 
@@ -144,19 +145,19 @@ var IfDirectiveParser = DirectiveParser.extends(
         }
     },
     {
-        isProperNode: function (node, config) {
+        isProperNode(node, config) {
             return getIfNodeType(node, config) === IfDirectiveParser.IF_START;
         },
 
-        isEndNode: function (node, config) {
+        isEndNode(node, config) {
             return getIfNodeType(node, config) === IfDirectiveParser.IF_END;
         },
 
-        findEndNode: function () {
+        findEndNode() {
             return this.walkToEnd.apply(this, arguments);
         },
 
-        getNoEndNodeError: function () {
+        getNoEndNodeError() {
             return new Error('the if directive is not properly ended!');
         },
 
@@ -169,27 +170,24 @@ var IfDirectiveParser = DirectiveParser.extends(
     }
 );
 
-module.exports = IfDirectiveParser;
-Tree.registeParser(module.exports);
-
 function handleBranches(branches, showIndex) {
-    utils.each(branches, function (branchTree, j) {
+    each(branches, function (branchTree, j) {
         if (!branchTree) {
             return;
         }
 
-        var fn = j === showIndex ? 'restoreFromDark' : 'goDark';
+        let fn = j === showIndex ? 'restoreFromDark' : 'goDark';
         branchTree[fn]();
     });
 }
 
 function getIfNodeType(node, config) {
-    var nodeType = node.getNodeType();
+    let nodeType = node.getNodeType();
     if (nodeType !== Node.COMMENT_NODE) {
         return;
     }
 
-    var nodeValue = node.getNodeValue();
+    let nodeValue = node.getNodeValue();
     if (config.ifPrefixRegExp.test(nodeValue)) {
         return IfDirectiveParser.IF_START;
     }
@@ -206,3 +204,6 @@ function getIfNodeType(node, config) {
         return IfDirectiveParser.IF_END;
     }
 }
+
+Tree.registeParser(IfDirectiveParser);
+export default IfDirectiveParser;

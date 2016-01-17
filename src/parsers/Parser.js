@@ -17,8 +17,8 @@
  *                         具体是啥可以参加具体的子类
  */
 
-var Base = require('../Base');
-module.exports = Base.extends(
+import Base from '../Base';
+export default Base.extends(
     {
 
         /**
@@ -28,7 +28,7 @@ module.exports = Base.extends(
          * @param {Object} options 来自于构造函数
          * @param {Tree} options.tree 该解析器挂靠的树
          */
-        initialize: function (options) {
+        initialize(options) {
             this.tree = options.tree;
         },
 
@@ -38,7 +38,7 @@ module.exports = Base.extends(
          * @public
          * @param {ScopeModel} scopeModel scope model
          */
-        linkScope: function () {
+        linkScope() {
             this.tree.rootScope.on('change', this.onChange, this);
             this.tree.rootScope.on('parentchange', this.onChange, this);
 
@@ -51,7 +51,7 @@ module.exports = Base.extends(
          * @protected
          * @param {Array.<Object>} changes 产生的改变
          */
-        onChange: function (changes) {
+        onChange(changes) {
             this.tree.getTreeVar('domUpdater').execute();
         },
 
@@ -61,7 +61,7 @@ module.exports = Base.extends(
          * @public
          * @abstract
          */
-        goDark: function () {},
+        goDark() {},
 
         /**
          * 显示相关元素
@@ -69,7 +69,7 @@ module.exports = Base.extends(
          * @public
          * @abstract
          */
-        restoreFromDark: function () {},
+        restoreFromDark() {},
 
         /**
          * 获取解析器当前状态下的开始DOM节点。
@@ -80,7 +80,7 @@ module.exports = Base.extends(
          * @public
          * @return {Node} DOM节点对象
          */
-        getStartNode: function () {
+        getStartNode() {
             return this.startNode;
         },
 
@@ -90,7 +90,7 @@ module.exports = Base.extends(
          * @public
          * @return {Node} 节点对象
          */
-        getEndNode: function () {
+        getEndNode() {
             return this.endNode;
         },
 
@@ -100,7 +100,7 @@ module.exports = Base.extends(
          * @abstract
          * @public
          */
-        collectExprs: function () {},
+        collectExprs() {},
 
         /**
          * 脏检测。默认会使用全等判断。
@@ -111,9 +111,9 @@ module.exports = Base.extends(
          * @param  {*} exprOldValue 表达式上一次计算出来的值
          * @return {boolean}              两次的值是否相同
          */
-        dirtyCheck: function (expr, exprValue, exprOldValue) {
-            var dirtyChecker = this.tree.getTreeVar('dirtyChecker');
-            var dirtyCheckerFn = dirtyChecker ? dirtyChecker.getChecker(expr) : null;
+        dirtyCheck(expr, exprValue, exprOldValue) {
+            let dirtyChecker = this.tree.getTreeVar('dirtyChecker');
+            let dirtyCheckerFn = dirtyChecker ? dirtyChecker.getChecker(expr) : null;
             return (dirtyCheckerFn && dirtyCheckerFn(expr, exprValue, exprOldValue))
                     || (!dirtyCheckerFn && exprValue !== exprOldValue);
         },
@@ -123,7 +123,7 @@ module.exports = Base.extends(
          *
          * @public
          */
-        destroy: function () {
+        destroy() {
             this.tree = null;
         }
     },
