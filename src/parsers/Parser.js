@@ -18,116 +18,106 @@
  */
 
 import Base from '../Base';
-export default Base.extends(
-    {
 
-        /**
-         * 初始化
-         *
-         * @protected
-         * @param {Object} options 来自于构造函数
-         * @param {Tree} options.tree 该解析器挂靠的树
-         */
-        initialize(options) {
-            this.tree = options.tree;
-        },
+export default class Parser extends Base {
+    constructor(options) {
+        super(options);
 
-        /**
-         * 绑定scope model
-         *
-         * @public
-         * @param {ScopeModel} scopeModel scope model
-         */
-        linkScope() {
-            this.tree.rootScope.on('change', this.onChange, this);
-            this.tree.rootScope.on('parentchange', this.onChange, this);
-
-            this.tree.getTreeVar('domUpdater').execute();
-        },
-
-        /**
-         * model 发生变化的回调函数
-         *
-         * @protected
-         * @param {Array.<Object>} changes 产生的改变
-         */
-        onChange(changes) {
-            this.tree.getTreeVar('domUpdater').execute();
-        },
-
-        /**
-         * 隐藏当前parser实例相关的节点。具体子类实现
-         *
-         * @public
-         * @abstract
-         */
-        goDark() {},
-
-        /**
-         * 显示相关元素
-         *
-         * @public
-         * @abstract
-         */
-        restoreFromDark() {},
-
-        /**
-         * 获取解析器当前状态下的开始DOM节点。
-         *
-         * 由于有的解析器会将之前的节点移除掉，那么就会对遍历带来影响了，
-         * 所以此处提供两个获取开始节点和结束节点的方法。
-         *
-         * @public
-         * @return {Node} DOM节点对象
-         */
-        getStartNode() {
-            return this.startNode;
-        },
-
-        /**
-         * 获取解析器当前状态下的结束DOM节点
-         *
-         * @public
-         * @return {Node} 节点对象
-         */
-        getEndNode() {
-            return this.endNode;
-        },
-
-        /**
-         * 搜集表达式，生成表达式函数和 DOM 更新函数。具体子类实现
-         *
-         * @abstract
-         * @public
-         */
-        collectExprs() {},
-
-        /**
-         * 脏检测。默认会使用全等判断。
-         *
-         * @public
-         * @param  {string} expr         要检查的表达式
-         * @param  {*} exprValue    表达式当前计算出来的值
-         * @param  {*} exprOldValue 表达式上一次计算出来的值
-         * @return {boolean}              两次的值是否相同
-         */
-        dirtyCheck(expr, exprValue, exprOldValue) {
-            let dirtyChecker = this.tree.getTreeVar('dirtyChecker');
-            let dirtyCheckerFn = dirtyChecker ? dirtyChecker.getChecker(expr) : null;
-            return (dirtyCheckerFn && dirtyCheckerFn(expr, exprValue, exprOldValue))
-                    || (!dirtyCheckerFn && exprValue !== exprOldValue);
-        },
-
-        /**
-         * 销毁解析器，将界面恢复成原样
-         *
-         * @public
-         */
-        destroy() {
-            this.tree = null;
-        }
-    },
-    {
-        $name: 'Parser'
+        this.tree = options.tree;
     }
-);
+
+    /**
+     * 绑定scope model
+     *
+     * @public
+     * @param {ScopeModel} scopeModel scope model
+     */
+    linkScope() {
+        this.tree.rootScope.on('change', this.onChange, this);
+        this.tree.rootScope.on('parentchange', this.onChange, this);
+
+        this.tree.getTreeVar('domUpdater').execute();
+    }
+
+    /**
+     * model 发生变化的回调函数
+     *
+     * @protected
+     * @param {Array.<Object>} changes 产生的改变
+     */
+    onChange(changes) {
+        this.tree.getTreeVar('domUpdater').execute();
+    }
+
+    /**
+     * 隐藏当前parser实例相关的节点。具体子类实现
+     *
+     * @public
+     * @abstract
+     */
+    goDark() {}
+
+    /**
+     * 显示相关元素
+     *
+     * @public
+     * @abstract
+     */
+    restoreFromDark() {}
+
+    /**
+     * 获取解析器当前状态下的开始DOM节点。
+     *
+     * 由于有的解析器会将之前的节点移除掉，那么就会对遍历带来影响了，
+     * 所以此处提供两个获取开始节点和结束节点的方法。
+     *
+     * @public
+     * @return {Node} DOM节点对象
+     */
+    getStartNode() {
+        return this.startNode;
+    }
+
+    /**
+     * 获取解析器当前状态下的结束DOM节点
+     *
+     * @public
+     * @return {Node} 节点对象
+     */
+    getEndNode() {
+        return this.endNode;
+    }
+
+    /**
+     * 搜集表达式，生成表达式函数和 DOM 更新函数。具体子类实现
+     *
+     * @abstract
+     * @public
+     */
+    collectExprs() {}
+
+    /**
+     * 脏检测。默认会使用全等判断。
+     *
+     * @public
+     * @param  {string} expr         要检查的表达式
+     * @param  {*} exprValue    表达式当前计算出来的值
+     * @param  {*} exprOldValue 表达式上一次计算出来的值
+     * @return {boolean}              两次的值是否相同
+     */
+    dirtyCheck(expr, exprValue, exprOldValue) {
+        let dirtyChecker = this.tree.getTreeVar('dirtyChecker');
+        let dirtyCheckerFn = dirtyChecker ? dirtyChecker.getChecker(expr) : null;
+        return (dirtyCheckerFn && dirtyCheckerFn(expr, exprValue, exprOldValue))
+                || (!dirtyCheckerFn && exprValue !== exprOldValue);
+    }
+
+    /**
+     * 销毁解析器，将界面恢复成原样
+     *
+     * @public
+     */
+    destroy() {
+        this.tree = null;
+    }
+}

@@ -3,14 +3,9 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import inherit from './inherit';
-import {extend} from './utils';
-
-function Base() {
-    this.initialize.apply(this, arguments);
+class Base {
 }
 
-Base.prototype.initialize = function () {};
 
 /**
  * 继承
@@ -20,33 +15,35 @@ Base.prototype.initialize = function () {};
  * @param  {Object} staticProps 静态属性
  * @return {Class}             子类
  */
-Base.extends = function (props, staticProps) {
-    var baseCls = this;
+// Base.extends = function (props, staticProps) {
+//     var baseCls = this;
 
-    staticProps = extend({}, staticProps);
+//     staticProps = extend({}, staticProps);
 
-    // 每个类都必须有一个名字
-    if (!staticProps.$name) {
-        throw new SyntaxError('each class must have a `$name`.');
-    }
+//     // 每个类都必须有一个名字
+//     if (!staticProps.$name) {
+//         throw new SyntaxError('each class must have a `$name`.');
+//     }
 
-    var cls = function () {
-        baseCls.apply(this, arguments);
-    };
-    extend(cls.prototype, props);
-    extend(cls, staticProps);
+//     var cls = function () {
+//         baseCls.apply(this, arguments);
+//     };
+//     extend(cls.prototype, props);
+//     extend(cls, staticProps);
 
-    // 记录一下父类
-    cls.$superClass = baseCls;
+//     // 记录一下父类
+//     cls.$superClass = baseCls;
 
-    return inherit(cls, baseCls);
-};
+//     return inherit(cls, baseCls);
+// };
 
-Base.trait = function (props) {
+Base.trait = function trait(props) {
     var proto = this.prototype;
+    /* eslint-disable guard-for-in */
     for (var key in props) {
         proto[key] = props[key];
     }
+    /* eslint-enable guard-for-in */
 
     return this;
 };

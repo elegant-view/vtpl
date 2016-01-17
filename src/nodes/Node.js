@@ -5,483 +5,490 @@
  */
 
 import Base from '../Base';
-import {isFunction, isPureObject, isClass, isArray, distinctArr, slice} from '../utils';
+import {
+    isFunction,
+    isPureObject,
+    isClass,
+    isArray,
+    distinctArr,
+    slice,
+    extend
+} from '../utils';
 import Event from '../Event';
 
-const Node = Base.extends(
-    {
-        initialize(node, manager) {
-            Base.prototype.initialize.apply(this, arguments);
+class Node extends Base {
 
-            // 弱弱地判断一下node是不是节点
-            if (!node || node.ownerDocument !== document) {
-                throw new TypeError('wrong `node` argument');
-            }
+    constructor(node, manager) {
+        super();
 
-            this.$node = node;
-            this.$manager = manager;
+        // 弱弱地判断一下node是不是节点
+        if (!node || node.ownerDocument !== document) {
+            throw new TypeError('wrong `node` argument');
+        }
 
-            this.$event = new Event();
-            this.$nodeEventFns = {};
-        },
+        this.$node = node;
+        this.$manager = manager;
 
-        getNodeType() {
-            return this.$node.nodeType;
-        },
+        this.$event = new Event();
+        this.$nodeEventFns = {};
+    }
 
-        getChildNodes() {
-            let nodes = [];
-            let childNodes = this.$node.childNodes;
-            for (let i = 0, il = childNodes.length; i < il; ++i) {
-                nodes.push(this.$manager.getNode(childNodes[i]));
-            }
-            return nodes;
-        },
+    getNodeType() {
+        return this.$node.nodeType;
+    }
 
-        getFirstChild() {
-            return this.$manager.getNode(this.$node.firstChild);
-        },
+    getChildNodes() {
+        let nodes = [];
+        let childNodes = this.$node.childNodes;
+        for (let i = 0, il = childNodes.length; i < il; ++i) {
+            nodes.push(this.$manager.getNode(childNodes[i]));
+        }
+        return nodes;
+    }
 
-        getLastChild() {
-            return this.$manager.getNode(this.$node.lastChild);
-        },
+    getFirstChild() {
+        return this.$manager.getNode(this.$node.firstChild);
+    }
 
-        equal(node) {
-            return this.$node === node.$node;
-        },
+    getLastChild() {
+        return this.$manager.getNode(this.$node.lastChild);
+    }
 
-        getParentNode() {
-            let parentNode = this.$node.parentNode
-                || (this.$commentNode && this.$commentNode.parentNode);
-            if (!parentNode) {
-                return null;
-            }
+    equal(node) {
+        return this.$node === node.$node;
+    }
 
-            return this.$manager.getNode(parentNode);
-        },
+    getParentNode() {
+        let parentNode = this.$node.parentNode
+            || (this.$commentNode && this.$commentNode.parentNode);
+        if (!parentNode) {
+            return null;
+        }
 
-        getNextSibling() {
-            let nextSibling = this.$node.nextSibling
-                || (this.$commentNode && this.$commentNode.nextSibling);
-            if (!nextSibling) {
-                return null;
-            }
+        return this.$manager.getNode(parentNode);
+    }
 
-            return this.$manager.getNode(nextSibling);
-        },
+    getNextSibling() {
+        let nextSibling = this.$node.nextSibling
+            || (this.$commentNode && this.$commentNode.nextSibling);
+        if (!nextSibling) {
+            return null;
+        }
 
-        getPreviousSibling() {
-            let previousSibling = this.$node.previousSibling
-                || (this.$commentNode && this.$commentNode.previousSibling);
-            if (!previousSibling) {
-                return null;
-            }
+        return this.$manager.getNode(nextSibling);
+    }
 
-            return this.$manager.getNode(previousSibling);
-        },
+    getPreviousSibling() {
+        let previousSibling = this.$node.previousSibling
+            || (this.$commentNode && this.$commentNode.previousSibling);
+        if (!previousSibling) {
+            return null;
+        }
 
-        getAttribute(name) {
-            return this.$node.getAttribute(name);
-        },
+        return this.$manager.getNode(previousSibling);
+    }
 
-        setAttribute(name, value) {
-            this.$node.setAttribute(name, value);
-        },
+    getAttribute(name) {
+        return this.$node.getAttribute(name);
+    }
 
-        getAttributes() {
-            return this.$node.attributes;
-        },
+    setAttribute(name, value) {
+        this.$node.setAttribute(name, value);
+    }
 
-        getNodeValue() {
-            return this.$node.nodeValue;
-        },
+    getAttributes() {
+        return this.$node.attributes;
+    }
 
-        setNodeValue(value) {
-            this.$node.nodeValue = value;
-        },
+    getNodeValue() {
+        return this.$node.nodeValue;
+    }
 
-        appendChild(node) {
-            this.$node.appendChild(node.$node);
-        },
+    setNodeValue(value) {
+        this.$node.nodeValue = value;
+    }
 
-        cloneNode() {
-            return this.$manager.getNode(
-                this.$node.cloneNode.apply(this.$node, arguments)
-            );
-        },
+    appendChild(node) {
+        this.$node.appendChild(node.$node);
+    }
 
-        insertBefore(newNode, referenceNode) {
-            return this.$manager.getNode(
-                this.$node.insertBefore(newNode.$node, referenceNode.$node)
-            );
-        },
+    cloneNode() {
+        return this.$manager.getNode(
+            this.$node.cloneNode.apply(this.$node, arguments)
+        );
+    }
 
-        getInnerHTML() {
-            return this.$node.innerHTML;
-        },
+    insertBefore(newNode, referenceNode) {
+        return this.$manager.getNode(
+            this.$node.insertBefore(newNode.$node, referenceNode.$node)
+        );
+    }
 
-        setInnerHTML(html) {
-            this.$node.innerHTML = html;
-        },
+    getInnerHTML() {
+        return this.$node.innerHTML;
+    }
 
-        getTagName() {
-            return this.$node.tagName.toLowerCase();
-        },
+    setInnerHTML(html) {
+        this.$node.innerHTML = html;
+    }
 
-        /**
-         * 判断当前节点是否和node是兄弟关系，并且在node之后。
-         *
-         * @public
-         * @param  {Node}  node 要对比的节点
-         * @return {boolean}
-         */
-        isAfter(node) {
-            if (!this.isBrotherWith(node)
-                || this.equal(node)
-            ) {
-                return false;
-            }
+    getTagName() {
+        return this.$node.tagName.toLowerCase();
+    }
 
-            for (let curNode = node.$node; curNode; curNode = curNode.nextSibling) {
-                if (curNode === this.$node) {
-                    return true;
-                }
-            }
-
+    /**
+     * 判断当前节点是否和node是兄弟关系，并且在node之后。
+     *
+     * @public
+     * @param  {Node}  node 要对比的节点
+     * @return {boolean}
+     */
+    isAfter(node) {
+        if (!this.isBrotherWith(node)
+            || this.equal(node)
+        ) {
             return false;
-        },
+        }
 
-        isBrotherWith(node) {
-            return this.getParentNode().equal(node.getParentNode());
-        },
+        for (let curNode = node.$node; curNode; curNode = curNode.nextSibling) {
+            if (curNode === this.$node) {
+                return true;
+            }
+        }
 
-        /**
-         * 获取或设定属性值。
-         * 如果参数只有一个，并且第一个参数是字符串类型，说明是获取属性值；
-         * 如果参数有两个，并且第一个参数是字符串类型，说明是设置属性值；
-         *
-         * TODO: 完善
-         *
-         * @param {string} name  节点属性名
-         * @param {*=} value 节点属性值
-         * @return {*}
-         */
-        attr(name, value) {
-            // 目前仅适用于元素节点
-            if (this.getNodeType() !== Node.ELEMENT_NODE) {
-                return;
+        return false;
+    }
+
+    isBrotherWith(node) {
+        return this.getParentNode().equal(node.getParentNode());
+    }
+
+    /**
+     * 获取或设定属性值。
+     * 如果参数只有一个，并且第一个参数是字符串类型，说明是获取属性值；
+     * 如果参数有两个，并且第一个参数是字符串类型，说明是设置属性值；
+     *
+     * TODO: 完善
+     *
+     * @param {string} name  节点属性名
+     * @param {*=} value 节点属性值
+     * @return {*}
+     */
+    attr(name, value) {
+        // 目前仅适用于元素节点
+        if (this.getNodeType() !== Node.ELEMENT_NODE) {
+            return;
+        }
+
+        // 只有一个参数，那就归到获取属性的范畴
+        if (arguments.length === 1) {
+            return this.getAttribute(name);
+        }
+
+        if (this.getNodeType() === Node.ELEMENT_NODE) {
+            if (name === 'style' && isPureObject(value)) {
+                return this.setStyle(value);
             }
 
-            // 只有一个参数，那就归到获取属性的范畴
-            if (arguments.length === 1) {
-                return this.getAttribute(name);
+            if (name === 'class') {
+                return this.setClass(value);
             }
 
-            if (this.getNodeType() === Node.ELEMENT_NODE) {
-                if (name === 'style' && isPureObject(value)) {
-                    return this.setStyle(value);
-                }
-
-                if (name === 'class') {
-                    return this.setClass(value);
-                }
-
-                if (Node.isEventName(name)) {
-                    return this.on(name.replace('on', ''), value);
-                }
-
-                // 外部点击事件
-                if (name === 'onoutclick') {
-                    return this.on('outclick', value);
-                }
+            if (Node.isEventName(name)) {
+                return this.on(name.replace('on', ''), value);
             }
 
-            this.setAttribute(name, value);
-        },
-
-        setClass(klass) {
-            if (!klass) {
-                return;
+            // 外部点击事件
+            if (name === 'onoutclick') {
+                return this.on('outclick', value);
             }
+        }
 
-            this.$node.className = Node.getClassList(klass).join(' ');
-        },
+        this.setAttribute(name, value);
+    }
 
-        setStyle(styleObj) {
-            for (let k in styleObj) {
-                if (styleObj.hasOwnProperty(k)) {
-                    this.$node.style[k] = styleObj[k];
-                }
+    setClass(klass) {
+        if (!klass) {
+            return;
+        }
+
+        this.$node.className = Node.getClassList(klass).join(' ');
+    }
+
+    setStyle(styleObj) {
+        for (let k in styleObj) {
+            if (styleObj.hasOwnProperty(k)) {
+                this.$node.style[k] = styleObj[k];
             }
-        },
+        }
+    }
 
-        remove() {
-            if (!this.$node.parentNode) {
-                return;
-            }
-            this.$node.parentNode.removeChild(this.$node);
-        },
+    remove() {
+        if (!this.$node.parentNode) {
+            return;
+        }
+        this.$node.parentNode.removeChild(this.$node);
+    }
 
-        on(eventName, callback) {
-            this.$event.on(eventName, callback);
+    on(eventName, callback) {
+        this.$event.on(eventName, callback);
 
-            let me = this;
-            if (!isFunction(this.$nodeEventFns[eventName])) {
-                if (eventName === 'outclick') {
-                    this.$nodeEventFns[eventName] = function (event) {
-                        event = event || window.event;
-                        if (me.$node !== event.target
-                            && !me.$node.contains(event.target)
-                        ) {
-                            me.$event.trigger(eventName, event);
-                        }
-                    };
-                    window.addEventListener('click', this.$nodeEventFns[eventName]);
-                }
-                else {
-                    this.$nodeEventFns[eventName] = function (event) {
-                        event = event || window.event;
+        let me = this;
+        if (!isFunction(this.$nodeEventFns[eventName])) {
+            if (eventName === 'outclick') {
+                this.$nodeEventFns[eventName] = function (event) {
+                    event = event || window.event;
+                    if (me.$node !== event.target
+                        && !me.$node.contains(event.target)
+                    ) {
                         me.$event.trigger(eventName, event);
-                    };
-                    this.$node.addEventListener(eventName, this.$nodeEventFns[eventName]);
-                }
+                    }
+                };
+                window.addEventListener('click', this.$nodeEventFns[eventName]);
             }
-        },
-
-        off(eventName, callback) {
-            this.$event.off(eventName, callback);
-
-            if (this.$event.isAllRemoved()) {
-                let eventFn;
-                eventFn = this.$nodeEventFns[eventName];
-                if (eventName === 'outclick') {
-                    window.removeEventListener('click', eventFn);
-                }
-                else {
-                    this.$node.removeEventListener(eventName, this.$nodeEventFns[eventName]);
-                }
-                this.$nodeEventFns[eventName] = null;
+            else {
+                this.$nodeEventFns[eventName] = function (event) {
+                    event = event || window.event;
+                    me.$event.trigger(eventName, event);
+                };
+                this.$node.addEventListener(eventName, this.$nodeEventFns[eventName]);
             }
-        },
+        }
+    }
 
-        getNodeId() {
-            return this.$node[this.$manager.$$domNodeIdKey];
-        },
+    off(eventName, callback) {
+        this.$event.off(eventName, callback);
 
-        show() {
-            if (this.$node.parentNode || !this.$commentNode) {
-                return;
+        if (this.$event.isAllRemoved()) {
+            let eventFn;
+            eventFn = this.$nodeEventFns[eventName];
+            if (eventName === 'outclick') {
+                window.removeEventListener('click', eventFn);
             }
-
-            let parentNode = this.$commentNode.parentNode;
-            if (parentNode) {
-                parentNode.replaceChild(this.$node, this.$commentNode);
+            else {
+                this.$node.removeEventListener(eventName, this.$nodeEventFns[eventName]);
             }
-        },
+            this.$nodeEventFns[eventName] = null;
+        }
+    }
 
-        hide() {
-            if (!this.$node.parentNode) {
-                return;
+    getNodeId() {
+        return this.$node[this.$manager.$$domNodeIdKey];
+    }
+
+    show() {
+        if (this.$node.parentNode || !this.$commentNode) {
+            return;
+        }
+
+        let parentNode = this.$commentNode.parentNode;
+        if (parentNode) {
+            parentNode.replaceChild(this.$node, this.$commentNode);
+        }
+    }
+
+    hide() {
+        if (!this.$node.parentNode) {
+            return;
+        }
+
+        let parentNode = this.$node.parentNode;
+        if (parentNode) {
+            if (!this.$commentNode) {
+                this.$commentNode = document.createComment('node placeholder');
+                this.$commentNode[this.$manager.$$domNodeIdKey] = ++this.$manager.$idCounter;
             }
+            parentNode.replaceChild(this.$commentNode, this.$node);
+        }
+    }
 
-            let parentNode = this.$node.parentNode;
-            if (parentNode) {
-                if (!this.$commentNode) {
-                    this.$commentNode = document.createComment('node placeholder');
-                    this.$commentNode[this.$manager.$$domNodeIdKey] = ++this.$manager.$idCounter;
-                }
-                parentNode.replaceChild(this.$commentNode, this.$node);
+    isInDom() {
+        return !!this.$node.parentNode;
+    }
+
+    /**
+     * 销毁，做一些清理工作：
+     * 1、清理outclick；
+     * 2、清理事件；
+     *
+     * @public
+     */
+    destroy() {
+        this.$event.off();
+
+        for (let eventName in this.$nodeEventFns) {
+            let eventFn = this.$nodeEventFns[eventName];
+            if (eventName === 'outclick') {
+                window.removeEventListener('click', eventFn);
             }
-        },
+            else {
+                this.$node.removeEventListener(eventName, eventFn);
+            }
+        }
+    }
 
-        isInDom() {
-            return !!this.$node.parentNode;
-        },
-
-        /**
-         * 销毁，做一些清理工作：
-         * 1、清理outclick；
-         * 2、清理事件；
-         *
-         * @public
-         */
-        destroy() {
-            this.$event.off();
-
-            for (let eventName in this.$nodeEventFns) {
-                let eventFn = this.$nodeEventFns[eventName];
-                if (eventName === 'outclick') {
-                    window.removeEventListener('click', eventFn);
-                }
-                else {
-                    this.$node.removeEventListener(eventName, eventFn);
+    static getClassList(klass) {
+        let klasses = [];
+        if (isClass(klass, 'String')) {
+            klasses = klass.split(' ');
+        }
+        else if (isPureObject(klass)) {
+            for (let k in klass) {
+                if (klass[k]) {
+                    klasses.push(klass[k]);
                 }
             }
         }
-    },
-    {
-        $name: 'Node',
+        else if (isArray(klass)) {
+            klasses = klass;
+        }
 
-        ELEMENT_NODE: 1,
-        ATTRIBUTE_NODE: 2,
-        TEXT_NODE: 3,
-        CDATA_SECTION_NODE: 4,
-        ENTITY_REFERENCE_NODE: 5,
-        ENTITY_NODE: 6,
-        PROCESSING_INSTRUCTION_NODE: 7,
-        COMMENT_NODE: 8,
-        DOCUMENT_NODE: 9,
-        DOCUMENT_TYPE_NODE: 10,
-        DOCUMENT_FRAGMENT_NODE: 11,
-        NOTATION_NODE: 12,
+        return distinctArr(klasses);
+    }
 
-        eventList: ('blur focus focusin focusout load resize scroll unload click dblclick '
-            + 'mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave '
-            + 'change select submit keydown keypress keyup error contextmenu').split(' '),
+    static isEventName(str) {
+        let eventList = this.eventList;
 
-        getClassList(klass) {
-            let klasses = [];
-            if (isClass(klass, 'String')) {
-                klasses = klass.split(' ');
+        if (str.indexOf('on-') !== 0) {
+            return;
+        }
+        str = str.slice(3);
+        for (let i = 0, il = eventList.length; i < il; ++i) {
+            if (str === eventList[i]) {
+                return true;
             }
-            else if (isPureObject(klass)) {
-                for (let k in klass) {
-                    if (klass[k]) {
-                        klasses.push(klass[k]);
-                    }
-                }
-            }
-            else if (isArray(klass)) {
-                klasses = klass;
-            }
+        }
 
-            return distinctArr(klasses);
-        },
+        return false;
+    }
 
-        isEventName(str) {
-            let eventList = this.eventList;
+    /**
+     * 将NodeList转换成真正的数组
+     *
+     * @static
+     * @param {(NodeList|Array.<Node>)} nodeList DOM节点列表
+     * @return {Array.<Node>}
+     */
+    static toArray(nodeList) {
+        if (isArray(nodeList)) {
+            return nodeList;
+        }
 
-            if (str.indexOf('on-') !== 0) {
-                return;
+        try {
+            return slice(nodeList, 0);
+        }
+        catch (e) {
+            // IE8 及更早版本将 NodeList 实现为一个 COM 对象，因此只能一个一个遍历出来。
+            let list = [];
+            for (let i = 0, il = nodeList.length; i < il; ++i) {
+                list.push(nodeList[i]);
             }
-            str = str.slice(3);
-            for (let i = 0, il = eventList.length; i < il; ++i) {
-                if (str === eventList[i]) {
+            return list;
+        }
+    }
+
+    /**
+     * 遍历DOM树。
+     *
+     * 遍历过程会受iterateFn影响：
+     * - 如果iterateFn返回true，则说明要跳出遍历了（即不会遍历当前节点的下一个兄弟节点），但是在跳出之前，还是要遍历完当前节点的子孙节点的；
+     * - 如果iterateFn返回一个节点对象，做如下判断：
+     *     - 如果这个节点不是当前节点之后的兄弟节点，则抛出异常；
+     *     - 如果是，则将当前节点设为这个节点对象。
+     * - 如果返回的是其他值，则自动将当前节点设为下一个兄弟节点。
+     *
+     * 此处有个很蛋碎的问题，就是如果iterateFn里面做了破坏DOM树形结构的操作的话，遍历就会出现困难。
+     * 所以在实际操作中建议延迟处理（即遍历完之后）这种破坏结构的DOM操作。
+     *
+     * @static
+     * @param {Node} startNode 起始节点
+     * @param {Node} endNode 终止节点
+     * @param {function(Node):(Node|undefined|boolean)} iterateFn 迭代函数。
+     *                             如果这个函数返回了一个Node对象，则把这个Node对象当成下一个要遍历的节点。
+     * @return {boolean} 如果是true，说明在遍历子节点的时候中途中断了，不需要继续遍历了。
+     */
+    static iterate(startNode, endNode, iterateFn) {
+        if (!isFunction(iterateFn)) {
+            return;
+        }
+
+        let curNode = startNode;
+        while (curNode) {
+            let nextNode = iterateFn(curNode);
+
+            if (!nextNode) {
+                if (iterateChildren(curNode)) {
                     return true;
                 }
+                curNode = curNode.getNextSibling();
             }
-
-            return false;
-        },
-
-        /**
-         * 将NodeList转换成真正的数组
-         *
-         * @static
-         * @param {(NodeList|Array.<Node>)} nodeList DOM节点列表
-         * @return {Array.<Node>}
-         */
-        toArray(nodeList) {
-            if (isArray(nodeList)) {
-                return nodeList;
+            else if (nextNode === true) {
+                iterateChildren(curNode);
+                return true;
             }
-
-            try {
-                return slice(nodeList, 0);
-            }
-            catch (e) {
-                // IE8 及更早版本将 NodeList 实现为一个 COM 对象，因此只能一个一个遍历出来。
-                let list = [];
-                for (let i = 0, il = nodeList.length; i < il; ++i) {
-                    list.push(nodeList[i]);
+            // 对于给定了下一个节点的情况，就不再遍历curNode的子节点了
+            else if (nextNode instanceof Node) {
+                if (!nextNode.isAfter(curNode)) {
+                    throw new Error('wrong next node');
                 }
-                return list;
+
+                curNode = nextNode;
             }
-        },
+            // 外部提供获取下一个节点和获取当前节点的子节点方法
+            else if (nextNode.type === 'options') {
+                let childNodes = nextNode.getChildNodes instanceof Function
+                    ? nextNode.getChildNodes(curNode)
+                    : (Node.ELEMENT_NODE === curNode.getNodeType() ? curNode.getChildNodes() : []);
 
-        /**
-         * 遍历DOM树。
-         *
-         * 遍历过程会受iterateFn影响：
-         * - 如果iterateFn返回true，则说明要跳出遍历了（即不会遍历当前节点的下一个兄弟节点），但是在跳出之前，还是要遍历完当前节点的子孙节点的；
-         * - 如果iterateFn返回一个节点对象，做如下判断：
-         *     - 如果这个节点不是当前节点之后的兄弟节点，则抛出异常；
-         *     - 如果是，则将当前节点设为这个节点对象。
-         * - 如果返回的是其他值，则自动将当前节点设为下一个兄弟节点。
-         *
-         * 此处有个很蛋碎的问题，就是如果iterateFn里面做了破坏DOM树形结构的操作的话，遍历就会出现困难。
-         * 所以在实际操作中建议延迟处理（即遍历完之后）这种破坏结构的DOM操作。
-         *
-         * @static
-         * @param {Node} startNode 起始节点
-         * @param {Node} endNode 终止节点
-         * @param {function(Node):(Node|undefined|boolean)} iterateFn 迭代函数。
-         *                             如果这个函数返回了一个Node对象，则把这个Node对象当成下一个要遍历的节点。
-         * @return {boolean} 如果是true，说明在遍历子节点的时候中途中断了，不需要继续遍历了。
-         */
-        iterate(startNode, endNode, iterateFn) {
-            if (!isFunction(iterateFn)) {
-                return;
-            }
-
-            let curNode = startNode;
-            while (curNode) {
-                let nextNode = iterateFn(curNode);
-
-                if (!nextNode) {
-                    if (iterateChildren(curNode)) {
-                        return true;
-                    }
-                    curNode = curNode.getNextSibling();
-                }
-                else if (nextNode === true) {
-                    iterateChildren(curNode);
+                if (iterateChildren(childNodes)) {
                     return true;
                 }
-                // 对于给定了下一个节点的情况，就不再遍历curNode的子节点了
-                else if (nextNode instanceof Node) {
-                    if (!nextNode.isAfter(curNode)) {
-                        throw new Error('wrong next node');
-                    }
 
-                    curNode = nextNode;
-                }
-                // 外部提供获取下一个节点和获取当前节点的子节点方法
-                else if (nextNode.type === 'options') {
-                    let childNodes = nextNode.getChildNodes instanceof Function
-                        ? nextNode.getChildNodes(curNode)
-                        : (Node.ELEMENT_NODE === curNode.getNodeType() ? curNode.getChildNodes() : []);
+                curNode = nextNode.getNextNode instanceof Function
+                    ? nextNode.getNextNode(curNode)
+                    : curNode.getNextSibling();
+            }
 
-                    if (iterateChildren(childNodes)) {
-                        return true;
-                    }
+            if (curNode && curNode.isAfter(endNode)) {
+                curNode = null;
+            }
 
-                    curNode = nextNode.getNextNode instanceof Function
-                        ? nextNode.getNextNode(curNode)
-                        : curNode.getNextSibling();
-                }
+        }
 
-                if (curNode && curNode.isAfter(endNode)) {
+        function iterateChildren(childNodes) {
+            if (childNodes.length) {
+                let isBreak = Node.iterate(
+                    childNodes[0],
+                    childNodes[childNodes.length - 1],
+                    iterateFn
+                );
+                if (isBreak === true) {
                     curNode = null;
-                }
-
-            }
-
-            function iterateChildren(childNodes) {
-                if (childNodes.length) {
-                    let isBreak = Node.iterate(
-                        childNodes[0],
-                        childNodes[childNodes.length - 1],
-                        iterateFn
-                    );
-                    if (isBreak === true) {
-                        curNode = null;
-                        return true;
-                    }
+                    return true;
                 }
             }
         }
     }
-);
+}
+
+extend(Node, {
+    ELEMENT_NODE: 1,
+    ATTRIBUTE_NODE: 2,
+    TEXT_NODE: 3,
+    CDATA_SECTION_NODE: 4,
+    ENTITY_REFERENCE_NODE: 5,
+    ENTITY_NODE: 6,
+    PROCESSING_INSTRUCTION_NODE: 7,
+    COMMENT_NODE: 8,
+    DOCUMENT_NODE: 9,
+    DOCUMENT_TYPE_NODE: 10,
+    DOCUMENT_FRAGMENT_NODE: 11,
+    NOTATION_NODE: 12,
+
+    eventList: ('blur focus focusin focusout load resize scroll unload click dblclick '
+        + 'mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave '
+        + 'change select submit keydown keypress keyup error contextmenu').split(' ')
+});
+
 
 export default Node;
