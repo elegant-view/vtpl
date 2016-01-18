@@ -229,4 +229,8 @@ export function regExpEncode(str) {
     return '\\' + str.split('').join('\\');
 }
 
+export function type(obj) {
+    return typeof obj;
+}
+
 

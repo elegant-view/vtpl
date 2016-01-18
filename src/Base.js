@@ -4,6 +4,7 @@
  */
 
 class Base {
+    constructor() {}
 }
 
 

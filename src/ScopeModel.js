@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {isClass, extend, each} from './utils';
+import {isClass, extend, each, type, isFunction} from './utils';
 import Event from './Event';
 
 class ScopeModel extends Event {
@@ -24,7 +24,7 @@ class ScopeModel extends Event {
     }
 
     set(name, value) {
-        var changeObj;
+        let changeObj;
 
         if (isClass(name, 'String')) {
             changeObj = setProperty(this, name, value);
@@ -32,9 +32,9 @@ class ScopeModel extends Event {
                 change(this, [changeObj]);
             }
         }
-        else if (typeof name === 'object') {
-            var changes = [];
-            for (var key in name) {
+        else if (type(name) === 'object') {
+            let changes = [];
+            for (let key in name) {
                 if (!name.hasOwnProperty(key)) {
                     continue;
                 }
@@ -68,7 +68,7 @@ class ScopeModel extends Event {
         }
 
         /* eslint-disable guard-for-in */
-        for (var key in this.store) {
+        for (let key in this.store) {
             fn.call(context, this.store[key], key);
         }
         /* eslint-enable guard-for-in */
@@ -87,8 +87,8 @@ export default ScopeModel;
  * @ignore
  */
 function setProperty(model, name, value) {
-    var type = model.store.hasOwnProperty(name) ? 'change' : 'add';
-    var oldValue = model.store[name];
+    let type = model.store.hasOwnProperty(name) ? 'change' : 'add';
+    let oldValue = model.store[name];
     model.store[name] = value;
 
     // 只在新旧值不同的情况下才有变化记录项

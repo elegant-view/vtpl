@@ -6,6 +6,13 @@
 export default class DirtyChecker {
     constructor() {
         this.checkers = {};
+        this.$$defaultCheckerFn = function (expr, exprValue, exprOldValue) {
+            return exprValue !== exprOldValue;
+        };
+    }
+
+    setDefaultChecker(checkerFn) {
+        this.$$defaultCheckerFn = checkerFn;
     }
 
     setChecker(expr, checkerFn) {
@@ -13,7 +20,7 @@ export default class DirtyChecker {
     }
 
     getChecker(expr) {
-        return this.checkers[expr];
+        return this.checkers[expr] || this.$$defaultCheckerFn;
     }
 
     destroy() {

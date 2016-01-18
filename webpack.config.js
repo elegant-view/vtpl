@@ -6,9 +6,7 @@ module.exports = {
     },
     output: {
         path: __dirname,
-        filename: './dist/[name]',
-        // library: 'vtpl/main',
-        // libraryTarget: 'amd'
+        filename: './dist/[name]'
     },
     module: {
         loaders: [{
