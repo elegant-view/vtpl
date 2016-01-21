@@ -259,7 +259,7 @@ class Node extends Base {
     off(eventName, callback) {
         this.$event.off(eventName, callback);
 
-        if (this.$event.isAllRemoved()) {
+        if (this.$event.isAllRemoved(eventName, callback)) {
             let eventFn;
             eventFn = this.$nodeEventFns[eventName];
             if (eventName === 'outclick') {
@@ -277,6 +277,17 @@ class Node extends Base {
     }
 
     show() {
+        // let nodeType = this.getNodeType();
+        // if (nodeType === Node.ELEMENT_NODE) {
+        //     if (this.getAttribute('class') === 'disable') {
+        //         debugger
+        //     }
+        //     this.setStyle({display: this.$$prevStyleDisplay});
+        // }
+        // else if (nodeType === Node.TEXT_NODE) {
+        //     this.setNodeValue(this.$$prevNodeValue || '');
+        // }
+
         if (this.$node.parentNode || !this.$commentNode) {
             return;
         }
@@ -288,6 +299,19 @@ class Node extends Base {
     }
 
     hide() {
+        // let nodeType = this.getNodeType();
+        // if (nodeType === Node.ELEMENT_NODE) {
+        //     if (this.getAttribute('class') === 'disable') {
+        //         debugger
+        //     }
+        //     this.$$prevStyleDisplay = this.$node.style.display;
+        //     this.setStyle({display: 'none'});
+        // }
+        // else if (nodeType === Node.TEXT_NODE) {
+        //     this.$$prevNodeValue = this.getNodeValue();
+        //     this.setNodeValue('');
+        // }
+
         if (!this.$node.parentNode) {
             return;
         }
@@ -295,11 +319,19 @@ class Node extends Base {
         let parentNode = this.$node.parentNode;
         if (parentNode) {
             if (!this.$commentNode) {
-                this.$commentNode = document.createComment('node placeholder');
+                this.$commentNode = document.createComment(this.getOuterHTML());
                 this.$commentNode[this.$manager.$$domNodeIdKey] = ++this.$manager.$idCounter;
             }
             parentNode.replaceChild(this.$commentNode, this.$node);
         }
+    }
+
+    getOuterHTML() {
+        let div = document.createElement('div');
+        div.appendChild(this.$node.cloneNode(true));
+        let html = div.innerHTML;
+        div = null;
+        return html;
     }
 
     isInDom() {

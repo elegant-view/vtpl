@@ -23,12 +23,22 @@ class ScopeModel extends Event {
         this.children.push(child);
     }
 
-    set(name, value) {
+    removeChild(child) {
+        let children = [];
+        for (let i = 0, il = this.children.length; i < il; ++i) {
+            if (this.children[i] !== child) {
+                children.push(this.children[i]);
+            }
+        }
+        this.children = children;
+    }
+
+    set(name, value, isSilent) {
         let changeObj;
 
         if (isClass(name, 'String')) {
             changeObj = setProperty(this, name, value);
-            if (changeObj) {
+            if (changeObj && !isSilent) {
                 change(this, [changeObj]);
             }
         }
@@ -44,7 +54,8 @@ class ScopeModel extends Event {
                     changes.push(changeObj);
                 }
             }
-            change(this, changes);
+            isSilent = value;
+            !isSilent && change(this, changes);
         }
     }
 

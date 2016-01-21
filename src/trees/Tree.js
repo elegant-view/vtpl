@@ -88,14 +88,10 @@ export default class Tree extends Base {
         return scopes[name];
     }
 
-    /**
-     * 遍历DOM树，生成解析器类->搜集指令和表达式并生成相应的DOM更新函数->绑定ScopeModel
-     *
-     * @public
-     */
-    traverse() {
+    collectExprs() {
         let me = this;
         let delayFns = [];
+
         Node.iterate(this.startNode, this.endNode, function (node) {
             let options = {
                 startNode: node,
@@ -123,8 +119,6 @@ export default class Tree extends Base {
 
             function handle() {
                 parser.collectExprs();
-                // 将解析器对象和对应树的scope绑定起来
-                parser.linkScope();
             }
 
             return {
@@ -144,6 +138,24 @@ export default class Tree extends Base {
         for (let i = 0, il = delayFns.length; i < il; ++i) {
             delayFns[i]();
         }
+    }
+
+    linkScope() {
+        for (let i = 0, il = this.$parsers.length; i < il; ++i) {
+            let parser = this.$parsers[i];
+            // 将解析器对象和对应树的scope绑定起来
+            parser.linkScope();
+        }
+    }
+
+    /**
+     * 遍历DOM树，生成解析器类->搜集指令和表达式并生成相应的DOM更新函数->绑定ScopeModel
+     *
+     * @public
+     */
+    traverse() {
+        this.collectExprs();
+        this.linkScope();
     }
 
     setData(data) {

@@ -35,7 +35,7 @@ export default class Event {
 
     off(eventName, fn) {
         if (arguments.length === 0) {
-            this.events = {};
+            this.evnts = {};
         }
 
         if (!fn) {
@@ -69,7 +69,7 @@ export default class Event {
             fn = arguments[1];
         }
 
-        let fnObjs = this.events[eventName];
+        let fnObjs = this.evnts[eventName];
         if (fnObjs && fnObjs.length) {
             if (fn) {
                 for (let i = 0, il = fnObjs.length; i < il; ++i) {

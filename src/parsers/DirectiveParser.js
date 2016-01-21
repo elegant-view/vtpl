@@ -11,7 +11,7 @@ class DirectiveParser extends Parser {
     constructor(options) {
         super(options);
 
-        this.node = options.node;
+        // this.node = options.node;
     }
 
     /**
@@ -28,7 +28,7 @@ class DirectiveParser extends Parser {
             startNode: startNode,
             endNode: endNode
         });
-        tree.setParent(this.tree);
+        tree.setParent(parentTree);
         tree.rootScope.setParent(parentTree.rootScope);
         parentTree.rootScope.addChild(tree.rootScope);
         return tree;

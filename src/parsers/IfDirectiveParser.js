@@ -25,21 +25,37 @@ class IfDirectiveParser extends DirectiveParser {
 
     collectExprs() {
         let branchNodeStack = [];
+        // 这个计数器是用来处理if指令嵌套问题的。
+        // 当nestCounter为0的时候，遇到的各种if相关指令才属于当前parser的，
+        // 否则是嵌套的if指令
+        let nestCounter = 0;
         let me = this;
         let config = this.tree.getTreeVar('config');
+        // console.log(this.startNode.$node.nodeValue);
+        // if (this.startNode.$node.nodeValue === ' if: ${day.isEnable} ') {
+        //     debugger
+        // }
         Node.iterate(this.startNode, this.endNode, function (node) {
             let ifNodeType = getIfNodeType(node, me.tree.getTreeVar('config'));
             // if
             if (ifNodeType === IfDirectiveParser.IF_START) {
+                // 已经有了一个if分支，再来一个if分支，说明很可能是if嵌套
                 if (branchNodeStack.length) {
-                    throw new Error('wrong `if` directive syntax');
+                    ++nestCounter;
+                    return;
                 }
+
                 branchNodeStack.push({node: node, type: ifNodeType});
             }
             // elif
             else if (ifNodeType === IfDirectiveParser.ELIF
                 || ifNodeType === IfDirectiveParser.ELSE
             ) {
+                // 有嵌套，就不管这个分支了
+                if (nestCounter) {
+                    return;
+                }
+
                 if (!branchNodeStack.length
                     || (
                         // 前面一个分支既不是`if`，也不是`elif`
@@ -53,6 +69,12 @@ class IfDirectiveParser extends DirectiveParser {
             }
             // /if
             else if (ifNodeType === IfDirectiveParser.IF_END) {
+                // 有嵌套，此时要退出一层嵌套
+                if (nestCounter) {
+                    --nestCounter;
+                    return;
+                }
+
                 branchNodeStack.push({node: node, type: ifNodeType});
             }
 
@@ -87,23 +109,36 @@ class IfDirectiveParser extends DirectiveParser {
                 this.$branchTrees.push(null);
             }
             else {
-                let tree = this.createTree(
-                    this.tree,
-                    curNodeNextSibling,
-                    nextNode.node.getPreviousSibling()
-                );
+                let tree = new Tree({
+                    startNode: curNodeNextSibling,
+                    endNode: nextNode.node.getPreviousSibling()
+                });
+                tree.setParent(this.tree);
+
                 this.$branchTrees.push(tree);
-                tree.traverse();
+                tree.collectExprs();
             }
         }
     }
 
-    linkScope() {
-        DirectiveParser.prototype.linkScope.apply(this, arguments);
-        this.onChange();
+    linkToParentScope(branchTree) {
+        this.tree.rootScope.addChild(branchTree.rootScope);
+        branchTree.rootScope.setParent(this.tree.rootScope);
     }
 
-    onChange() {
+    unlinkFromParentScope(branchTree) {
+        this.tree.rootScope.removeChild(branchTree.rootScope);
+        branchTree.rootScope.setParent(null);
+    }
+
+    linkScope() {
+        DirectiveParser.prototype.linkScope.apply(this, arguments);
+        for (let i = 0, il = this.$branchTrees.length; i < il; ++i) {
+            this.$branchTrees[i].linkScope();
+        }
+    }
+
+    onChange(model, changes) {
         let domUpdater = this.tree.getTreeVar('domUpdater');
         let exprs = this.exprs;
         let showIndex;
@@ -113,18 +148,26 @@ class IfDirectiveParser extends DirectiveParser {
             let exprValue = this.exprFns[expr](this.tree.rootScope);
             if (exprValue) {
                 showIndex = i;
-                break;
+                this.linkToParentScope(this.$branchTrees[i]);
+            }
+            else {
+                this.unlinkFromParentScope(this.$branchTrees[i]);
             }
         }
 
-        if (this.$$hasElseBranch) {
+        if (showIndex === undefined && this.$$hasElseBranch) {
             showIndex = i;
+            this.linkToParentScope(this.$branchTrees[i]);
         }
 
         domUpdater.addTaskFn(
             this.handleBranchesTaskId,
             bind(handleBranches, null, this.$branchTrees, showIndex)
         );
+    }
+
+    getChildNodes() {
+        return [];
     }
 
     destroy() {
@@ -141,6 +184,14 @@ class IfDirectiveParser extends DirectiveParser {
         this.branchTrees = null;
 
         DirectiveParser.prototype.destroy.call(this);
+    }
+
+    getStartNode() {
+        return this.startNode;
+    }
+
+    getEndNode() {
+        return this.endNode;
     }
 
 

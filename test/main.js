@@ -1,10 +1,57 @@
 import Vtpl from '../src/main';
 
-testForBase();
-testForNest();
-testIfBase();
-testExprBase();
-testEvent();
+// testForBase();
+// testForNest();
+// testIfBase();
+// testExprBase();
+// testEvent();
+testIfNest();
+// testForIfNest();
+
+function testForIfNest() {
+    var vtpl = new Vtpl({
+        startNode: getNode('forIfNest'),
+        endNode: getNode('forIfNest')
+    });
+
+    vtpl.render();
+
+    vtpl.setData({
+        students: [
+            // {
+            //     name: 'zhangsan',
+            //     age: 18
+            // },
+            // {
+            //     name: 'zhangsan',
+            //     age: 19
+            // },
+            {
+                name: 'lisi',
+                age: 18
+            }
+        ]
+    });
+}
+
+function testIfNest() {
+    var vtpl = new Vtpl({
+        startNode: getNode('ifNest'),
+        endNode: getNode('ifNest')
+    });
+
+    vtpl.render();
+
+    vtpl.setData({
+        name: 'lisi',
+        age: 19
+    });
+
+    // vtpl.setData({
+    //     name: 'zhangsan',
+    //     age: 19
+    // });
+}
 
 function testEvent() {
     var vtpl = new Vtpl({

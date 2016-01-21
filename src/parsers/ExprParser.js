@@ -3,8 +3,8 @@
  *       包含的比较重要的几个属性：
  *       - 1、node ：当前节点，是nodes/Node类型的，可能为元素节点和文本节点；
  *       - 2、exprFns ：表达式函数和节点更新函数
- *           - 1、exprFns[i].exprFn ：计算表达式值的函数，类型是`function(ScopeModel):*`；
- *           - 2、exprFns[i].updateFns ：根据表达式值去更新dom的函数数组，类型是`[function(*)]`。
+ *           - 1、exprFns[expr].exprFn ：计算表达式值的函数，类型是`function(ScopeModel):*`；
+ *           - 2、exprFns[expr].updateFns ：根据表达式值去更新dom的函数数组，类型是`[function(*)]`。
  *       - 3、tree ：当前解析器挂靠的树。
  * @author yibuyisheng(yibuyisheng@163.com)
  */
@@ -85,10 +85,10 @@ class ExprParser extends Parser {
         // 元素节点
         if (nodeType === Node.ELEMENT_NODE) {
             var attributes = this.node.getAttributes();
-            for (var i = 0, il = attributes.length; i < il; i++) {
+            for (var i = 0, il = attributes.length; i < il; ++i) {
                 var attribute = attributes[i];
                 if (!isExpr(attribute.value)) {
-                    this.setAttr(this.node, attribute.name, attribute.value);
+                    this.setAttr(attribute.name, attribute.value);
                     continue;
                 }
                 this.addExpr(
@@ -99,16 +99,15 @@ class ExprParser extends Parser {
                         null,
                         this.getTaskId(attribute.name),
                         domUpdater,
-                        this.node,
                         attribute.name
                     )
                 );
             }
         }
 
-        function updateAttr(taskId, domUpdater, node, attrName, exprValue) {
+        function updateAttr(taskId, domUpdater, attrName, exprValue) {
             domUpdater.addTaskFn(taskId, function () {
-                me.setAttr(node, attrName, exprValue);
+                me.setAttr(attrName, exprValue);
             });
         }
 
@@ -121,9 +120,11 @@ class ExprParser extends Parser {
         textNode.setNodeValue(value);
     }
 
-    setAttr(node, attrName, attrValue) {
-        if (Node.isEventName(attrName)) {
-            node.on(attrName.replace('on-', ''), event => {
+    setAttr(attrName, attrValue) {
+        if (Node.isEventName(attrName) || attrName === 'on-outclick') {
+            let eventName = attrName.replace('on-', '');
+            this.node.off(eventName);
+            this.node.on(eventName, event => {
                 let exprCalculater = this.tree.getTreeVar('exprCalculater');
                 exprCalculater.createExprFn(attrValue, true);
 
@@ -134,7 +135,7 @@ class ExprParser extends Parser {
             });
         }
         else {
-            node.attr(attrName, attrValue);
+            this.node.attr(attrName, attrValue);
         }
     }
 
@@ -339,6 +340,9 @@ class ExprParser extends Parser {
          * @return {Object}
          */
         function genMultiExprFnObj(expr, regExp) {
+            // 注意：此处去掉空格，可能会影响到展示
+            expr = expr.replace(/^\s+/, '').replace(/\s+$/, '');
+
             var exprs = expr.match(regExp);
             var paramNames = [];
             for (var i = 0, il = exprs.length; i < il; ++i) {
