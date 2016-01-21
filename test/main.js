@@ -1,12 +1,12 @@
 import Vtpl from '../src/main';
 
-// testForBase();
-// testForNest();
-// testIfBase();
-// testExprBase();
-// testEvent();
+testForBase();
+testForNest();
+testIfBase();
+testExprBase();
+testEvent();
 testIfNest();
-// testForIfNest();
+testForIfNest();
 
 function testForIfNest() {
     var vtpl = new Vtpl({
@@ -18,14 +18,14 @@ function testForIfNest() {
 
     vtpl.setData({
         students: [
-            // {
-            //     name: 'zhangsan',
-            //     age: 18
-            // },
-            // {
-            //     name: 'zhangsan',
-            //     age: 19
-            // },
+            {
+                name: 'zhangsan',
+                age: 18
+            },
+            {
+                name: 'zhangsan',
+                age: 19
+            },
             {
                 name: 'lisi',
                 age: 18
