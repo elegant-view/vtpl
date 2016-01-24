@@ -7,9 +7,10 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "./node_modules/karma/bin/karma start",
     "build": "gulp build",
-    "dev": "webpack-dev-server --progress --colors"
+    "dev-bak": "webpack-dev-server --progress --colors",
+    "dev": "edp webserver"
   },
   "repository": {
     "type": "git",
@@ -22,10 +23,25 @@
   },
   "homepage": "https://github.com/elegant-view/vtpl#readme",
   "devDependencies": {
-    "babel-core": "^6.4.0",
+    "babel-core": "^6.4.5",
     "babel-loader": "^6.2.1",
+    "babel-plugin-transform-es2015-modules-amd": "^6.4.3",
     "babel-preset-es2015": "^6.3.13",
-    "object-assign": "^4.0.1"
+    "edp": "^1.1.1",
+    "edp-webserver": "^1.2.5",
+    "esl": "github:ecomfe/esl",
+    "jasmine": "^2.4.1",
+    "jasmine-core": "^2.4.1",
+    "karma": "^0.13.19",
+    "karma-babel-preprocessor": "^6.0.1",
+    "karma-chrome-launcher": "^0.2.2",
+    "karma-coverage": "^0.5.3",
+    "karma-jasmine": "^0.3.6",
+    "karma-requirejs": "^0.2.3",
+    "karma-webpack": "^1.7.0",
+    "object-assign": "^4.0.1",
+    "requirejs": "^2.1.22",
+    "webpack": "^1.12.11"
   },
   "edp": {
     "wwwroot": "/",

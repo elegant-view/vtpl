@@ -27,10 +27,22 @@ export default class Event {
         let fnObjs = this.evnts[eventName];
         if (fnObjs && fnObjs.length) {
             let args = slice(arguments, 1);
-            each(fnObjs, function (fnObj) {
-                fnObj.fn.apply(fnObj.context, args);
+            let triggeredFns = [];
+            // 坑，不要return。。。。
+            each(fnObjs, fnObj => {
+                triggeredFns.push(fnObj);
             });
+            // 延迟执行回调函数，避免调用在回调函数里面新添加的回调函数
+            each(triggeredFns, fnObj => this.invokeEventHandler(fnObj, ...args));
         }
+    }
+
+    invokeEventHandler(handler, ...args) {
+        return handler.fn.apply(handler.context, args);
+    }
+
+    getEventHandlers(eventName) {
+        return this.evnts[eventName];
     }
 
     off(eventName, fn) {

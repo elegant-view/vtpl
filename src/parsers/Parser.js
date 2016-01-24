@@ -24,6 +24,40 @@ export default class Parser extends Base {
         super(options);
 
         this.tree = options.tree;
+
+        /**
+         * 变量名到表达式的映射。也就是说这个表达式依赖于这个变量，
+         * 只要这个变量发生了改变，这个表达式的值就可能发生改变。
+         * @type {Object}
+         */
+        this.$paramNameToExprMap = {};
+    }
+
+    /**
+     * 添加变量名到表达式的映射
+     *
+     * @protected
+     * @param {Array.<string>} names 分析出来的expr依赖的一组变量
+     * @param {string} expr  表达式
+     */
+    addParamName2ExprMap(names, expr) {
+        for (var i = 0, il = names.length; i < il; ++i) {
+            var paramName = names[i];
+            var exprArr = this.$paramNameToExprMap[paramName] || [];
+            exprArr.push(expr);
+            this.$paramNameToExprMap[paramName] = exprArr;
+        }
+    }
+
+    /**
+     * 根据变量的名字拿到受该变量影响的表达式
+     *
+     * @protected
+     * @param  {string} name 变量名
+     * @return {Array.<string>} 受影响的表达式
+     */
+    getExprsByParamName(name) {
+        return this.$paramNameToExprMap[name];
     }
 
     /**
@@ -32,22 +66,7 @@ export default class Parser extends Base {
      * @public
      * @param {ScopeModel} scopeModel scope model
      */
-    linkScope() {
-        this.tree.rootScope.on('change', this.onChange, this);
-        this.tree.rootScope.on('parentchange', this.onChange, this);
-
-        this.tree.getTreeVar('domUpdater').execute();
-    }
-
-    /**
-     * model 发生变化的回调函数
-     *
-     * @protected
-     * @param {Array.<Object>} changes 产生的改变
-     */
-    onChange(changes) {
-        this.tree.getTreeVar('domUpdater').execute();
-    }
+    linkScope() {}
 
     /**
      * 隐藏当前parser实例相关的节点。具体子类实现
@@ -64,6 +83,18 @@ export default class Parser extends Base {
      * @abstract
      */
     restoreFromDark() {}
+
+    /**
+     * 监听model数据变化。
+     *
+     * @protected
+     * @param {ScopeModel} scopeModel model
+     * @param {function(EventType, ScopeModel, Array.<Object>)} handler 事件回调函数
+     */
+    listenToChange(scopeModel, handler) {
+        scopeModel.on('change', event => handler(event));
+        scopeModel.on('parentchange', event => handler(event));
+    }
 
     /**
      * 获取解析器当前状态下的开始DOM节点。

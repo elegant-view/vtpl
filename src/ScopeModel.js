@@ -116,14 +116,40 @@ function setProperty(model, name, value) {
 }
 
 /**
- * 触发change事件，并向子scopeModel广播
+ * 自己触发的change事件，就要负责到底，即通知所有的子孙scope。
  *
- * @param {ScopeModel} model model对象
+ * @param {ScopeModel} rootModel model对象
  * @param {Array.<Object>} changes 值改变记录
  */
-function change(model, changes) {
-    model.trigger('change', model, changes);
-    each(model.children, function (scope) {
-        scope.trigger('parentchange', model, changes);
-    });
+function change(rootModel, changes) {
+    let delayFns = getDelayFns(rootModel, 'change');
+    each(delayFns, fn => fn());
+
+    function getDelayFns(model, eventName) {
+        let delayFns = [];
+
+        // 直接锁定model的所有事件回调函数，防止前面的事件回调函数污染回调函数队列。
+        let handlers = model.getEventHandlers(eventName);
+        if (handlers && handlers.length) {
+            each(handlers, handler => {
+                delayFns.push(() => {
+                    model.invokeEventHandler(
+                        handler,
+                        {
+                            type: eventName,
+                            model: rootModel,
+                            changes: changes
+                        }
+                    );
+                });
+            });
+        }
+
+        // 遍历子孙model
+        for (let i = 0, il = model.children.length; i < il; ++i) {
+            delayFns.push.apply(delayFns, getDelayFns(model.children[i], 'parentchange'));
+        }
+
+        return delayFns;
+    }
 }

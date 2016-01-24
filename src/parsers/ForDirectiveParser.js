@@ -4,7 +4,7 @@
  */
 
 import DirectiveParser from './DirectiveParser';
-import {each, createExprFn, bind} from '../utils';
+import {each} from '../utils';
 import Tree from '../trees/Tree';
 import Node from '../nodes/Node';
 
@@ -21,18 +21,17 @@ class ForDirectiveParser extends DirectiveParser {
         this.exprFn = null;
         this.updateFn = null;
         this.trees = [];
+
+        this.$$itemVariableName = null;
     }
 
     collectExprs() {
-        if (this.startNode.getNextSibling().equal(this.endNode)) {
-            return;
-        }
-
         // for指令之间没有节点
         if (this.startNode.getNextSibling().equal(this.endNode)) {
             return;
         }
 
+        // 将for指令之间的节点抽出来，放在tplSeg里面作为样板缓存，后面会根据这个样板生成具体的DOM结构。
         let nodesManager = this.tree.getTreeVar('nodesManager');
         this.tplSeg = nodesManager.createElement('div');
         for (let curNode = this.startNode.getNextSibling();
@@ -43,42 +42,89 @@ class ForDirectiveParser extends DirectiveParser {
             curNode = nextNode;
         }
 
-        let config = this.tree.getTreeVar('config');
-        let exprCalculater = this.tree.getTreeVar('exprCalculater');
-
-        this.expr = this.startNode.getNodeValue().match(config.getForExprsRegExp())[1];
-        this.exprFn = createExprFn(config.getExprRegExp(), this.expr, exprCalculater);
+        this.expr = this.startNode.getNodeValue().replace('for:', '');
+        this.exprFn = this.createExprFn(this.expr);
         this.updateFn = this.createUpdateFn(
             this.startNode.getNextSibling(),
-            this.endNode.getPreviousSibling(),
-            this.startNode.getNodeValue()
+            this.endNode.getPreviousSibling()
         );
     }
 
-    linkScope() {
-        this.onChange();
-        DirectiveParser.prototype.linkScope.apply(this, arguments);
+    /**
+     * for指令的表达式格式为：
+     * `[list] as [item]`
+     * 其中list就是要迭代的对象，可以是数组或对象；
+     * item是每一项的值，对于数组，就是数组元素，对于对象，就是键值；
+     * 还有隐藏变量：
+     * key是每一项的键，对于数组，就是下标索引，对于对象，就是键；
+     * index是索引，对于数组，就是下标索引，对于对象，就是迭代次数。
+     *
+     * @private
+     * @param  {string} expr for指令表达式
+     * @return {function(ScopeModel):Array|Object}
+     */
+    createExprFn(expr) {
+        let exprMatch = expr.match(/^\s*([$\w]+)\s+as\s+([$\w]+)\s*$/);
+        if (!exprMatch || exprMatch.length !== 3) {
+            throw new Error(`wrong for expression: ${expr}`);
+        }
+
+        let exprCalculater = this.tree.getTreeVar('exprCalculater');
+        let {paramNames} = exprCalculater.createExprFn(exprMatch[1], false);
+        this.addParamName2ExprMap(paramNames, expr);
+        this.$$itemVariableName = exprMatch[2];
+        return scopeModel => {
+            let list = exprCalculater.calculate(exprMatch[1], false, scopeModel);
+            return list;
+        };
     }
 
-    onChange() {
-        if (!this.expr) {
+    linkScope() {
+        this.renderToDom();
+        super.linkScope();
+
+        this.listenToChange(this.tree.rootScope, event => this.renderToDom(event.changes));
+    }
+
+    renderToDom(changes) {
+        if (this.isGoDark) {
             return;
         }
 
-        let exprValue = this.exprFn(this.tree.rootScope);
-        if (this.dirtyCheck(this.expr, exprValue, this.exprOldValue)) {
-            this.updateFn(exprValue, this.tree.rootScope);
+        if (!changes) {
+            update.call(this);
+            return;
         }
 
-        this.exprOldValue = exprValue;
+        for (let i = 0, il = changes.length; i < il; ++i) {
+            let exprs = this.getExprsByParamName(changes[i].name);
+            if (exprs && exprs.length) {
+                update.call(this);
+                return;
+            }
+        }
 
-        DirectiveParser.prototype.onChange.apply(this, arguments);
+        function update() {
+            let listObj = this.exprFn(this.tree.rootScope);
+            if (this.dirtyCheck(this.expr, listObj, this.exprOldValue)) {
+                this.updateFn(listObj);
+            }
+            this.exprOldValue = listObj;
+        }
+    }
+
+    goDark() {
+        each(this.trees, tree => tree.goDark());
+        this.isGoDark = true;
+    }
+
+    restoreFromDark() {
+        each(this.trees, tree => tree.restoreFromDark());
+        this.isGoDark = false;
     }
 
     destroy() {
-        each(this.trees, function (tree) {
-            tree.destroy();
-        });
+        each(this.trees, tree => tree.destroy());
 
         this.tplSeg = null;
         this.expr = null;
@@ -87,7 +133,7 @@ class ForDirectiveParser extends DirectiveParser {
         this.startNode = null;
         this.endNode = null;
 
-        DirectiveParser.prototype.destroy.apply(this, arguments);
+        super.destroy();
     }
 
     /**
@@ -113,13 +159,7 @@ class ForDirectiveParser extends DirectiveParser {
             curNode = nextNode;
         }
 
-        let tree = DirectiveParser.prototype.createTree.call(
-            this,
-            this.tree,
-            startNode,
-            endNode
-        );
-        tree.traverse();
+        let tree = super.createTree(this.tree, startNode, endNode);
         return tree;
     }
 
@@ -132,52 +172,37 @@ class ForDirectiveParser extends DirectiveParser {
      * @private
      * @param  {nodes/Node} startNode 起始节点
      * @param  {nodes/Node} endNode   结束节点
-     * @param  {string} fullExpr  for指令中完整的表达式，比如`<!-- for: ${list} as ${item} -->`就是`for: ${list} as ${item}`。
      * @return {function(*,ScopeModel)}           dom更新函数
      */
-    createUpdateFn(startNode, endNode, fullExpr) {
+    createUpdateFn(startNode, endNode) {
         let parser = this;
-        let config = this.tree.getTreeVar('config');
-        let domUpdater = this.tree.getTreeVar('domUpdater');
-        let itemVariableName = fullExpr.match(config.getForItemValueNameRegExp())[1];
-        let taskId = domUpdater.generateTaskId();
-        return function (exprValue, scopeModel) {
+        let itemVariableName = this.$$itemVariableName;
+        return listObj => {
             let index = 0;
-            for (let k in exprValue) {
-                if (!parser.trees[index]) {
-                    parser.trees[index] = parser.createTree();
-                }
-
-                parser.trees[index].restoreFromDark();
-                parser.trees[index].setDirtyChecker(parser.dirtyChecker);
-
+            /* eslint-disable guard-for-in */
+            for (let k in listObj) {
+            /* eslint-enable guard-for-in */
                 let local = {
                     key: k,
                     index: index
                 };
-                local[itemVariableName] = exprValue[k];
+                local[itemVariableName] = listObj[k];
 
-                parser.trees[index].rootScope.setParent(scopeModel);
-                scopeModel.addChild(parser.trees[index].rootScope);
+                if (!parser.trees[index]) {
+                    parser.trees[index] = parser.createTree();
+                    parser.trees[index].compile();
+                    parser.trees[index].link();
+                }
 
+                parser.trees[index].restoreFromDark();
                 parser.trees[index].rootScope.set(local);
 
                 ++index;
             }
 
-            domUpdater.addTaskFn(
-                taskId,
-                bind(
-                    function (trees, index) {
-                        for (let i = index, il = trees.length; i < il; i++) {
-                            trees[i].goDark();
-                        }
-                    },
-                    null,
-                    parser.trees,
-                    index
-                )
-            );
+            for (let i = index, il = parser.trees.length; i < il; ++i) {
+                parser.trees[i].goDark();
+            }
         };
     }
 
@@ -216,4 +241,3 @@ class ForDirectiveParser extends DirectiveParser {
 
 Tree.registeParser(ForDirectiveParser);
 export default ForDirectiveParser;
-

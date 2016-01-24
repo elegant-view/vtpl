@@ -1,3 +1,9 @@
+/**
+ * @file 日志打印输出，方便debug
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
+/* eslint-disable no-console */
 export default {
     warn: function () {
         if (!console || !console.warn) {
@@ -14,3 +20,4 @@ export default {
         console.info.apply(console, arguments);
     }
 };
+/* eslint-enable no-console */

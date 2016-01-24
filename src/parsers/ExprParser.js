@@ -40,12 +40,7 @@ class ExprParser extends Parser {
          */
         this.attrToDomTaskIdMap = {};
 
-        /**
-         * 变量名到表达式的映射。也就是说这个表达式依赖于这个变量，
-         * 只要这个变量发生了改变，这个表达式的值就可能发生改变。
-         * @type {Object}
-         */
-        this.$paramNameToExprMap = {};
+        this.isGoDark = false;
     }
 
     /**
@@ -66,16 +61,16 @@ class ExprParser extends Parser {
                     this.exprFns,
                     nodeValue,
                     bind(
-                        function (taskId, domUpdater, node, exprValue) {
+                        function (taskId, domUpdater, exprValue, callback) {
                             var parser = this;
                             domUpdater.addTaskFn(taskId, function () {
-                                parser.setTextNodeValue(node, exprValue);
+                                parser.setAttr('nodeValue', exprValue);
+                                callback && callback();
                             });
                         },
                         this,
                         domUpdater.generateNodeAttrUpdateId(this.node, 'nodeValue'),
-                        domUpdater,
-                        this.node
+                        domUpdater
                     )
                 );
             }
@@ -105,9 +100,10 @@ class ExprParser extends Parser {
             }
         }
 
-        function updateAttr(taskId, domUpdater, attrName, exprValue) {
-            domUpdater.addTaskFn(taskId, function () {
+        function updateAttr(taskId, domUpdater, attrName, exprValue, callback) {
+            domUpdater.addTaskFn(taskId, () => {
                 me.setAttr(attrName, exprValue);
+                callback && callback();
             });
         }
 
@@ -116,10 +112,13 @@ class ExprParser extends Parser {
         }
     }
 
-    setTextNodeValue(textNode, value) {
-        textNode.setNodeValue(value);
-    }
-
+    /**
+     * 设置属性
+     *
+     * @protected
+     * @param {string} attrName  属性名
+     * @param {string} attrValue 属性值
+     */
     setAttr(attrName, attrValue) {
         if (Node.isEventName(attrName) || attrName === 'on-outclick') {
             let eventName = attrName.replace('on-', '');
@@ -163,33 +162,37 @@ class ExprParser extends Parser {
         }
     }
 
-    // 添加变量名到表达式的映射
-    addParamName2ExprMap(names, expr) {
-        for (var i = 0, il = names.length; i < il; ++i) {
-            var paramName = names[i];
-            var exprArr = this.$paramNameToExprMap[paramName] || [];
-            exprArr.push(expr);
-            this.$paramNameToExprMap[paramName] = exprArr;
-        }
-    }
-
+    /**
+     * 将界面更新相关函数和scopeModel关联起来，顺便记得在初始的时候刷一下界面
+     *
+     * @public
+     */
     linkScope() {
         this.renderToDom(this.exprFns, this.exprOldValues, this.tree.rootScope);
-        Parser.prototype.linkScope.call(this);
+        this.listenToChange(this.tree.rootScope, event => {
+            this.renderToDom(
+                this.exprFns,
+                this.exprOldValues,
+                this.tree.rootScope,
+                event.changes
+            );
+        });
     }
 
-    // 在model发生改变的时候计算一下表达式的值->脏检测->更新界面。
-    onChange(model, changes) {
+    /**
+     * 用当前的scopeModel扫描一下exprFns，做相应的更新。
+     *
+     * @protected
+     * @param {Object} exprFns 表达式和对应更新函数的映射，数据结构大致为：exprFns[expr].exprFn exprFns[expr].updateFns
+     * @param {Map.<string, *>} exprOldValues 表达式的旧值
+     * @param {ScopeModel} scopeModel model
+     * @param {Array.<Object>} changes 发生的改变
+     */
+    renderToDom(exprFns, exprOldValues, scopeModel, changes) {
         if (this.isGoDark) {
             return;
         }
 
-        this.renderToDom(this.exprFns, this.exprOldValues, this.tree.rootScope, changes);
-        Parser.prototype.onChange.apply(this, arguments);
-    }
-
-    // 用当前的scopeModel扫描一下exprFns，做相应的更新。
-    renderToDom(exprFns, exprOldValues, scopeModel, changes) {
         var exprValue;
         var updateFns;
         var i;
@@ -200,7 +203,7 @@ class ExprParser extends Parser {
 
         if (changes) {
             for (i = 0, il = changes.length; i < il; ++i) {
-                var exprs = this.$paramNameToExprMap[changes[i].name] || [];
+                var exprs = this.getExprsByParamName(changes[i].name) || [];
 
                 // log.info(`param: '${changes[i].name}' changed, and will update these exprs: ${exprs}`);
 
@@ -222,7 +225,9 @@ class ExprParser extends Parser {
             }
         }
         else {
+            /* eslint-disable guard-for-in */
             for (expr in exprFns) {
+            /* eslint-enable guard-for-in */
                 exprValue = exprFns[expr].exprFn(scopeModel);
 
                 if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
@@ -279,7 +284,12 @@ class ExprParser extends Parser {
      * @public
      */
     goDark() {
-        this.node.hide();
+        // 前面故意保留一个空格，因为DOM中不可能出现节点的属性key第一个字符为空格的，
+        // 避免了冲突。
+        let taskId = this.getTaskId(' hide');
+        let domUpdater = this.tree.getTreeVar('domUpdater');
+        domUpdater.addTaskFn(taskId, () => this.node.hide());
+
         this.isGoDark = true;
     }
 
@@ -289,7 +299,10 @@ class ExprParser extends Parser {
      * @public
      */
     restoreFromDark() {
-        this.node.show();
+        let taskId = this.getTaskId(' hide');
+        let domUpdater = this.tree.getTreeVar('domUpdater');
+        domUpdater.addTaskFn(taskId, () => this.node.show());
+
         this.isGoDark = false;
     }
 
@@ -301,10 +314,7 @@ class ExprParser extends Parser {
      * @return {string}          任务id
      */
     getTaskId(attrName) {
-        if (!this.attrToDomTaskIdMap[attrName]) {
-            this.attrToDomTaskIdMap[attrName] = this.tree.getTreeVar('domUpdater').generateTaskId();
-        }
-        return this.attrToDomTaskIdMap[attrName];
+        return this.tree.getTreeVar('domUpdater').generateNodeAttrUpdateId(this.node, attrName);
     }
 
     /**
@@ -340,31 +350,30 @@ class ExprParser extends Parser {
          * @return {Object}
          */
         function genMultiExprFnObj(expr, regExp) {
-            // 注意：此处去掉空格，可能会影响到展示
             expr = expr.replace(/^\s+/, '').replace(/\s+$/, '');
 
-            var exprs = expr.match(regExp);
-            var paramNames = [];
-            for (var i = 0, il = exprs.length; i < il; ++i) {
+            let exprs = expr.match(regExp);
+            let paramNames = [];
+            for (let i = 0, il = exprs.length; i < il; ++i) {
                 exprs[i] = exprs[i].slice(config.exprPrefix.length, -config.exprSuffix.length);
-                var names = exprCalculater.createExprFn(exprs[i]).paramNames;
+                let names = exprCalculater.createExprFn(exprs[i]).paramNames;
                 paramNames.push.apply(paramNames, names);
             }
 
             // 是否是纯正的表达式
-            var isPure = !(exprs.length !== 1 || expr.replace(regExp, ''));
+            let isPure = !(exprs.length !== 1 || expr.replace(regExp, ''));
 
-            var calculateFn = isPure
-                ? function (scopeModel) {
+            let calculateFn = isPure
+                ? scopeModel => {
                     return exprCalculater.calculate(
                         exprs[0],
                         false,
                         scopeModel
                     );
                 }
-                : function (scopeModel) {
-                    return expr.replace(regExp, function () {
-                        return exprCalculater.calculate(arguments[1], false, scopeModel);
+                : scopeModel => {
+                    return expr.replace(regExp, (...args) => {
+                        return exprCalculater.calculate(args[1], false, scopeModel);
                     });
                 };
 

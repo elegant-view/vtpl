@@ -80,15 +80,7 @@ export default class Tree extends Base {
         this.$parent = parent;
     }
 
-    getScopeByName(name) {
-        let scopes = this.getTreeVar('scopes');
-        if (!scopes) {
-            return;
-        }
-        return scopes[name];
-    }
-
-    collectExprs() {
+    compile() {
         let me = this;
         let delayFns = [];
 
@@ -140,7 +132,7 @@ export default class Tree extends Base {
         }
     }
 
-    linkScope() {
+    link() {
         for (let i = 0, il = this.$parsers.length; i < il; ++i) {
             let parser = this.$parsers[i];
             // 将解析器对象和对应树的scope绑定起来
@@ -154,47 +146,17 @@ export default class Tree extends Base {
      * @public
      */
     traverse() {
-        this.collectExprs();
-        this.linkScope();
-    }
-
-    setData(data) {
-        data = data || {};
-        this.rootScope.set(data);
+        this.compile();
+        this.link();
     }
 
     goDark() {
-        let node = this.startNode;
-        while (node) {
-            let nodeType = node.getNodeType();
-            if (nodeType === Node.ELEMENT_NODE || nodeType === Node.TEXT_NODE) {
-                node.hide();
-            }
-
-            node = node.getNextSibling();
-            if (!node || node.equal(this.endNode)) {
-                break;
-            }
-        }
+        // 调用这棵树下面所有解析器的goDark方法
+        each(this.$parsers, parser => parser.goDark());
     }
 
     restoreFromDark() {
-        let node = this.startNode;
-        while (node) {
-            let nodeType = node.getNodeType();
-            if (nodeType === Node.ELEMENT_NODE || nodeType === Node.TEXT_NODE) {
-                node.show();
-            }
-
-            node = node.getNextSibling();
-            if (!node || node.equal(this.endNode)) {
-                break;
-            }
-        }
-    }
-
-    setDirtyChecker(dirtyChecker) {
-        this.dirtyChecker = dirtyChecker;
+        each(this.$parsers, parser => parser.restoreFromDark());
     }
 
     destroy() {

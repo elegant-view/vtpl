@@ -1,73 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <style type="text/css">
-        body > div {
-            display: none;
-            border: 1px solid #000;
-            margin: 10px 0;
-            padding: 10px;
-        }
-    </style>
-    <title></title>
+    <link rel="stylesheet" href="../node_modules/jasmine-core/lib/jasmine-core/jasmine.css">
+
+    <script src="../node_modules/jasmine-core/lib/jasmine-core/jasmine.js"></script>
+    <script src="../node_modules/jasmine-core/lib/jasmine-core/jasmine-html.js"></script>
+    <script src="../node_modules/jasmine-core/lib/jasmine-core/boot.js"></script>
+
+    <script type="text/javascript" src="../node_modules/esl/src/esl.js"></script>
 </head>
 <body>
-    <div id="event">
-        <button on-click="onClick(event)">按钮</button>
-    </div>
-    <div id="forBase">
-        <!-- for: ${['a', 'b', 'c']} as ${item} -->
-            ${item},${key},${index}<br />
-        <!-- /for -->
-    </div>
-    <div id="forNest">
-        <!-- for: ${[['a', 'b', 'c'], ['d', 'e']]} as ${item1} -->
-            item1: ${item1}<br>
-            <!-- for: ${item1} as ${item2} -->
-                item2: ${item2}<br>
-            <!-- /for -->
-        <!-- /for -->
-    </div>
-    <div id="ifBase">
-        <!-- if: ${12 < 0} -->
-            <div>12小于0</div>
-        <!-- else -->
-            <div>12大于等于0</div>
-        <!-- /if -->
-
-        <!-- if: ${name.length} === 4 -->
-            `${name}` 的长度是4。
-        <!-- /if -->
-    </div>
-    <div id="ifNest">
-        <!-- if: ${name} === 'zhangsan' -->
-            是张三
-            <!-- if: ${age} === 18 -->
-                张三的年龄是18岁
-            <!-- else -->
-                张三的年龄不是18岁
-            <!-- /if -->
-        <!-- else -->
-            不是张三
-        <!-- /if -->
-    </div>
-    <div id="forIfNest">
-        <!-- for: ${students} as ${student} -->
-            <p>
-            <!-- if: ${student.name} === 'zhangsan' -->
-                是张三
-                <!-- if: ${student.age} === 18 -->
-                    张三的年龄是18岁
-                <!-- else -->
-                    张三的年龄不是18岁
-                <!-- /if -->
-            <!-- else -->
-                不是张三
-            <!-- /if -->
-            </p>
-        <!-- /for -->
-    </div>
-    <div id="exprBase" title="----${name}">${name}</div>
-    <script type="text/javascript" src="../dist/test/main.js"></script>
+    <script type="text/javascript">
+    require.config({
+        "baseUrl": "../src",
+        "paths": {},
+        "packages": [
+            {
+                "name": "test",
+                "location": "../test",
+                "main": "main"
+            },
+            {
+                "name": "vtpl",
+                "location": "..",
+                "main": "src/main"
+            },
+            {
+                "name": "vcontrol",
+                "location": ".."
+            },
+            {
+                "name": "jasmine",
+                "location": "../node_modules/jasmine-core/lib/jasmine-core"
+            }
+        ]
+    });
+    </script>
+    <script type="text/javascript">
+    require(['test']);
+    </script>
 </body>
 </html>

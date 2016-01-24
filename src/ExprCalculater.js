@@ -4,6 +4,7 @@
  */
 
 import {each} from './utils';
+import log from './log';
 
 export default class ExprCalculater {
     constructor() {
@@ -70,6 +71,8 @@ export default class ExprCalculater {
             result = fnObj.fn.apply(null, fnArgs);
         }
         catch (e) {
+            // 将表达式的错误打印出来，方便调试
+            log.warn(e.stack, scopeModel);
             result = '';
         }
         return result;

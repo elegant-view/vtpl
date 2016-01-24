@@ -7,7 +7,6 @@ export function slice(arr, start, end) {
     return Array.prototype.slice.call(arr, start, end);
 }
 
-
 export function goDark(node) {
     if (node.nodeType === 1) {
         node.style.display = 'none';
@@ -28,17 +27,6 @@ export function restoreFromDark(node) {
             node.__text__ = undefined;
         }
     }
-}
-
-export function createExprFn(exprRegExp, expr, exprCalculater) {
-    expr = expr.replace(exprRegExp, function () {
-        return arguments[1];
-    });
-    exprCalculater.createExprFn(expr);
-
-    return function (scopeModel) {
-        return exprCalculater.calculate(expr, false, scopeModel);
-    };
 }
 
 /**
@@ -233,4 +221,4 @@ export function type(obj) {
     return typeof obj;
 }
 
-
+export function empty() {}

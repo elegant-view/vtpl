@@ -1,14 +1,18 @@
 /**
- * @file if 指令
+ * @file if 指令。
+ *       在实现中有个纠结点：如果if指令嵌套的话，外层if的branchTree不能直接向下广播change事件，但是branchTree又要能够拿到外层scope的数据。
+ *       处理方式：
+ *           renderToDom方法用于将scopeModel中的变化反应到DOM中去，如果某个分支处于不该显示的状态，会有一个godark的标记。
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
 import DirectiveParser from './DirectiveParser';
-import {createExprFn, each, bind, extend} from '../utils';
+import {each, extend} from '../utils';
 import Tree from '../trees/Tree';
 import Node from '../nodes/Node';
 
 class IfDirectiveParser extends DirectiveParser {
+
     constructor(options) {
         super(options);
 
@@ -19,8 +23,7 @@ class IfDirectiveParser extends DirectiveParser {
         this.exprFns = {};
         this.$branchTrees = [];
 
-        let domUpdater = this.tree.getTreeVar('domUpdater');
-        this.handleBranchesTaskId = domUpdater.generateTaskId();
+        this.isGoDark = false;
     }
 
     collectExprs() {
@@ -31,10 +34,6 @@ class IfDirectiveParser extends DirectiveParser {
         let nestCounter = 0;
         let me = this;
         let config = this.tree.getTreeVar('config');
-        // console.log(this.startNode.$node.nodeValue);
-        // if (this.startNode.$node.nodeValue === ' if: ${day.isEnable} ') {
-        //     debugger
-        // }
         Node.iterate(this.startNode, this.endNode, function (node) {
             let ifNodeType = getIfNodeType(node, me.tree.getTreeVar('config'));
             // if
@@ -86,11 +85,7 @@ class IfDirectiveParser extends DirectiveParser {
                 me.exprs.push(expr);
 
                 if (!me.exprFns[expr]) {
-                    me.exprFns[expr] = createExprFn(
-                        config.getExprRegExp(),
-                        expr,
-                        me.tree.getTreeVar('exprCalculater')
-                    );
+                    me.exprFns[expr] = me.createExprFn(expr);
                 }
             }
 
@@ -109,61 +104,103 @@ class IfDirectiveParser extends DirectiveParser {
                 this.$branchTrees.push(null);
             }
             else {
-                let tree = new Tree({
+                let branchTree = new Tree({
                     startNode: curNodeNextSibling,
                     endNode: nextNode.node.getPreviousSibling()
                 });
-                tree.setParent(this.tree);
+                branchTree.setParent(this.tree);
 
-                this.$branchTrees.push(tree);
-                tree.collectExprs();
+                this.$branchTrees.push(branchTree);
+                branchTree.compile();
+
+                this.tree.rootScope.addChild(branchTree.rootScope);
+                branchTree.rootScope.setParent(this.tree.rootScope);
             }
         }
     }
 
-    linkToParentScope(branchTree) {
-        this.tree.rootScope.addChild(branchTree.rootScope);
-        branchTree.rootScope.setParent(this.tree.rootScope);
-    }
-
-    unlinkFromParentScope(branchTree) {
-        this.tree.rootScope.removeChild(branchTree.rootScope);
-        branchTree.rootScope.setParent(null);
+    /**
+     * 创建表达式的值计算函数
+     *
+     * @private
+     * @param  {string} branchExpr 分支表达式，类似于：`name==='yibuyisheng'` 或者 `!name`。
+     *                       注意：if:或者elif:后面必须是合法的javascript表达式
+     * @return {function(ScopeModel):*}      表达式值计算函数
+     */
+    createExprFn(branchExpr) {
+        let exprCalculater = this.tree.getTreeVar('exprCalculater');
+        let {paramNames} = exprCalculater.createExprFn(branchExpr, false);
+        this.addParamName2ExprMap(paramNames, branchExpr);
+        return scopeModel => {
+            return exprCalculater.calculate(branchExpr, false, this.tree.rootScope);
+        };
     }
 
     linkScope() {
-        DirectiveParser.prototype.linkScope.apply(this, arguments);
+        this.renderToDom();
+
         for (let i = 0, il = this.$branchTrees.length; i < il; ++i) {
-            this.$branchTrees[i].linkScope();
+            this.$branchTrees[i].link();
         }
+
+        this.listenToChange(this.tree.rootScope, event => {
+            this.renderToDom(event.changes);
+        });
     }
 
-    onChange(model, changes) {
-        let domUpdater = this.tree.getTreeVar('domUpdater');
-        let exprs = this.exprs;
-        let showIndex;
-        let i = 0;
-        for (let il = exprs.length; i < il; ++i) {
-            let expr = exprs[i];
-            let exprValue = this.exprFns[expr](this.tree.rootScope);
-            if (exprValue) {
-                showIndex = i;
-                this.linkToParentScope(this.$branchTrees[i]);
-            }
-            else {
-                this.unlinkFromParentScope(this.$branchTrees[i]);
-            }
+    /**
+     * 看看每个分支表达式的计算值，然后决定哪一个分支应该显示出来
+     * （其余的隐藏掉，隐藏掉的部分暂停做界面更新相关操作，直到显示出来）
+     *
+     * @protected
+     * @param  {Array.<Object>} changes 数据改变
+     */
+    renderToDom(changes) {
+        if (this.isGoDark) {
+            return;
         }
 
-        if (showIndex === undefined && this.$$hasElseBranch) {
-            showIndex = i;
-            this.linkToParentScope(this.$branchTrees[i]);
+        if (changes === undefined) {
+            update.call(this);
+            return;
         }
 
-        domUpdater.addTaskFn(
-            this.handleBranchesTaskId,
-            bind(handleBranches, null, this.$branchTrees, showIndex)
-        );
+        // 只要发现分支中有表达式的值可能会变，就要重新计算一下分支的显示情况了。
+        let isEffected = false;
+        for (let i = 0, il = changes.length; i < il; ++i) {
+            let change = changes[i];
+            let exprs = this.getExprsByParamName(change.name);
+            if (exprs.length) {
+                isEffected = true;
+                break;
+            }
+        }
+        if (isEffected) {
+            update.call(this);
+        }
+
+        function update() {
+            let exprs = this.exprs;
+            let hasShowBranch = false;
+            let i = 0;
+            for (let il = exprs.length; i < il; ++i) {
+                let expr = exprs[i];
+                let exprValue = this.exprFns[expr](this.tree.rootScope);
+                if (exprValue) {
+                    hasShowBranch = true;
+                    this.$branchTrees[i].restoreFromDark();
+                }
+                else {
+                    this.$branchTrees[i].goDark();
+                }
+            }
+
+            if (this.$$hasElseBranch) {
+                !hasShowBranch
+                    ? this.$branchTrees[i].restoreFromDark()
+                    : this.$branchTrees[i].goDark();
+            }
+        }
     }
 
     getChildNodes() {
@@ -180,8 +217,7 @@ class IfDirectiveParser extends DirectiveParser {
         this.endNode = null;
         this.exprs = null;
         this.exprFns = null;
-        this.handleBranchesTaskId = null;
-        this.branchTrees = null;
+        this.$branchTrees = null;
 
         DirectiveParser.prototype.destroy.call(this);
     }
@@ -194,6 +230,17 @@ class IfDirectiveParser extends DirectiveParser {
         return this.endNode;
     }
 
+    // 转入隐藏状态
+    goDark() {
+        each(this.$branchTrees, tree => tree.goDark());
+        this.isGoDark = true;
+    }
+
+    // 从隐藏状态恢复
+    restoreFromDark() {
+        each(this.$branchTrees, tree => tree.restoreFromDark());
+        this.isGoDark = false;
+    }
 
     static isProperNode(node, config) {
         return getIfNodeType(node, config) === IfDirectiveParser.IF_START;
@@ -218,17 +265,6 @@ extend(IfDirectiveParser, {
     ELSE: 3,
     IF_END: 4
 });
-
-function handleBranches(branches, showIndex) {
-    each(branches, function (branchTree, j) {
-        if (!branchTree) {
-            return;
-        }
-
-        let fn = j === showIndex ? 'restoreFromDark' : 'goDark';
-        branchTree[fn]();
-    });
-}
 
 function getIfNodeType(node, config) {
     let nodeType = node.getNodeType();

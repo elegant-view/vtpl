@@ -11,6 +11,7 @@ class VarDirectiveParser extends DirectiveParser {
         super(options);
 
         this.node = options.node;
+        this.updateFn = null;
     }
 
     collectExprs() {
@@ -19,11 +20,12 @@ class VarDirectiveParser extends DirectiveParser {
         let expr = nodeValue.replace(config.varName + ':', '');
 
         let exprCalculater = this.tree.getTreeVar('exprCalculater');
-        exprCalculater.createExprFn(expr);
+        let {paramNames} = exprCalculater.createExprFn(expr, false);
+        this.addParamName2ExprMap(paramNames, expr);
 
         let leftValueName = expr.match(/\s*.+(?=\=)/)[0].replace(/\s+/g, '');
 
-        this.exprFn = function (scopeModel) {
+        this.updateFn = function (scopeModel) {
             let oldValue = scopeModel.get(leftValueName);
             let newValue = exprCalculater.calculate(expr, false, scopeModel);
             if (oldValue !== newValue) {
@@ -33,8 +35,27 @@ class VarDirectiveParser extends DirectiveParser {
     }
 
     linkScope() {
-        DirectiveParser.prototype.linkScope.apply(this, arguments);
-        this.exprFn(this.tree.rootScope);
+        this.renderToDom();
+        this.listenToChange(this.tree.rootScope, event => this.renderToDom(event.changes));
+    }
+
+    renderToDom(changes) {
+        if (this.isGoDark) {
+            return;
+        }
+
+        if (!changes) {
+            this.updateFn(this.tree.rootScope);
+            return;
+        }
+
+        for (let i = 0, il = changes.length; i < il; ++i) {
+            let exprs = this.getExprsByParamName(changes[i].name);
+            if (exprs && exprs.length) {
+                this.updateFn(this.tree.rootScope);
+                return;
+            }
+        }
     }
 
     /**
@@ -57,6 +78,14 @@ class VarDirectiveParser extends DirectiveParser {
      */
     getEndNode() {
         return this.node;
+    }
+
+    goDark() {
+        this.isGoDark = true;
+    }
+
+    restoreFromDark() {
+        this.isGoDark = false;
     }
 
     static isProperNode(node, config) {

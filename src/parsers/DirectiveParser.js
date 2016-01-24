@@ -11,7 +11,7 @@ class DirectiveParser extends Parser {
     constructor(options) {
         super(options);
 
-        // this.node = options.node;
+        this.node = options.node;
     }
 
     /**

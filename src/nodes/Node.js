@@ -12,7 +12,9 @@ import {
     isArray,
     distinctArr,
     slice,
-    extend
+    extend,
+    goDark,
+    restoreFromDark
 } from '../utils';
 import Event from '../Event';
 
@@ -31,6 +33,8 @@ class Node extends Base {
 
         this.$event = new Event();
         this.$nodeEventFns = {};
+
+        this.$$isGoDark = false;
     }
 
     getNodeType() {
@@ -175,7 +179,14 @@ class Node extends Base {
      * @return {*}
      */
     attr(name, value) {
-        // 目前仅适用于元素节点
+        if (this.getNodeType() === Node.TEXT_NODE && name === 'nodeValue') {
+            if (arguments.length === 1) {
+                return this.getNodeValue();
+            }
+
+            return this.setNodeValue(value);
+        }
+
         if (this.getNodeType() !== Node.ELEMENT_NODE) {
             return;
         }
@@ -277,53 +288,19 @@ class Node extends Base {
     }
 
     show() {
-        // let nodeType = this.getNodeType();
-        // if (nodeType === Node.ELEMENT_NODE) {
-        //     if (this.getAttribute('class') === 'disable') {
-        //         debugger
-        //     }
-        //     this.setStyle({display: this.$$prevStyleDisplay});
-        // }
-        // else if (nodeType === Node.TEXT_NODE) {
-        //     this.setNodeValue(this.$$prevNodeValue || '');
-        // }
-
-        if (this.$node.parentNode || !this.$commentNode) {
+        if (!this.$$isGoDark) {
             return;
         }
-
-        let parentNode = this.$commentNode.parentNode;
-        if (parentNode) {
-            parentNode.replaceChild(this.$node, this.$commentNode);
-        }
+        restoreFromDark(this.$node);
+        this.$$isGoDark = false;
     }
 
     hide() {
-        // let nodeType = this.getNodeType();
-        // if (nodeType === Node.ELEMENT_NODE) {
-        //     if (this.getAttribute('class') === 'disable') {
-        //         debugger
-        //     }
-        //     this.$$prevStyleDisplay = this.$node.style.display;
-        //     this.setStyle({display: 'none'});
-        // }
-        // else if (nodeType === Node.TEXT_NODE) {
-        //     this.$$prevNodeValue = this.getNodeValue();
-        //     this.setNodeValue('');
-        // }
-
-        if (!this.$node.parentNode) {
+        if (this.$$isGoDark) {
             return;
         }
-
-        let parentNode = this.$node.parentNode;
-        if (parentNode) {
-            if (!this.$commentNode) {
-                this.$commentNode = document.createComment(this.getOuterHTML());
-                this.$commentNode[this.$manager.$$domNodeIdKey] = ++this.$manager.$idCounter;
-            }
-            parentNode.replaceChild(this.$commentNode, this.$node);
-        }
+        goDark(this.$node);
+        this.$$isGoDark = true;
     }
 
     getOuterHTML() {
@@ -338,6 +315,10 @@ class Node extends Base {
         return !!this.$node.parentNode;
     }
 
+    getDOMNode() {
+        return this.$node;
+    }
+
     /**
      * 销毁，做一些清理工作：
      * 1、清理outclick；
@@ -348,7 +329,9 @@ class Node extends Base {
     destroy() {
         this.$event.off();
 
+        /* eslint-disable guard-for-in */
         for (let eventName in this.$nodeEventFns) {
+        /* eslint-enable guard-for-in */
             let eventFn = this.$nodeEventFns[eventName];
             if (eventName === 'outclick') {
                 window.removeEventListener('click', eventFn);
@@ -521,6 +504,5 @@ extend(Node, {
         + 'mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave '
         + 'change select submit keydown keypress keyup error contextmenu').split(' ')
 });
-
 
 export default Node;

@@ -1,0 +1,56 @@
+<div id="event">
+    <button on-click="onClick(event)">按钮</button>
+</div>
+<div id="forBase">
+    <!-- for: ${['a', 'b', 'c']} as ${item} -->
+        ${item},${key},${index}<br />
+    <!-- /for -->
+</div>
+<div id="forNest">
+    <!-- for: ${[['a', 'b', 'c'], ['d', 'e']]} as ${item1} -->
+        item1: ${item1.join('--')}<br>
+        <!-- for: ${item1} as ${item2} -->
+            item2: ${item2}<br>
+        <!-- /for -->
+    <!-- /for -->
+</div>
+<div id="ifBase">
+    <!-- if: ${12 < 0} -->
+        <div>12小于0</div>
+    <!-- else -->
+        <div>12大于等于0</div>
+    <!-- /if -->
+
+    <!-- if: ${name.length} === 4 -->
+        `${name}` 的长度是4。
+    <!-- /if -->
+</div>
+<div id="ifNest">
+    <!-- if: ${name} === 'zhangsan' -->
+        是张三
+        <!-- if: ${age} === 18 -->
+            年龄是18岁
+        <!-- else -->
+            年龄不是18岁
+        <!-- /if -->
+    <!-- else -->
+        不是张三
+    <!-- /if -->
+</div>
+<div id="forIfNest">
+    <!-- for: ${students} as ${student} -->
+        <p>
+        <!-- if: ${student.name} === 'zhangsan' -->
+            是张三
+            <!-- if: ${student.age} === 18 -->
+                年龄是18岁
+            <!-- else -->
+                年龄不是18岁
+            <!-- /if -->
+        <!-- else -->
+            不是张三
+        <!-- /if -->
+        </p>
+    <!-- /for -->
+</div>
+<div id="exprBase" title="----${name}">${name}</div>
