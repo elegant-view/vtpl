@@ -64,7 +64,7 @@ class ForDirectiveParser extends DirectiveParser {
      * @return {function(ScopeModel):Array|Object}
      */
     createExprFn(expr) {
-        let exprMatch = expr.match(/^\s*([$\w]+)\s+as\s+([$\w]+)\s*$/);
+        let exprMatch = expr.match(/^\s*([$\w.\[\]]+)\s+as\s+([$\w]+)\s*$/);
         if (!exprMatch || exprMatch.length !== 3) {
             throw new Error(`wrong for expression: ${expr}`);
         }
@@ -81,8 +81,6 @@ class ForDirectiveParser extends DirectiveParser {
 
     linkScope() {
         this.renderToDom();
-        super.linkScope();
-
         this.listenToChange(this.tree.rootScope, event => this.renderToDom(event.changes));
     }
 

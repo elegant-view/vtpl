@@ -168,42 +168,36 @@ class ExprParser extends Parser {
      * @public
      */
     linkScope() {
-        this.renderToDom(this.exprFns, this.exprOldValues, this.tree.rootScope);
-        this.listenToChange(this.tree.rootScope, event => {
-            this.renderToDom(
-                this.exprFns,
-                this.exprOldValues,
-                this.tree.rootScope,
-                event.changes
-            );
-        });
+        this.renderToDom();
+        this.listenToChange(this.tree.rootScope, event => this.renderToDom(event.changes));
     }
 
     /**
      * 用当前的scopeModel扫描一下exprFns，做相应的更新。
      *
      * @protected
-     * @param {Object} exprFns 表达式和对应更新函数的映射，数据结构大致为：exprFns[expr].exprFn exprFns[expr].updateFns
-     * @param {Map.<string, *>} exprOldValues 表达式的旧值
-     * @param {ScopeModel} scopeModel model
      * @param {Array.<Object>} changes 发生的改变
      */
-    renderToDom(exprFns, exprOldValues, scopeModel, changes) {
+    renderToDom(changes) {
         if (this.isGoDark) {
             return;
         }
 
-        var exprValue;
-        var updateFns;
-        var i;
-        var j;
-        var jl;
-        var il;
-        var expr;
+        let exprFns = this.exprFns;
+        let exprOldValues = this.exprOldValues;
+        let scopeModel = this.tree.rootScope;
+
+        let exprValue;
+        let updateFns;
+        let i;
+        let j;
+        let jl;
+        let il;
+        let expr;
 
         if (changes) {
             for (i = 0, il = changes.length; i < il; ++i) {
-                var exprs = this.getExprsByParamName(changes[i].name) || [];
+                let exprs = this.getExprsByParamName(changes[i].name) || [];
 
                 // log.info(`param: '${changes[i].name}' changed, and will update these exprs: ${exprs}`);
 
@@ -215,7 +209,7 @@ class ExprParser extends Parser {
 
                     if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
                         updateFns = exprFns[expr].updateFns;
-                        for (var k = 0, kl = updateFns.length; k < kl; ++k) {
+                        for (let k = 0, kl = updateFns.length; k < kl; ++k) {
                             updateFns[k](exprValue);
                         }
 

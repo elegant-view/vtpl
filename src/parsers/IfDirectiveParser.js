@@ -166,17 +166,13 @@ class IfDirectiveParser extends DirectiveParser {
         }
 
         // 只要发现分支中有表达式的值可能会变，就要重新计算一下分支的显示情况了。
-        let isEffected = false;
         for (let i = 0, il = changes.length; i < il; ++i) {
             let change = changes[i];
             let exprs = this.getExprsByParamName(change.name);
-            if (exprs.length) {
-                isEffected = true;
-                break;
+            if (exprs && exprs.length) {
+                update.call(this);
+                return;
             }
-        }
-        if (isEffected) {
-            update.call(this);
         }
 
         function update() {
@@ -188,7 +184,7 @@ class IfDirectiveParser extends DirectiveParser {
                 let exprValue = this.exprFns[expr](this.tree.rootScope);
                 if (exprValue) {
                     hasShowBranch = true;
-                    this.$branchTrees[i].restoreFromDark();
+                    restoreFromDark(this.$branchTrees[i]);
                 }
                 else {
                     this.$branchTrees[i].goDark();
@@ -197,9 +193,18 @@ class IfDirectiveParser extends DirectiveParser {
 
             if (this.$$hasElseBranch) {
                 !hasShowBranch
-                    ? this.$branchTrees[i].restoreFromDark()
+                    ? restoreFromDark(this.$branchTrees[i])
                     : this.$branchTrees[i].goDark();
             }
+        }
+
+        function restoreFromDark(branchTree) {
+            branchTree.restoreFromDark();
+            // each(branchTree.$parsers, parser => {
+            //     if (parser.renderToDom) {
+            //         parser.renderToDom();
+            //     }
+            // });
         }
     }
 

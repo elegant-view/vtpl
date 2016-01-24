@@ -104,6 +104,58 @@ export default function () {
             }, 70);
         });
 
+        it('`for` and `if` nest', done => {
+            node.setInnerHTML(`
+                <!-- for: students as student -->
+                    <!-- if: student.name === 'yibuyisheng' -->
+                        yibuyisheng
+                        <!-- if: student.age === 10 -->
+                            10 years old
+                        <!-- elif: student.age === 18 -->
+                            18 years old
+                        <!-- else -->
+                            other ages
+                        <!-- /if -->
+                    <!-- else -->
+                        not yibuyisheng
+                        <!-- if: student.age === 1 -->
+                            1 years old
+                        <!-- elif: student.age === 2 -->
+                            2 years old
+                        <!-- /if -->
+                    <!-- /if -->
+                <!-- /for -->
+            `);
+            let tree = new Tree({startNode: node, endNode: node});
+            setTreeVar(tree);
+            tree.compile();
+            tree.link();
+            tree.rootScope.set({
+                students: [
+                    {
+                        name: 'yibuyisheng',
+                        age: 18
+                    },
+                    {
+                        name: 'yibuyisheng',
+                        age: 10
+                    },
+                    {
+                        name: 'yibuyisheng1',
+                        age: 3
+                    },
+                    {
+                        name: 'yibuyisheng1',
+                        age: 2
+                    }
+                ]
+            });
+            setTimeout(() => {
+                expect(node.$node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldyibuyisheng10yearsoldnotyibuyishengnotyibuyisheng2yearsold');
+                done();
+            }, 70);
+        });
+
         function setTreeVar(tree) {
             tree.setTreeVar('nodesManager', nodesManager);
             tree.setTreeVar('config', config);
