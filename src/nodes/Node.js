@@ -12,9 +12,7 @@ import {
     isArray,
     distinctArr,
     slice,
-    extend,
-    goDark,
-    restoreFromDark
+    extend
 } from '../utils';
 import Event from '../Event';
 
@@ -109,7 +107,12 @@ class Node extends Base {
     }
 
     setNodeValue(value) {
-        this.$node.nodeValue = value;
+        if (this.$$isGoDark) {
+            this.$$nodeValue = value;
+        }
+        else {
+            this.$node.nodeValue = value;
+        }
     }
 
     appendChild(node) {
@@ -291,7 +294,17 @@ class Node extends Base {
         if (!this.$$isGoDark) {
             return;
         }
-        restoreFromDark(this.$node);
+
+        if (this.$node.nodeType === Node.ELEMENT_NODE) {
+            this.$node.style.display = null;
+        }
+        else if (this.$node.nodeType === Node.TEXT_NODE) {
+            if (this.$$nodeValue !== undefined) {
+                this.$node.nodeValue = this.$$nodeValue;
+                this.$$nodeValue = undefined;
+            }
+        }
+
         this.$$isGoDark = false;
     }
 
@@ -299,7 +312,15 @@ class Node extends Base {
         if (this.$$isGoDark) {
             return;
         }
-        goDark(this.$node);
+
+        if (this.$node.nodeType === Node.ELEMENT_NODE) {
+            this.$node.style.display = 'none';
+        }
+        else if (this.$node.nodeType === Node.TEXT_NODE) {
+            this.$$nodeValue = this.$node.nodeValue;
+            this.$node.nodeValue = '';
+        }
+
         this.$$isGoDark = true;
     }
 

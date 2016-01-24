@@ -152,7 +152,21 @@ export default function () {
             });
             setTimeout(() => {
                 expect(node.$node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldyibuyisheng10yearsoldnotyibuyishengnotyibuyisheng2yearsold');
-                done();
+
+                tree.rootScope.set('students', [
+                    {
+                        name: 'yibuyisheng',
+                        age: 18
+                    },
+                    {
+                        name: 'yibuyisheng1',
+                        age: 2
+                    }
+                ]);
+                setTimeout(() => {
+                    expect(node.$node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldnotyibuyisheng2yearsold');
+                    done();
+                }, 70);
             }, 70);
         });
 

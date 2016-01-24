@@ -112,11 +112,17 @@ class ForDirectiveParser extends DirectiveParser {
     }
 
     goDark() {
+        if (this.isGoDark) {
+            return;
+        }
         each(this.trees, tree => tree.goDark());
         this.isGoDark = true;
     }
 
     restoreFromDark() {
+        if (!this.isGoDark) {
+            return;
+        }
         each(this.trees, tree => tree.restoreFromDark());
         this.isGoDark = false;
     }

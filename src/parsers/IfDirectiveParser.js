@@ -82,6 +82,7 @@ class IfDirectiveParser extends DirectiveParser {
                 || ifNodeType === IfDirectiveParser.ELIF
             ) {
                 let expr = node.getNodeValue().replace(config.getAllIfRegExp(), '');
+                expr = expr.replace(/\n/g, ' ');
                 me.exprs.push(expr);
 
                 if (!me.exprFns[expr]) {
@@ -160,20 +161,23 @@ class IfDirectiveParser extends DirectiveParser {
             return;
         }
 
-        if (changes === undefined) {
-            update.call(this);
-            return;
-        }
+        // if (changes === undefined) {
+        //     update.call(this);
+        //     return;
+        // }
 
-        // 只要发现分支中有表达式的值可能会变，就要重新计算一下分支的显示情况了。
-        for (let i = 0, il = changes.length; i < il; ++i) {
-            let change = changes[i];
-            let exprs = this.getExprsByParamName(change.name);
-            if (exprs && exprs.length) {
-                update.call(this);
-                return;
-            }
-        }
+        // // 只要发现分支中有表达式的值可能会变，就要重新计算一下分支的显示情况了。
+        // for (let i = 0, il = changes.length; i < il; ++i) {
+        //     let change = changes[i];
+        //     let exprs = this.getExprsByParamName(change.name);
+        //     if (exprs && exprs.length) {
+        //         update.call(this);
+        //         return;
+        //     }
+        // }
+
+        // 这里不能按照changes来决定是否应该计算分支表达式的值，会给嵌套的场景引入问题（子if不更新）
+        update.call(this);
 
         function update() {
             let exprs = this.exprs;
@@ -200,11 +204,6 @@ class IfDirectiveParser extends DirectiveParser {
 
         function restoreFromDark(branchTree) {
             branchTree.restoreFromDark();
-            // each(branchTree.$parsers, parser => {
-            //     if (parser.renderToDom) {
-            //         parser.renderToDom();
-            //     }
-            // });
         }
     }
 
@@ -237,12 +236,18 @@ class IfDirectiveParser extends DirectiveParser {
 
     // 转入隐藏状态
     goDark() {
+        if (this.isGoDark) {
+            return;
+        }
         each(this.$branchTrees, tree => tree.goDark());
         this.isGoDark = true;
     }
 
     // 从隐藏状态恢复
     restoreFromDark() {
+        if (!this.isGoDark) {
+            return;
+        }
         each(this.$branchTrees, tree => tree.restoreFromDark());
         this.isGoDark = false;
     }

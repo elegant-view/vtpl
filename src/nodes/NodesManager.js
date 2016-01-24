@@ -9,6 +9,7 @@ import Node from './Node';
 let managerIdCounter = 0;
 
 export default class NodesManager extends Base {
+
     constructor() {
         super();
 

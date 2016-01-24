@@ -17,6 +17,8 @@ import Tree from '../trees/Tree';
 import Node from '../nodes/Node';
 // import log from '../log';
 
+let counter = 0;
+
 class ExprParser extends Parser {
 
     /**
@@ -169,7 +171,9 @@ class ExprParser extends Parser {
      */
     linkScope() {
         this.renderToDom();
-        this.listenToChange(this.tree.rootScope, event => this.renderToDom(event.changes));
+        this.listenToChange(this.tree.rootScope, event => {
+            this.renderToDom(event.changes);
+        });
     }
 
     /**
@@ -187,6 +191,11 @@ class ExprParser extends Parser {
         let exprOldValues = this.exprOldValues;
         let scopeModel = this.tree.rootScope;
 
+        this.renderChanges(exprFns, exprOldValues, scopeModel, changes);
+    }
+
+    // ComponentParser要复用这段代码
+    renderChanges(exprFns, exprOldValues, scopeModel, changes) {
         let exprValue;
         let updateFns;
         let i;
@@ -204,6 +213,12 @@ class ExprParser extends Parser {
                 for (j = 0, jl = exprs.length; j < jl; ++j) {
                     expr = exprs[j];
                     exprValue = exprFns[expr].exprFn(scopeModel);
+
+                    // if (this.exprFns && this.exprFns['${day.day}']) {
+                    //     // if (exprValue === 24) {
+                    //     //     debugger
+                    //     // }
+                    // }
 
                     // log.info(`get the value of expr: '${expr}', it is ${exprValue}`);
 
@@ -278,6 +293,9 @@ class ExprParser extends Parser {
      * @public
      */
     goDark() {
+        if (this.isGoDark) {
+            return;
+        }
         // 前面故意保留一个空格，因为DOM中不可能出现节点的属性key第一个字符为空格的，
         // 避免了冲突。
         let taskId = this.getTaskId(' hide');
@@ -293,6 +311,9 @@ class ExprParser extends Parser {
      * @public
      */
     restoreFromDark() {
+        if (!this.isGoDark) {
+            return;
+        }
         let taskId = this.getTaskId(' hide');
         let domUpdater = this.tree.getTreeVar('domUpdater');
         domUpdater.addTaskFn(taskId, () => this.node.show());
