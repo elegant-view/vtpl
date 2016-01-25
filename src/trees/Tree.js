@@ -87,6 +87,10 @@ export default class Tree extends Base {
         return this.$exprWatcher;
     }
 
+    getParsers() {
+        return this.$parsers;
+    }
+
     compile() {
         this.$exprWatcher = new ExprWatcher(this.rootScope, this.getTreeVar('exprCalculater'));
 
@@ -147,6 +151,8 @@ export default class Tree extends Base {
             // 将解析器对象和对应树的scope绑定起来
             parser.linkScope();
         }
+
+        this.$exprWatcher.start();
     }
 
     /**

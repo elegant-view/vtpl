@@ -12,49 +12,41 @@ class VarDirectiveParser extends DirectiveParser {
 
         this.node = options.node;
         this.updateFn = null;
+
+        this.$$expr = null;
+        this.$$leftValueName = null;
     }
 
     collectExprs() {
         let nodeValue = this.node.getNodeValue();
-        let config = this.tree.getTreeVar('config');
-        let expr = nodeValue.replace(config.varName + ':', '');
 
-        let exprCalculater = this.tree.getTreeVar('exprCalculater');
-        let {paramNames} = exprCalculater.createExprFn(expr, false);
-        this.addParamName2ExprMap(paramNames, expr);
+        this.$$expr = '${' + nodeValue.slice(nodeValue.indexOf('=', 0) + 1) + '}';
 
-        let leftValueName = expr.match(/\s*.+(?=\=)/)[0].replace(/\s+/g, '');
+        let exprWatcher = this.tree.getExprWatcher();
+        exprWatcher.addExpr(this.$$expr);
 
-        this.updateFn = function (scopeModel) {
-            let oldValue = scopeModel.get(leftValueName);
-            let newValue = exprCalculater.calculate(expr, false, scopeModel);
-            if (oldValue !== newValue) {
-                scopeModel.set(leftValueName, newValue);
-            }
-        };
+        try {
+            this.$$leftValueName = nodeValue.match(/var:\s*([\w\$]+)=/)[1];
+        }
+        catch (e) {
+            throw new Error(`wrong var expression ${this.$$leftValueName}`);
+        }
     }
 
     linkScope() {
-        this.renderToDom();
-        this.listenToChange(this.tree.rootScope, event => this.renderToDom(event.changes));
-    }
+        let exprWatcher = this.tree.getExprWatcher();
+        renderDOM.call(this, exprWatcher.calculate(this.$$expr));
+        exprWatcher.on('change', event => {
+            if (event.expr === this.$$expr) {
+                renderDOM.call(this, event.newValue);
+            }
+        });
 
-    renderToDom(changes) {
-        if (this.isGoDark) {
-            return;
-        }
-
-        if (!changes) {
-            this.updateFn(this.tree.rootScope);
-            return;
-        }
-
-        for (let i = 0, il = changes.length; i < il; ++i) {
-            let exprs = this.getExprsByParamName(changes[i].name);
-            if (exprs && exprs.length) {
-                this.updateFn(this.tree.rootScope);
+        function renderDOM(value) {
+            if (this.isGoDark) {
                 return;
             }
+            this.tree.rootScope.set(this.$$leftValueName, value);
         }
     }
 

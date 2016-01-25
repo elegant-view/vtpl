@@ -138,8 +138,15 @@ class ExprParser extends Parser {
      */
     linkScope() {
         let exprWatcher = this.tree.getExprWatcher();
+
+        // 先初始化一遍
+        forEach(this.$exprUpdateFns, (fns, expr) => {
+            forEach(fns, fn => fn(''));
+        });
+
         exprWatcher.on('change', event => {
             let updateFns = this.$exprUpdateFns[event.expr];
+            // 此处并不会处理isGoDark为true的情况，因为Node那边处理了。
             if (updateFns && updateFns.length) {
                 forEach(updateFns, fn => fn(event.newValue));
             }

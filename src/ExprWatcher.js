@@ -19,8 +19,6 @@ export default class ExprWatcher extends Event {
         this.$$exprOldValues = {};
     }
 
-
-
     /**
      * 添加变量名到表达式的映射
      *
@@ -98,6 +96,7 @@ export default class ExprWatcher extends Event {
      */
     start() {
         this.$$scopeModel.on('change', this.check, this);
+        this.$$scopeModel.on('parentchange', this.check, this);
     }
 
     /**
@@ -136,6 +135,10 @@ export default class ExprWatcher extends Event {
                 this.$$exprOldValues[expr] = this.dump(exprValue);
             }
         }
+    }
+
+    calculate(expr) {
+        return this.$$exprs[expr]();
     }
 
     /**
@@ -204,7 +207,7 @@ export default class ExprWatcher extends Event {
             return true;
         }
 
-        if (type(newValue) === 'object') {
+        if (type(newValue) === 'object' && newValue && oldValue) {
             if (oldValue === newValue) {
                 return true;
             }

@@ -33,6 +33,8 @@ export default function () {
             let tree = new Tree({startNode: node, endNode: node});
             setTreeVar(tree);
             tree.compile();
+            tree.link();
+
             tree.rootScope.set({students: [
                 {
                     name: 'yibuyisheng1'
@@ -41,7 +43,7 @@ export default function () {
                     name: 'yibuyisheng2'
                 }
             ]});
-            tree.link();
+
             setTimeout(() => {
                 expect(node.$node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng1yibuyisheng2');
 
