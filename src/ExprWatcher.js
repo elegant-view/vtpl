@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {bind, forEach, extend, isArray, isClass, type} from './utils';
+import {bind, forEach, extend, isArray, isClass, type, empty} from './utils';
 import Event from './Event';
 
 export default class ExprWatcher extends Event {
@@ -17,8 +17,6 @@ export default class ExprWatcher extends Event {
         this.$$exprs = {};
         this.$$paramNameToExprMap = {};
         this.$$exprOldValues = {};
-
-        this.$$scopeModel.on('change', this.check, this);
     }
 
 
@@ -54,24 +52,80 @@ export default class ExprWatcher extends Event {
      * 添加要检测的表达式
      *
      * @public
-     * @param {string} expr 表达式字符串
+     * @param {string} expr 表达式字符串，带有`${}`的
      */
     addExpr(expr) {
-        let {paramNames} = this.$$exprCalculater.createExprFn(expr, false);
-        this.addParamName2ExprMap(paramNames, expr);
-        this.$$exprs[expr] = () => {
-            return this.$$exprCalculater.calculate(expr, false, this.$$scopeModel);
+        let {paramNameDependency, fn} = this.generateExpressionFunction(expr);
+        this.addParamName2ExprMap(paramNameDependency, expr);
+        this.$$exprs[expr] = () => fn(this.$$scopeModel);
+    }
+
+    generateExpressionFunction(expr) {
+        // 先去掉expr里面前后空格
+        expr = expr.replace(/^\s+|\s+$/g, '');
+
+        let exprs = expr.match(/\$\{(.+?)\}/g);
+        if (!exprs || !exprs.length) {
+            return;
+        }
+
+        let paramNameDependency = [];
+        let rawExprs = [];
+        for (let i = 0, il = exprs.length; i < il; ++i) {
+            let rawExpr = exprs[i].replace(/^\$\{|\}$/g, '');
+            rawExprs.push(rawExpr);
+            let {paramNames} = this.$$exprCalculater.createExprFn(rawExpr, false);
+            paramNameDependency.push.apply(paramNameDependency, paramNames);
+        }
+
+        return {
+            paramNameDependency,
+            fn: scopeModel => {
+                if (rawExprs.length === 1) {
+                    return this.$$exprCalculater.calculate(rawExprs[0], false, this.$$scopeModel);
+                }
+                return expr.replace(/\$\{(.+?)\}/g, (...args) => {
+                    return this.$$exprCalculater.calculate(args[1], false, this.$$scopeModel);
+                });
+            }
         };
+    }
+
+    /**
+     * 开始监听scopeModel的变化
+     *
+     * @public
+     */
+    start() {
+        this.$$scopeModel.on('change', this.check, this);
+    }
+
+    /**
+     * 停止监听
+     *
+     * @public
+     */
+    stop() {
+        this.$$scopeModel.off('change', this.check, this);
     }
 
     /**
      * 检查this.$$exprs里面的脏值情况，如果脏了，就会触发change事件
      *
      * @private
+     * @param {Event} event 附带的一些参数
      */
-    check() {
+    check(event) {
         let delayFns = [];
-        forEach(this.$$exprs, (fn, expr) => delayFns.push(bind(calculate, this, expr, fn)));
+
+        forEach(event.changes, change => {
+            let influencedExprs = this.getExprsByParamName(change.name);
+
+            forEach(influencedExprs, expr => {
+                let fn = this.$$exprs[expr];
+                delayFns.push(bind(calculate, this, expr, fn));
+            });
+        });
         forEach(delayFns, fn => fn());
 
         function calculate(expr, fn) {
@@ -170,5 +224,7 @@ export default class ExprWatcher extends Event {
         return newValue === oldValue;
     }
 
-    destroy() {}
+    destroy() {
+        this.stop();
+    }
 }

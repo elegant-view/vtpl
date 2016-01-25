@@ -12,6 +12,7 @@ export default function () {
             scopeModel = new ScopeModel();
             exprCalculater = new ExprCalculater();
             watcher = new ExprWatcher(scopeModel, exprCalculater);
+            watcher.start();
         });
 
         afterAll(() => {
@@ -20,9 +21,9 @@ export default function () {
         });
 
         it('base', () => {
-            watcher.addExpr('name');
+            watcher.addExpr('${name}');
             watcher.on('change', event => {
-                expect(event.expr).toBe('name');
+                expect(event.expr).toBe('${name}');
                 expect(event.newValue).toBe('yibuyisheng');
                 expect(event.oldValue).toBe(undefined);
             });
@@ -30,7 +31,7 @@ export default function () {
         });
 
         it('date change', () => {
-            watcher.addExpr('dt');
+            watcher.addExpr('${dt}');
             let dt = new Date();
             scopeModel.set('dt', dt);
 
@@ -44,7 +45,7 @@ export default function () {
         });
 
         it('array change', () => {
-            watcher.addExpr('array');
+            watcher.addExpr('${array}');
             let array = [];
             scopeModel.set('array', array);
 
