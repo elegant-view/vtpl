@@ -177,6 +177,19 @@ class IfDirectiveParser extends DirectiveParser {
         // }
 
         // 这里不能按照changes来决定是否应该计算分支表达式的值，会给嵌套的场景引入问题（子if不更新）
+        // 考虑这样的场景：
+        // <!-- if: name === 'yibuyisheng' -->
+        //      ...
+        //      <!-- if: age === 18 -->
+        //          ...
+        //      <!-- else -->
+        //          ...
+        //      <!-- /if -->
+        // <!-- /if -->
+        // 第一次，设置scope数据为{name: 'yibuyisheng1'}；
+        // 第二次，设置scope数据为{name: 'yibuyisheng1', age: 18}，此时内层if根本不会计算该显示哪一个branch；
+        // 第三次，设置scope数据为{name: 'yibuyisheng'}，此时scope整体的数据应该为{name: 'yibuyisheng', age: 18}，
+        //  但是由于age并没有发生改变，因此内层if依然不会计算该显示哪一个branch，最终导致两个分支都显示了出来。
         update.call(this);
 
         function update() {

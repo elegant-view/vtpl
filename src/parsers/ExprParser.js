@@ -17,8 +17,6 @@ import Tree from '../trees/Tree';
 import Node from '../nodes/Node';
 // import log from '../log';
 
-let counter = 0;
-
 class ExprParser extends Parser {
 
     /**
@@ -214,12 +212,6 @@ class ExprParser extends Parser {
                     expr = exprs[j];
                     exprValue = exprFns[expr].exprFn(scopeModel);
 
-                    // if (this.exprFns && this.exprFns['${day.day}']) {
-                    //     // if (exprValue === 24) {
-                    //     //     debugger
-                    //     // }
-                    // }
-
                     // log.info(`get the value of expr: '${expr}', it is ${exprValue}`);
 
                     if (this.dirtyCheck(expr, exprValue, exprOldValues[expr])) {
@@ -352,7 +344,7 @@ class ExprParser extends Parser {
         var exprCalculater = parser.tree.getTreeVar('exprCalculater');
         var regExp = config.getExprRegExp();
 
-        var exprCalculaterObj = genMultiExprFnObj(expr, regExp);
+        var exprCalculaterObj = genMultiExprFnObj.call(this, expr, regExp);
         return exprCalculaterObj;
 
         /**
@@ -365,6 +357,9 @@ class ExprParser extends Parser {
          * @return {Object}
          */
         function genMultiExprFnObj(expr, regExp) {
+            // 去掉表达式的空格。
+            // 对于this.node.getNodeType()===Node.TEXT_NODE的情况来说，这可能影响显示情况，
+            // 事实上，不应该用代码里面的这种空格来处理间距。
             expr = expr.replace(/^\s+/, '').replace(/\s+$/, '');
 
             let exprs = expr.match(regExp);

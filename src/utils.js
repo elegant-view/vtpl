@@ -7,28 +7,6 @@ export function slice(arr, start, end) {
     return Array.prototype.slice.call(arr, start, end);
 }
 
-export function goDark(node) {
-    if (node.nodeType === 1) {
-        node.style.display = 'none';
-    }
-    else if (node.nodeType === 3) {
-        node.__text__ = node.nodeValue;
-        node.nodeValue = '';
-    }
-}
-
-export function restoreFromDark(node) {
-    if (node.nodeType === 1) {
-        node.style.display = null;
-    }
-    else if (node.nodeType === 3) {
-        if (node.__text__ !== undefined) {
-            node.nodeValue = node.__text__;
-            node.__text__ = undefined;
-        }
-    }
-}
-
 /**
  * 超级简单的 extend ，因为本库对 extend 没那高的要求，
  * 等到有要求的时候再完善。
@@ -90,6 +68,12 @@ export function each(arr, fn, context) {
                 break;
             }
         }
+    }
+}
+
+export function forEach(arr, fn, context) {
+    for (let i in arr) {
+        fn.call(context, arr[i], i, arr);
     }
 }
 

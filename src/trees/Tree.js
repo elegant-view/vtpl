@@ -7,6 +7,7 @@ import {isSubClassOf, each, extend} from '../utils';
 import ScopeModel from '../ScopeModel';
 import Base from '../Base';
 import Node from '../nodes/Node';
+import ExprWatcher from '../ExprWatcher';
 
 const ParserClasses = [];
 
@@ -32,6 +33,8 @@ export default class Tree extends Base {
         this.$$nodeIdParserMap = {};
 
         this.rootScope = new ScopeModel();
+
+        this.$exprWatcher = null;
     }
 
     /**
@@ -80,7 +83,13 @@ export default class Tree extends Base {
         this.$parent = parent;
     }
 
+    getExprWatcher() {
+        return this.$exprWatcher;
+    }
+
     compile() {
+        this.$exprWatcher = new ExprWatcher(this.rootScope, this.getTreeVar('exprCalculater'));
+
         let me = this;
         let delayFns = [];
 

@@ -102,17 +102,13 @@ function setProperty(model, name, value) {
     let oldValue = model.store[name];
     model.store[name] = value;
 
-    // 只在新旧值不同的情况下才有变化记录项
-    if (oldValue !== value) {
-        return {
-            type: type,
-            name: name,
-            oldValue: oldValue,
-            newValue: value
-        };
-    }
-
-    return null;
+    // 只是粗略记录一下set了啥
+    return {
+        type: type,
+        name: name,
+        oldValue: oldValue,
+        newValue: value
+    };
 }
 
 /**

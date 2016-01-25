@@ -11,7 +11,7 @@ export default function () {
         let domUpdater;
         let config;
         let exprCalculater;
-        beforeAll(() => {
+        beforeEach(() => {
             manager = new NodesManager();
             domUpdater = new DomUpdater();
             config = new Config();
@@ -19,7 +19,7 @@ export default function () {
 
             domUpdater.start();
         });
-        afterAll(() => {
+        afterEach(() => {
             manager.destroy();
             domUpdater.destroy();
             exprCalculater.destroy();
@@ -176,6 +176,45 @@ export default function () {
                         }, 70);
                     }, 300);
                 });
+            }, 70);
+        });
+
+        it('refresh date', done => {
+            let node = manager.getNode(document.createTextNode('${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}'));
+            let rootScope = new ScopeModel();
+            let exprParser = new ExprParser({
+                node,
+                tree: {
+                    rootScope,
+                    getTreeVar(src) {
+                        if (src === 'domUpdater') {
+                            return domUpdater;
+                        }
+                        if (src === 'config') {
+                            return config;
+                        }
+                        if (src === 'exprCalculater') {
+                            return exprCalculater;
+                        }
+                    }
+                }
+            });
+            exprParser.collectExprs();
+            exprParser.linkScope();
+
+            let dt = new Date();
+            let now = new Date();
+            rootScope.set('dt', dt);
+            setTimeout(() => {
+                expect(node.getNodeValue()).toBe(`${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`);
+
+                dt.setMonth(-1);
+                now.setMonth(-1);
+                rootScope.set('dt', dt);
+                setTimeout(() => {
+                    expect(node.getNodeValue()).toBe(`${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`);
+                    done();
+                }, 70);
             }, 70);
         });
     });
