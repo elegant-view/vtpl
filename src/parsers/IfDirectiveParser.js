@@ -243,12 +243,10 @@ class IfDirectiveParser extends DirectiveParser {
     }
 }
 
-extend(IfDirectiveParser, {
-    IF_START: 1,
-    ELIF: 2,
-    ELSE: 3,
-    IF_END: 4
-});
+IfDirectiveParser.IF_START = 1;
+IfDirectiveParser.ELIF = 2;
+IfDirectiveParser.ELSE = 3;
+IfDirectiveParser.IF_END = 4;
 
 function getIfNodeType(node, config) {
     let nodeType = node.getNodeType();

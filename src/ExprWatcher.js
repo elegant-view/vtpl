@@ -3,8 +3,10 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {bind, forEach, extend, isArray, isClass, type, empty} from './utils';
+import {bind, forEach, isArray, isClass, type, empty} from './utils';
 import Event from './Event';
+import clone from './clone';
+import deepEqual from './deepEqual';
 
 export default class ExprWatcher extends Event {
 
@@ -149,23 +151,7 @@ export default class ExprWatcher extends Event {
      * @return {*} 复制好的对象
      */
     dump(obj) {
-        if (isArray(obj)) {
-            let ret = [];
-            forEach(obj, value => {
-                ret.push(this.dump(value));
-            });
-            return ret;
-        }
-
-        if (isClass(obj, 'Date')) {
-            return new Date(obj.getTime());
-        }
-
-        if (type(obj) === 'object') {
-            return extend({}, obj);
-        }
-
-        return obj;
+        return clone(obj);
     }
 
     /**
@@ -178,53 +164,7 @@ export default class ExprWatcher extends Event {
      * @return {boolean} 是否相等
      */
     equals(expr, newValue, oldValue) {
-        if (type(newValue) !== 'object') {
-            return newValue === oldValue;
-        }
-
-        if (isClass(newValue, 'Date')) {
-            return newValue === oldValue || (
-                isClass(oldValue, 'Date') && newValue.getTime() === oldValue.getTime()
-            );
-        }
-
-        if (isArray(newValue)) {
-            if (newValue === oldValue) {
-                return true;
-            }
-
-            if (!isArray(oldValue) || newValue.length !== oldValue.length) {
-                return false;
-            }
-
-            for (let i = 0, il = newValue.length; i < il; ++i) {
-                let newItem = newValue[i];
-                let oldItem = oldValue[i];
-                if (!this.equals(expr, newItem, oldItem)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        if (type(newValue) === 'object' && newValue && oldValue) {
-            if (oldValue === newValue) {
-                return true;
-            }
-
-            if (type(newValue) !== 'object') {
-                return false;
-            }
-
-            for (let key in newValue) {
-                if (!this.equals(expr, newValue[key], oldValue[key])) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        return newValue === oldValue;
+        return deepEqual(newValue, oldValue);
     }
 
     destroy() {

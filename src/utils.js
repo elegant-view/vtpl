@@ -27,33 +27,6 @@ export function extend(target) {
     return target;
 }
 
-export function traverseNoChangeNodes(startNode, endNode, nodeFn, context) {
-    for (var curNode = startNode;
-        curNode && curNode !== endNode;
-        curNode = curNode.nextSibling
-    ) {
-        if (nodeFn.call(context, curNode)) {
-            return;
-        }
-    }
-
-    nodeFn.call(context, endNode);
-}
-
-export function traverseNodes(startNode, endNode, nodeFn, context) {
-    var nodes = [];
-    for (var curNode = startNode;
-        curNode && curNode !== endNode;
-        curNode = curNode.nextSibling
-    ) {
-        nodes.push(curNode);
-    }
-
-    nodes.push(endNode);
-
-    each(nodes, nodeFn, context);
-}
-
 export function each(arr, fn, context) {
     if (isArray(arr)) {
         for (var i = 0, il = arr.length; i < il; i++) {
@@ -72,7 +45,9 @@ export function each(arr, fn, context) {
 }
 
 export function forEach(arr, fn, context) {
+    /* eslint-disable guard-for-in */
     for (let i in arr) {
+    /* eslint-enable guard-for-in */
         fn.call(context, arr[i], i, arr);
     }
 }
@@ -91,6 +66,10 @@ export function isNumber(obj) {
 
 export function isFunction(obj) {
     return isClass(obj, 'Function');
+}
+
+export function getClassNameOf(obj) {
+    return Object.prototype.toString.call(obj).match(/\[object (\w+)\]/)[1];
 }
 
 /**
@@ -121,12 +100,12 @@ export function bind(fn, thisArg) {
         return;
     }
 
-    var bind = Function.prototype.bind || function () {
-        var args = arguments;
-        var obj = args.length > 0 ? args[0] : undefined;
-        var me = this;
+    let bind = Function.prototype.bind || function () {
+        let args = arguments;
+        let obj = args.length > 0 ? args[0] : undefined;
+        let me = this;
         return function () {
-            var totalArgs = Array.prototype.concat.apply(Array.prototype.slice.call(args, 1), arguments);
+            let totalArgs = Array.prototype.concat.apply(Array.prototype.slice.call(args, 1), arguments);
             return me.apply(obj, totalArgs);
         };
     };
