@@ -3,36 +3,16 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-/**
- * 构造函数
- *
- * @constructor
- * @param {Object} options 配置参数，一般可能会有如下内容：
- *                         {
- *                             startNode: ...,
- *                             endNode: ...,
- *                             node: ...,
- *                             config: ...
- *                         }
- *                         具体是啥可以参加具体的子类
- */
-
 import Base from '../Base';
+import parserState from './parserState';
 
-export default class Parser extends Base {
+class Parser extends Base {
     constructor(options) {
         super(options);
 
+        this.$state = parserState.INITIALIZING;
         this.tree = options.tree;
     }
-
-    /**
-     * 绑定scope model
-     *
-     * @public
-     * @param {ScopeModel} scopeModel scope model
-     */
-    linkScope() {}
 
     /**
      * 隐藏当前parser实例相关的节点。具体子类实现
@@ -79,7 +59,22 @@ export default class Parser extends Base {
      * @abstract
      * @public
      */
-    collectExprs() {}
+    collectExprs() {
+    }
+
+    /**
+     * 绑定scope model
+     *
+     * @public
+     */
+    linkScope() {}
+
+    /**
+     * 初始渲染
+     *
+     * @public
+     */
+    initRender() {}
 
     /**
      * 脏检测。默认会使用全等判断。
@@ -106,3 +101,5 @@ export default class Parser extends Base {
         this.tree = null;
     }
 }
+
+export default Parser;

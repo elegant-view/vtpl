@@ -8,6 +8,7 @@ import ScopeModel from '../ScopeModel';
 import Base from '../Base';
 import Node from '../nodes/Node';
 import ExprWatcher from '../ExprWatcher';
+import parserState from '../parsers/parserState';
 
 const ParserClasses = [];
 
@@ -91,6 +92,11 @@ export default class Tree extends Base {
         return this.$parsers;
     }
 
+    /**
+     * 编译
+     *
+     * @public
+     */
     compile() {
         this.$exprWatcher = new ExprWatcher(this.rootScope, this.getTreeVar('exprCalculater'));
 
@@ -123,7 +129,9 @@ export default class Tree extends Base {
             delayFns.push(handle);
 
             function handle() {
+                parser.$state = parserState.BEGIN_COMPILING;
                 parser.collectExprs();
+                parser.$state = parserState.END_COMPILING;
             }
 
             return {
@@ -145,14 +153,36 @@ export default class Tree extends Base {
         }
     }
 
+    /**
+     * 连接
+     *
+     * @public
+     */
     link() {
         for (let i = 0, il = this.$parsers.length; i < il; ++i) {
             let parser = this.$parsers[i];
             // 将解析器对象和对应树的scope绑定起来
+            parser.$state = parserState.BEGIN_LINK;
             parser.linkScope();
+            parser.$state = parserState.END_LINK;
         }
 
         this.$exprWatcher.start();
+    }
+
+    /**
+     * 初始第一次渲染
+     *
+     * @public
+     */
+    initRender() {
+        for (let i = 0, il = this.$parsers.length; i < il; ++i) {
+            let parser = this.$parsers[i];
+            // 将解析器对象和对应树的scope绑定起来
+            parser.$state = parserState.BEGIN_INIT_RENDER;
+            parser.initRender();
+            parser.$state = parserState.READY;
+        }
     }
 
     /**
@@ -163,6 +193,7 @@ export default class Tree extends Base {
     traverse() {
         this.compile();
         this.link();
+        this.initRender();
     }
 
     goDark() {
@@ -194,6 +225,7 @@ export default class Tree extends Base {
         function walk(parsers) {
             each(parsers, function (parser) {
                 parser.destroy();
+                parser.$state = parserState.DETROIED;
             });
         }
     }

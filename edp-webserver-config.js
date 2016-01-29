@@ -16,20 +16,6 @@ exports.getLocations = function () {
                 "sourceMaps": "inline"
             })
         },
-        // {
-        //     location: /(src|test)\/.+\.js$/,
-        //     handler: babel(
-        //         {
-        //             presets: [require('babel-preset-es2015')],
-        //             plugins: [
-        //                 require('babel-plugin-transform-es2015-modules-amd')
-        //             ]
-        //         },
-        //         {
-        //             babel: require('babel-core')
-        //         }
-        //     )
-        // },
         {
             location: /\/$/,
             handler: home( 'test/main.html' )

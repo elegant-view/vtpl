@@ -6,6 +6,8 @@ import ExprCalculater from 'vtpl/src/ExprCalculater';
 import ScopeModel from 'vtpl/src/ScopeModel';
 import ExprWatcher from 'vtpl/src/ExprWatcher';
 
+import Vtpl from 'vtpl';
+
 export default function () {
     describe('ExprParser', () => {
         let manager;
@@ -51,17 +53,13 @@ export default function () {
         });
 
         it('element node', done => {
-            let node = manager.createElement('div');
+            let node = document.createElement('div');
             node.setAttribute('name', '${name}');
-            let exprParser = new ExprParser({
-                node,
-                tree: mockTree
-            });
 
-            exprParser.collectExprs();
-            exprParser.linkScope();
+            let tpl = new Vtpl({startNode: node, endNode: node});
+            tpl.render();
 
-            scopeModel.set('name', 'yibuyisheng');
+            tpl.setData('name', 'yibuyisheng');
             setTimeout(() => {
                 expect(node.getAttribute('name')).toBe('yibuyisheng');
                 done();
@@ -69,48 +67,41 @@ export default function () {
         });
 
         it('text node', done => {
-            let node = manager.getNode(document.createTextNode('${name}'));
-            let exprParser = new ExprParser({
-                node,
-                tree: mockTree
-            });
+            let node = document.createTextNode('${name}');
 
-            exprParser.collectExprs();
-            exprParser.linkScope();
+            let tpl = new Vtpl({startNode: node, endNode: node});
+            tpl.render();
 
-            scopeModel.set('name', 'yibuyisheng');
+            tpl.setData('name', 'yibuyisheng');
             setTimeout(() => {
-                expect(node.getNodeValue()).toBe('yibuyisheng');
+                expect(node.nodeValue).toBe('yibuyisheng');
                 done();
             }, 70);
         });
 
         it('#goDark()', done => {
-            let node = manager.getNode(document.createTextNode('${name}'));
-            let exprParser = new ExprParser({
-                node,
-                tree: mockTree
-            });
+            let node = document.createTextNode('${name}');
 
-            exprParser.collectExprs();
-            exprParser.linkScope();
+            let tpl = new Vtpl({startNode: node, endNode: node});
+            tpl.render();
 
-            scopeModel.set('name', 'yibuyisheng');
+            tpl.setData('name', 'yibuyisheng');
+            node = tpl.$nodesManager.getNode(node);
             setTimeout(() => {
                 expect(node.getNodeValue()).toBe('yibuyisheng');
 
-                exprParser.goDark();
+                tpl.$tree.goDark();
                 setTimeout(() => {
-                    scopeModel.set('name', 'yibuyisheng2');
+                    tpl.setData('name', 'yibuyisheng2');
 
                     setTimeout(() => {
                         expect(node.getNodeValue()).toBe('');
-                        exprParser.restoreFromDark();
+                        tpl.$tree.restoreFromDark();
 
                         setTimeout(() => {
                             expect(node.getNodeValue()).toBe('yibuyisheng2');
 
-                            scopeModel.set('name', 'yibuyisheng3');
+                            tpl.setData('name', 'yibuyisheng3');
                             setTimeout(() => {
                                 expect(node.getNodeValue()).toBe('yibuyisheng3');
                                 done();
@@ -122,23 +113,21 @@ export default function () {
         });
 
         it('refresh date', done => {
-            let node = manager.getNode(document.createTextNode('${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}'));
-            let exprParser = new ExprParser({
-                node,
-                tree: mockTree
-            });
-            exprParser.collectExprs();
-            exprParser.linkScope();
+            let node = document.createTextNode('${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}');
+
+            let tpl = new Vtpl({startNode: node, endNode: node});
+            tpl.render();
 
             let dt = new Date();
             let now = new Date();
-            scopeModel.set('dt', dt);
+            tpl.setData('dt', dt);
+            node = tpl.$nodesManager.getNode(node);
             setTimeout(() => {
                 expect(node.getNodeValue()).toBe(`${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`);
 
                 dt.setMonth(-1);
                 now.setMonth(-1);
-                scopeModel.set('dt', dt);
+                tpl.setData('dt', dt);
                 setTimeout(() => {
                     expect(node.getNodeValue()).toBe(`${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`);
                     done();

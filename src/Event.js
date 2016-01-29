@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {each, isClass, isFunction, slice} from './utils';
+import {isClass, isFunction, slice, forEach} from './utils';
 
 export default class Event {
     constructor() {
@@ -17,23 +17,17 @@ export default class Event {
 
         this.evnts[eventName] = this.evnts[eventName] || [];
 
-        this.evnts[eventName].push({
-            fn: fn,
-            context: context
-        });
+        this.evnts[eventName].push({fn, context});
     }
 
     trigger(eventName) {
         let fnObjs = this.evnts[eventName];
         if (fnObjs && fnObjs.length) {
             let args = slice(arguments, 1);
-            let triggeredFns = [];
-            // 坑，不要return。。。。
-            each(fnObjs, fnObj => {
-                triggeredFns.push(fnObj);
-            });
-            // 延迟执行回调函数，避免调用在回调函数里面新添加的回调函数
-            each(triggeredFns, fnObj => this.invokeEventHandler(fnObj, ...args));
+
+            // 这个地方现在不处理事件回调队列污染的问题了，
+            // 因为对于本库来说，收效甚微，同时可以在另外的地方解决掉由此带来的bug
+            forEach(fnObjs, fnObj => this.invokeEventHandler(fnObj, ...args));
         }
     }
 
@@ -58,7 +52,7 @@ export default class Event {
         let fnObjs = this.evnts[eventName];
         if (fnObjs && fnObjs.length) {
             let newFnObjs = [];
-            each(fnObjs, fnObj => {
+            forEach(fnObjs, fnObj => {
                 if (fn !== fnObj.fn) {
                     newFnObjs.push(fnObj);
                 }

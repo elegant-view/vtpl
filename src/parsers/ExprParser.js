@@ -16,6 +16,7 @@ import {bind} from '../utils';
 import Tree from '../trees/Tree';
 import Node from '../nodes/Node';
 import {forEach} from '../utils';
+import parserState from './parserState';
 // import log from '../log';
 
 class ExprParser extends Parser {
@@ -138,18 +139,19 @@ class ExprParser extends Parser {
      */
     linkScope() {
         let exprWatcher = this.tree.getExprWatcher();
-
-        // 先初始化一遍
-        forEach(this.$exprUpdateFns, (fns, expr) => {
-            forEach(fns, fn => fn(''));
-        });
-
         exprWatcher.on('change', event => {
             let updateFns = this.$exprUpdateFns[event.expr];
             // 此处并不会处理isGoDark为true的情况，因为Node那边处理了。
             if (updateFns && updateFns.length) {
                 forEach(updateFns, fn => fn(event.newValue));
             }
+        });
+    }
+
+    initRender() {
+        let exprWatcher = this.tree.getExprWatcher();
+        forEach(this.$exprUpdateFns, (fns, expr) => {
+            forEach(fns, fn => fn(exprWatcher.calculate(expr)));
         });
     }
 

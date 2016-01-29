@@ -35,19 +35,16 @@ class VarDirectiveParser extends DirectiveParser {
 
     linkScope() {
         let exprWatcher = this.tree.getExprWatcher();
-        renderDOM.call(this, exprWatcher.calculate(this.$$expr));
         exprWatcher.on('change', event => {
-            if (event.expr === this.$$expr) {
-                renderDOM.call(this, event.newValue);
+            if (!this.isGoDark && event.expr === this.$$expr) {
+                this.tree.rootScope.set(this.$$leftValueName, exprWatcher.calculate(this.$$expr));
             }
         });
+    }
 
-        function renderDOM(value) {
-            if (this.isGoDark) {
-                return;
-            }
-            this.tree.rootScope.set(this.$$leftValueName, value);
-        }
+    initRender() {
+        let exprWatcher = this.tree.getExprWatcher();
+        this.tree.rootScope.set(this.$$leftValueName, exprWatcher.calculate(this.$$expr));
     }
 
     /**

@@ -49,8 +49,9 @@ class VTpl {
 
     render() {
         this.$tree.compile();
-        this.$tree.getTreeVar('domUpdater').start();
         this.$tree.link();
+        this.$tree.getTreeVar('domUpdater').start();
+        this.$tree.initRender();
     }
 
     setData() {

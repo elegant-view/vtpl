@@ -120,8 +120,6 @@ class IfDirectiveParser extends DirectiveParser {
     linkScope() {
         let exprWatcher = this.tree.getExprWatcher();
 
-        this.renderDOM(this);
-
         for (let i = 0, il = this.$branchTrees.length; i < il; ++i) {
             this.$branchTrees[i].link();
         }
@@ -145,6 +143,14 @@ class IfDirectiveParser extends DirectiveParser {
 
             this.renderDOM(this);
         });
+    }
+
+    initRender() {
+        this.renderDOM(this);
+
+        for (let i = 0, il = this.$branchTrees.length; i < il; ++i) {
+            this.$branchTrees[i].initRender();
+        }
     }
 
     renderDOM() {

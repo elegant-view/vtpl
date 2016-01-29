@@ -35,6 +35,7 @@ export default function () {
             tree.compile();
             expect(tree.rootScope.get('name')).toBe(undefined);
             tree.link();
+            tree.initRender();
             expect(tree.rootScope.get('name')).toBe('yibuyisheng');
         });
 

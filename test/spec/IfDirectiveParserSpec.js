@@ -38,8 +38,10 @@ export default function () {
             tree.setTreeVar('config', config);
             tree.setTreeVar('exprCalculater', exprCalculater);
             tree.setTreeVar('domUpdater', domUpdater);
+
             tree.compile();
             tree.link();
+            tree.initRender();
 
             setTimeout(() => {
                 expect(node.$node.innerText).toBe('');
@@ -63,9 +65,12 @@ export default function () {
             tree.setTreeVar('config', config);
             tree.setTreeVar('exprCalculater', exprCalculater);
             tree.setTreeVar('domUpdater', domUpdater);
+
             tree.compile();
             tree.rootScope.set('name', 'yibuyisheng');
             tree.link();
+            tree.initRender();
+
             setTimeout(() => {
                 expect(node.$node.innerText).toBe('yes');
 

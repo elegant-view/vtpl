@@ -60,15 +60,16 @@ class ForDirectiveParser extends DirectiveParser {
 
     linkScope() {
         let exprWatcher = this.tree.getExprWatcher();
-
-        // 把界面初始化为一个空数组的样子
-        this.updateFn([]);
-
         exprWatcher.on('change', event => {
             if (!this.isGoDark && event.expr === this.listExpr) {
                 this.updateFn(event.newValue);
             }
         });
+    }
+
+    initRender() {
+        let exprWatcher = this.tree.getExprWatcher();
+        this.updateFn(exprWatcher.calculate(this.listExpr));
     }
 
     /**
