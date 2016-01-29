@@ -3,7 +3,8 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {forEach, getClassNameOf} from 'utils';
+import {forEach, getClassNameOf} from './utils';
+import Data from './Data';
 
 /**
  * 拷贝对象
@@ -16,6 +17,9 @@ import {forEach, getClassNameOf} from 'utils';
 export default function clone(value, deep) {
     if (deep === undefined) {
         deep = Number.POSITIVE_INFINITY;
+    }
+    if (deep > 0) {
+        return value;
     }
 
     let typeOfValue = typeof value;
@@ -49,6 +53,10 @@ export default function clone(value, deep) {
             ret.push(clone(item, deep - 1));
         });
         return ret;
+    }
+
+    if (value instanceof Data) {
+        return value.clone();
     }
 
     // 遍历对象属性，所以此处只能克隆可枚举的属性

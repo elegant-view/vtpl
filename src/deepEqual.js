@@ -4,6 +4,7 @@
  */
 
 import {isClass, getClassNameOf} from './utils';
+import Data from './Data';
 
 function unwrap(value) {
     if (isClass(value, 'Number')
@@ -59,6 +60,10 @@ export default function deepEqual(value1, value2) {
         return true;
     }
 
+    if (value1 instanceof Data) {
+        return value1.equals(value2);
+    }
+
     /* eslint-disable guard-for-in */
     let keys = {};
     for (let key in value1) {
@@ -69,7 +74,9 @@ export default function deepEqual(value1, value2) {
     }
 
     for (let key in keys) {
-        if (!deepEqual(value1[key], value2[key])) {
+        if (value1[key] !== value2[key]
+            && !deepEqual(value1[key], value2[key])
+        ) {
             return false;
         }
     }

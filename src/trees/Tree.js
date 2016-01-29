@@ -217,11 +217,6 @@ export default class Tree extends Base {
 
         this.$$nodeIdParserMap = null;
 
-        if (this.dirtyChecker) {
-            this.dirtyChecker.destroy();
-            this.dirtyChecker = null;
-        }
-
         function walk(parsers) {
             each(parsers, function (parser) {
                 parser.destroy();

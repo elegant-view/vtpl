@@ -17,7 +17,6 @@ import DomUpdater from './DomUpdater';
 import {extend} from './utils';
 import Config from './Config';
 import NodesManager from './nodes/NodesManager';
-import DirtyChecker from './DirtyChecker';
 
 class VTpl {
     constructor(options) {
@@ -43,7 +42,6 @@ class VTpl {
         tree.setTreeVar('domUpdater', new DomUpdater());
         tree.setTreeVar('config', this.$options.config);
         tree.setTreeVar('nodesManager', this.$nodesManager);
-        tree.setTreeVar('dirtyChecker', new DirtyChecker());
         this.$tree = tree;
     }
 
@@ -62,7 +60,6 @@ class VTpl {
     destroy() {
         this.$tree.getTreeVar('exprCalculater').destroy();
         this.$tree.getTreeVar('domUpdater').destroy();
-        this.$tree.getTreeVar('dirtyChecker').destroy();
 
         this.$tree.destroy();
         this.$nodesManager.destroy();

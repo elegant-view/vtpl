@@ -77,22 +77,6 @@ class Parser extends Base {
     initRender() {}
 
     /**
-     * 脏检测。默认会使用全等判断。
-     *
-     * @public
-     * @param  {string} expr         要检查的表达式
-     * @param  {*} exprValue    表达式当前计算出来的值
-     * @param  {*} exprOldValue 表达式上一次计算出来的值
-     * @return {boolean}              两次的值是否相同
-     */
-    dirtyCheck(expr, exprValue, exprOldValue) {
-        let dirtyChecker = this.tree.getTreeVar('dirtyChecker');
-        let dirtyCheckerFn = dirtyChecker ? dirtyChecker.getChecker(expr) : null;
-        return (dirtyCheckerFn && dirtyCheckerFn(expr, exprValue, exprOldValue))
-                || (!dirtyCheckerFn && exprValue !== exprOldValue);
-    }
-
-    /**
      * 销毁解析器，将界面恢复成原样
      *
      * @public

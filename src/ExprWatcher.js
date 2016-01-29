@@ -3,10 +3,11 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {bind, forEach, isArray, isClass, type, empty} from './utils';
+import {bind, forEach} from './utils';
 import Event from './Event';
 import clone from './clone';
 import deepEqual from './deepEqual';
+import Data from './Data';
 
 export default class ExprWatcher extends Event {
 
@@ -139,6 +140,13 @@ export default class ExprWatcher extends Event {
         }
     }
 
+    /**
+     * 计算表达式的值
+     *
+     * @public
+     * @param  {string} expr 表达式字符串`${name}`
+     * @return {*}      计算结果
+     */
     calculate(expr) {
         return this.$$exprs[expr]();
     }
@@ -151,6 +159,10 @@ export default class ExprWatcher extends Event {
      * @return {*} 复制好的对象
      */
     dump(obj) {
+        if (obj instanceof Data) {
+            return obj.clone();
+        }
+
         return clone(obj);
     }
 
@@ -164,6 +176,13 @@ export default class ExprWatcher extends Event {
      * @return {boolean} 是否相等
      */
     equals(expr, newValue, oldValue) {
+        if (newValue instanceof Data) {
+            return newValue.equals(oldValue);
+        }
+        if (oldValue instanceof Data) {
+            return oldValue.equals(newValue);
+        }
+
         return deepEqual(newValue, oldValue);
     }
 
