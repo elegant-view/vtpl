@@ -20,6 +20,7 @@ export default class ExprWatcher extends Event {
         this.$$exprs = {};
         this.$$paramNameToExprMap = {};
         this.$$exprOldValues = {};
+        this.$$exprEqualFn = {};
     }
 
     /**
@@ -59,6 +60,10 @@ export default class ExprWatcher extends Event {
         let {paramNameDependency, fn} = this.generateExpressionFunction(expr);
         this.addParamName2ExprMap(paramNameDependency, expr);
         this.$$exprs[expr] = () => fn(this.$$scopeModel);
+    }
+
+    setExprEqualFn(expr, equalFn) {
+        this.$$exprEqualFn[expr] = equalFn;
     }
 
     generateExpressionFunction(expr) {
