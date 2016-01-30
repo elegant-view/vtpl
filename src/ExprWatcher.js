@@ -157,7 +157,7 @@ export default class ExprWatcher extends Event {
 
             if (!equals(expr, exprValue, oldValue)) {
                 this.trigger('change', {expr, newValue: exprValue, oldValue: oldValue});
-                this.$$exprOldValues[expr] = clone(exprValue);
+                this.$$exprOldValues[expr] = clone(expr, exprValue);
             }
         }
     }
@@ -177,10 +177,11 @@ export default class ExprWatcher extends Event {
      * 深复制一份obj（只针对可枚举的属性）。
      *
      * @private
+     * @param {string} expr 对应的表达式
      * @param  {*} obj 要复制的对象
      * @return {*} 复制好的对象
      */
-    dump(obj) {
+    dump(expr, obj) {
         if (obj instanceof Data) {
             return obj.clone();
         }
