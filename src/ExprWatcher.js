@@ -20,7 +20,9 @@ export default class ExprWatcher extends Event {
         this.$$exprs = {};
         this.$$paramNameToExprMap = {};
         this.$$exprOldValues = {};
+
         this.$$exprEqualFn = {};
+        this.$$exprCloneFn = {};
     }
 
     /**
@@ -66,6 +68,17 @@ export default class ExprWatcher extends Event {
         this.$$exprEqualFn[expr] = equalFn;
     }
 
+    setExprCloneFn(expr, cloneFn) {
+        this.$$exprCloneFn[expr] = cloneFn;
+    }
+
+    /**
+     * 生成表达式计算函数
+     *
+     * @private
+     * @param  {string} expr 表达式字符串
+     * @return {Object}
+     */
     generateExpressionFunction(expr) {
         // 先去掉expr里面前后空格
         expr = expr.replace(/^\s+|\s+$/g, '');
@@ -138,9 +151,13 @@ export default class ExprWatcher extends Event {
         function calculate(expr, fn) {
             let exprValue = fn();
             let oldValue = this.$$exprOldValues[expr];
-            if (!this.equals(expr, exprValue, oldValue)) {
+
+            let equals = bind(this.$$exprEqualFn[expr], null) || bind(this.equals, this);
+            let clone = bind(this.$$exprCloneFn[expr], null) || bind(this.dump, this);
+
+            if (!equals(expr, exprValue, oldValue)) {
                 this.trigger('change', {expr, newValue: exprValue, oldValue: oldValue});
-                this.$$exprOldValues[expr] = this.dump(exprValue);
+                this.$$exprOldValues[expr] = clone(exprValue);
             }
         }
     }

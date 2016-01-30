@@ -18,7 +18,7 @@ export default function clone(value, deep) {
     if (deep === undefined) {
         deep = Number.POSITIVE_INFINITY;
     }
-    if (deep > 0) {
+    if (deep <= 0) {
         return value;
     }
 
