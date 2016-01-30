@@ -4,8 +4,7 @@
  */
 
 import DirectiveParser from './DirectiveParser';
-import {each} from '../utils';
-import Tree from '../trees/Tree';
+import {forEach} from '../utils';
 import Node from '../nodes/Node';
 
 class ForDirectiveParser extends DirectiveParser {
@@ -119,7 +118,7 @@ class ForDirectiveParser extends DirectiveParser {
         if (this.isGoDark) {
             return;
         }
-        each(this.trees, tree => tree.goDark());
+        forEach(this.trees, tree => tree.goDark());
         this.isGoDark = true;
     }
 
@@ -127,12 +126,12 @@ class ForDirectiveParser extends DirectiveParser {
         if (!this.isGoDark) {
             return;
         }
-        each(this.trees, tree => tree.restoreFromDark());
+        forEach(this.trees, tree => tree.restoreFromDark());
         this.isGoDark = false;
     }
 
     destroy() {
-        each(this.trees, tree => tree.destroy());
+        forEach(this.trees, tree => tree.destroy());
 
         this.tplSeg = null;
         this.expr = null;
@@ -204,5 +203,4 @@ class ForDirectiveParser extends DirectiveParser {
     }
 }
 
-Tree.registeParser(ForDirectiveParser);
 export default ForDirectiveParser;

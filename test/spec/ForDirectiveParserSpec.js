@@ -1,41 +1,20 @@
-import ForDirectiveParser from 'vtpl/src/parsers/ForDirectiveParser';
-import NodesManager from 'vtpl/src/nodes/NodesManager';
-import Tree from 'vtpl/src/trees/Tree';
-import Config from 'vtpl/src/Config';
-import ExprCalculater from 'vtpl/src/ExprCalculater';
-import DomUpdater from 'vtpl/src/DomUpdater';
+import Vtpl from 'vtpl';
 
 export default function () {
     describe('ForDirectiveParser', () => {
-        let nodesManager;
-        let domUpdater;
         let node;
-        let config = new Config();
-        let exprCalculater;
 
         beforeEach(() => {
-            nodesManager = new NodesManager();
-            domUpdater = new DomUpdater();
-            domUpdater.start();
-            node = nodesManager.createElement('div');
-            exprCalculater = new ExprCalculater();
-        });
-
-        afterEach(() => {
-            nodesManager.destroy();
-            domUpdater.destroy();
-            exprCalculater.destroy();
-            exprCalculater.destroy();
+            node = document.createElement('div');
         });
 
         it('simple list', done => {
-            node.setInnerHTML('<!-- for: students as student -->${student.name}<!-- /for -->');
-            let tree = new Tree({startNode: node, endNode: node});
-            setTreeVar(tree);
-            tree.compile();
-            tree.link();
+            node.innerHTML = '<!-- for: students as student -->${student.name}<!-- /for -->';
 
-            tree.rootScope.set({students: [
+            let tpl = new Vtpl({startNode: node, endNode: node});
+            tpl.render();
+
+            tpl.setData({students: [
                 {
                     name: 'yibuyisheng1'
                 },
@@ -45,27 +24,27 @@ export default function () {
             ]});
 
             setTimeout(() => {
-                expect(node.$node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng1yibuyisheng2');
+                expect(node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng1yibuyisheng2');
 
-                tree.rootScope.set({students: [
+                tpl.setData({students: [
                     {
                         name: 'yibuyisheng3'
                     }
                 ]});
                 setTimeout(() => {
-                    expect(node.$node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng3');
+                    expect(node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng3');
                     done();
                 }, 70);
             }, 70);
         });
 
         it('simple object', done => {
-            node.setInnerHTML('<!-- for: student as value -->${key}-${value},<!-- /for -->');
-            let tree = new Tree({startNode: node, endNode: node});
-            setTreeVar(tree);
-            tree.compile();
-            tree.link();
-            tree.rootScope.set({
+            node.innerHTML = '<!-- for: student as value -->${key}-${value},<!-- /for -->';
+
+            let tpl = new Vtpl({startNode: node, endNode: node});
+            tpl.render();
+
+            tpl.setData({
                 student: {
                     name: 'yibuyisheng',
                     age: 30,
@@ -74,25 +53,25 @@ export default function () {
             });
             setTimeout(() => {
                 // TODO: 顺序可能不是这样的。。。。暂时写成这样
-                expect(node.$node.innerText.replace(/\s*/g, '')).toBe('name-yibuyisheng,age-30,company-Baidu,');
+                expect(node.innerText.replace(/\s*/g, '')).toBe('name-yibuyisheng,age-30,company-Baidu,');
                 done();
             }, 70);
         });
 
         it('nest', done => {
-            node.setInnerHTML(`
+            node.innerHTML = `
                 <!-- for: students as student -->
                     $\{student.name}
                     <!-- for: student as value -->
                         $\{key}-$\{value}
                     <!-- /for -->
                 <!-- /for -->
-            `);
-            let tree = new Tree({startNode: node, endNode: node});
-            setTreeVar(tree);
-            tree.compile();
-            tree.link();
-            tree.rootScope.set({
+            `;
+
+            let tpl = new Vtpl({startNode: node, endNode: node});
+            tpl.render();
+
+            tpl.setData({
                 students: [{
                     name: 'yibuyisheng',
                     age: 30,
@@ -101,13 +80,13 @@ export default function () {
             });
             setTimeout(() => {
                 // TODO: Object打印顺序问题
-                expect(node.$node.innerText.replace(/\s*/g, '')).toBe('yibuyishengname-yibuyishengage-30company-Baidu');
+                expect(node.innerText.replace(/\s*/g, '')).toBe('yibuyishengname-yibuyishengage-30company-Baidu');
                 done();
             }, 70);
         });
 
         it('`for` and `if` nest', done => {
-            node.setInnerHTML(`
+            node.innerHTML = `
                 <!-- for: students as student -->
                     <!-- if: student.name === 'yibuyisheng' -->
                         yibuyisheng
@@ -127,12 +106,12 @@ export default function () {
                         <!-- /if -->
                     <!-- /if -->
                 <!-- /for -->
-            `);
-            let tree = new Tree({startNode: node, endNode: node});
-            setTreeVar(tree);
-            tree.compile();
-            tree.link();
-            tree.rootScope.set({
+            `;
+
+            let tpl = new Vtpl({startNode: node, endNode: node});
+            tpl.render();
+
+            tpl.setData({
                 students: [
                     {
                         name: 'yibuyisheng',
@@ -153,9 +132,9 @@ export default function () {
                 ]
             });
             setTimeout(() => {
-                expect(node.$node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldyibuyisheng10yearsoldnotyibuyishengnotyibuyisheng2yearsold');
+                expect(node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldyibuyisheng10yearsoldnotyibuyishengnotyibuyisheng2yearsold');
 
-                tree.rootScope.set('students', [
+                tpl.setData('students', [
                     {
                         name: 'yibuyisheng',
                         age: 18
@@ -166,17 +145,10 @@ export default function () {
                     }
                 ]);
                 setTimeout(() => {
-                    expect(node.$node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldnotyibuyisheng2yearsold');
+                    expect(node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldnotyibuyisheng2yearsold');
                     done();
                 }, 70);
             }, 70);
         });
-
-        function setTreeVar(tree) {
-            tree.setTreeVar('nodesManager', nodesManager);
-            tree.setTreeVar('config', config);
-            tree.setTreeVar('exprCalculater', exprCalculater);
-            tree.setTreeVar('domUpdater', domUpdater);
-        }
     });
 }

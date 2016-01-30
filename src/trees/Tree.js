@@ -3,14 +3,12 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {isSubClassOf, each, extend} from '../utils';
+import {each, extend, forEach} from '../utils';
 import ScopeModel from '../ScopeModel';
 import Base from '../Base';
 import Node from '../nodes/Node';
 import ExprWatcher from '../ExprWatcher';
 import parserState from '../parsers/parserState';
-
-const ParserClasses = [];
 
 export default class Tree extends Base {
 
@@ -56,6 +54,12 @@ export default class Tree extends Base {
         return true;
     }
 
+    /**
+     * 去掉树上的变量
+     *
+     * @public
+     * @param  {string} name 变量名
+     */
     unsetTreeVar(name) {
         this.treeVars[name] = undefined;
     }
@@ -80,14 +84,33 @@ export default class Tree extends Base {
         return val;
     }
 
+    /**
+     * 设置树的父级，对于数变量的查询就形成了一条向上的链。
+     *
+     * @public
+     * @param {Tree} parent 父级树
+     */
     setParent(parent) {
         this.$parent = parent;
     }
 
+    /**
+     * 拿到当前树所属的表达式监视器。
+     * 这个表达式监视器是和当前树的rootScope绑定的，也就是说只能监视当前树管辖范围内的表达式。
+     *
+     * @public
+     * @return {ExprWatcher} 表达式监视器
+     */
     getExprWatcher() {
         return this.$exprWatcher;
     }
 
+    /**
+     * 获取当前树下所有的解析器对象
+     *
+     * @public
+     * @return {Array.<Parser>}
+     */
     getParsers() {
         return this.$parsers;
     }
@@ -100,25 +123,24 @@ export default class Tree extends Base {
     compile() {
         this.$exprWatcher = new ExprWatcher(this.rootScope, this.getTreeVar('exprCalculater'));
 
-        let me = this;
         let delayFns = [];
-
-        Node.iterate(this.startNode, this.endNode, function (node) {
+        Node.iterate(this.startNode, this.endNode, node => {
             let options = {
                 startNode: node,
                 node: node,
-                tree: me
+                tree: this
             };
 
             let parser;
+            let ParserClasses = this.getTreeVar('parserClasses');
             for (let i = 0, il = ParserClasses.length; i < il; ++i) {
                 let ParserClass = ParserClasses[i];
-                parser = me.createParser(ParserClass, options);
+                parser = this.createParser(ParserClass, options);
 
                 if (!parser) {
                     continue;
                 }
-                me.$parsers.push(parser);
+                this.$parsers.push(parser);
                 break;
             }
 
@@ -185,24 +207,13 @@ export default class Tree extends Base {
         }
     }
 
-    /**
-     * 遍历DOM树，生成解析器类->搜集指令和表达式并生成相应的DOM更新函数->绑定ScopeModel
-     *
-     * @public
-     */
-    traverse() {
-        this.compile();
-        this.link();
-        this.initRender();
-    }
-
     goDark() {
         // 调用这棵树下面所有解析器的goDark方法
-        each(this.$parsers, parser => parser.goDark());
+        forEach(this.$parsers, parser => parser.goDark());
     }
 
     restoreFromDark() {
-        each(this.$parsers, parser => parser.restoreFromDark());
+        forEach(this.$parsers, parser => parser.restoreFromDark());
     }
 
     destroy() {
@@ -270,20 +281,13 @@ export default class Tree extends Base {
     }
 
     /**
-     * 注册一下解析器类。
+     * 给parser开放的创建树的方法
      *
-     * 解析器类的命中规则是：
-     *
-     * 当遇到一个节点的时候，会严格按照ParserClasses数组的顺序来判断当前的节点是否归该解析器类处理（isProperNode）。
-     * 所以，越是靠前的解析器类，就拥有越高的优先级。
-     *
-     * 在注册解析器类的时候，这个顺序就会定下来，并且子类拥有比父类更高的优先级。
-     *
-     * @param  {Class} ParserClass 解析器类
+     * @public
+     * @param {Object} options 参数
+     * @return {Tree}
      */
-    static registeParser(ParserClass) {
-        ParserClasses.push(ParserClass);
-
-        ParserClasses.sort((prev, next) => isSubClassOf(prev, next) ? -1 : 1);
+    createTree(options) {
+        return new Tree(options);
     }
 }

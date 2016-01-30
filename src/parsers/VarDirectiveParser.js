@@ -4,7 +4,6 @@
  */
 
 import DirectiveParser from './DirectiveParser';
-import Tree from '../trees/Tree';
 
 class VarDirectiveParser extends DirectiveParser {
     constructor(options) {
@@ -84,6 +83,4 @@ class VarDirectiveParser extends DirectiveParser {
     }
 }
 
-Tree.registeParser(VarDirectiveParser);
 export default VarDirectiveParser;
-

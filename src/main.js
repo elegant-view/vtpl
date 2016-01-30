@@ -3,20 +3,19 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-/* eslint-disable no-unused-vars */
 import ForDirectiveParser from './parsers/ForDirectiveParser';
 import IfDirectiveParser from './parsers/IfDirectiveParser';
 import DirectiveParser from './parsers/DirectiveParser';
 import ExprParser from './parsers/ExprParser';
 import VarDirectiveParser from './parsers/VarDirectiveParser';
-/* eslint-enable no-unused-vars */
 
 import Tree from './trees/Tree';
 import ExprCalculater from './ExprCalculater';
 import DomUpdater from './DomUpdater';
-import {extend} from './utils';
+import {extend, isSubClassOf} from './utils';
 import Config from './Config';
 import NodesManager from './nodes/NodesManager';
+import Parser from './parsers/Parser';
 
 class VTpl {
     constructor(options) {
@@ -37,12 +36,54 @@ class VTpl {
 
         this.$options = options;
 
-        var tree = new Tree(this.$options);
+        let tree = new Tree(this.$options);
         tree.setTreeVar('exprCalculater', new ExprCalculater());
         tree.setTreeVar('domUpdater', new DomUpdater());
         tree.setTreeVar('config', this.$options.config);
         tree.setTreeVar('nodesManager', this.$nodesManager);
+        tree.setTreeVar('parserClasses', []);
         this.$tree = tree;
+
+        // 注册一批解析器
+        this.registerParser(ForDirectiveParser);
+        this.registerParser(IfDirectiveParser);
+        this.registerParser(DirectiveParser);
+        this.registerParser(ExprParser);
+        this.registerParser(VarDirectiveParser);
+    }
+
+    setExprEqualFn(expr, handler) {
+        let exprWatcher = this.$tree.getExprWatcher();
+        exprWatcher.setExprEqualFn(expr, handler);
+    }
+
+    setExprCloneFn(expr, handler) {
+        let exprWatcher = this.$tree.getExprWatcher();
+        exprWatcher.setExprCloneFn(expr, handler);
+    }
+
+    /**
+     * 注册一下解析器类。
+     *
+     * 解析器类的命中规则是：
+     *
+     * 当遇到一个节点的时候，会严格按照ParserClasses数组的顺序来判断当前的节点是否归该解析器类处理（isProperNode）。
+     * 所以，越是靠前的解析器类，就拥有越高的优先级。
+     *
+     * 在注册解析器类的时候，这个顺序就会定下来，并且子类拥有比父类更高的优先级。
+     *
+     * @param  {Class} parserClass 解析器类
+     */
+    registerParser(parserClass) {
+        if (!isSubClassOf(parserClass, Parser)) {
+            throw new TypeError('wrong parser class');
+        }
+
+        let parserClasses = this.$tree.getTreeVar('parserClasses');
+        parserClasses.push(parserClass);
+        parserClasses.sort((prev, next) => {
+            return isSubClassOf(prev, next) ? -1 : 1;
+        });
     }
 
     render() {
@@ -53,7 +94,7 @@ class VTpl {
     }
 
     setData() {
-        var scope = this.$tree.rootScope;
+        let scope = this.$tree.rootScope;
         scope.set.apply(scope, arguments);
     }
 

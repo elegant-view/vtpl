@@ -33,9 +33,9 @@ export default class ExprWatcher extends Event {
      * @param {string} expr  表达式
      */
     addParamName2ExprMap(names, expr) {
-        for (var i = 0, il = names.length; i < il; ++i) {
-            var paramName = names[i];
-            var exprArr = this.$$paramNameToExprMap[paramName] || [];
+        for (let i = 0, il = names.length; i < il; ++i) {
+            let paramName = names[i];
+            let exprArr = this.$$paramNameToExprMap[paramName] || [];
             exprArr.push(expr);
             this.$$paramNameToExprMap[paramName] = exprArr;
         }

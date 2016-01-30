@@ -13,7 +13,6 @@ import ScopeModel from '../ScopeModel';
 
 import Parser from './Parser';
 import {bind} from '../utils';
-import Tree from '../trees/Tree';
 import Node from '../nodes/Node';
 import {forEach} from '../utils';
 import parserState from './parserState';
@@ -244,10 +243,9 @@ class ExprParser extends Parser {
      * @return {boolean}
      */
     static isProperNode(node) {
-        var nodeType = node.getNodeType();
+        let nodeType = node.getNodeType();
         return nodeType === Node.ELEMENT_NODE || nodeType === Node.TEXT_NODE;
     }
 }
 
-Tree.registeParser(ExprParser);
 export default ExprParser;

@@ -7,8 +7,7 @@
  */
 
 import DirectiveParser from './DirectiveParser';
-import {each, extend, forEach} from '../utils';
-import Tree from '../trees/Tree';
+import {forEach} from '../utils';
 import Node from '../nodes/Node';
 
 class IfDirectiveParser extends DirectiveParser {
@@ -102,7 +101,7 @@ class IfDirectiveParser extends DirectiveParser {
                 this.$branchTrees.push(null);
             }
             else {
-                let branchTree = new Tree({
+                let branchTree = this.tree.createTree({
                     startNode: curNodeNextSibling,
                     endNode: nextNode.node.getPreviousSibling()
                 });
@@ -211,7 +210,7 @@ class IfDirectiveParser extends DirectiveParser {
         if (this.isGoDark) {
             return;
         }
-        each(this.$branchTrees, tree => tree.goDark());
+        forEach(this.$branchTrees, tree => tree.goDark());
         this.isGoDark = true;
     }
 
@@ -220,7 +219,7 @@ class IfDirectiveParser extends DirectiveParser {
         if (!this.isGoDark) {
             return;
         }
-        each(this.$branchTrees, tree => tree.restoreFromDark());
+        forEach(this.$branchTrees, tree => tree.restoreFromDark());
         this.isGoDark = false;
 
         this.renderDOM();
@@ -272,5 +271,4 @@ function getIfNodeType(node, config) {
     }
 }
 
-Tree.registeParser(IfDirectiveParser);
 export default IfDirectiveParser;
