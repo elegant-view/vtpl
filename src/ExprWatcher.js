@@ -64,7 +64,7 @@ export default class ExprWatcher extends Event {
         this.$$exprs[expr] = () => fn(this.$$scopeModel);
     }
 
-    setExprEqualFn(expr, equalFn) {
+    setExprEqualsFn(expr, equalFn) {
         this.$$exprEqualFn[expr] = equalFn;
     }
 

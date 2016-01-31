@@ -100,6 +100,7 @@ class ForDirectiveParser extends DirectiveParser {
                     parser.trees[index] = parser.createTree();
                     parser.trees[index].compile();
                     parser.trees[index].link();
+                    parser.trees[index].initRender();
                 }
 
                 parser.trees[index].restoreFromDark();
