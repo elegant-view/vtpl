@@ -3,8 +3,6 @@
  *       如无特别说明，以`$`符号开头的成员变量是受保护的，以`$$`符号开头的成员变量是私有的。
  * @author yibuyisheng(yibuyisheng@163.com)
  */
-
-import Base from '../Base';
 import {
     isFunction,
     isPureObject,
@@ -16,11 +14,9 @@ import {
 } from '../utils';
 import Event from '../Event';
 
-class Node extends Base {
+class Node {
 
     constructor(node, manager) {
-        super();
-
         // 弱弱地判断一下node是不是节点
         if (!node || node.ownerDocument !== document) {
             throw new TypeError('wrong `node` argument');

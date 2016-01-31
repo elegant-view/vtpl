@@ -5,6 +5,7 @@
 
 import Base from '../Base';
 import Node from './Node';
+import Fragment from './Fragment';
 
 let managerIdCounter = 0;
 
@@ -62,5 +63,9 @@ export default class NodesManager extends Base {
 
     createComment() {
         return this.getNode(document.createComment.apply(document, arguments));
+    }
+
+    createDocumentFragment() {
+        return new Fragment();
     }
 }
