@@ -30,7 +30,7 @@ class ForDirectiveParser extends DirectiveParser {
 
         // 将for指令之间的节点抽出来，放在tplSeg里面作为样板缓存，后面会根据这个样板生成具体的DOM结构。
         let nodesManager = this.tree.getTreeVar('nodesManager');
-        this.tplSeg = nodesManager.createElement('div');
+        this.tplSeg = nodesManager.createDocumentFragment('div');
         for (let curNode = this.startNode.getNextSibling();
             curNode && !curNode.isAfter(this.endNode.getPreviousSibling());
         ) {
@@ -153,7 +153,7 @@ class ForDirectiveParser extends DirectiveParser {
     createTree() {
         let parser = this;
         let nodesManager = this.tree.getTreeVar('nodesManager');
-        let copySeg = nodesManager.createElement('div');
+        let copySeg = nodesManager.createDocumentFragment('div');
         copySeg.setInnerHTML(this.tplSeg.getInnerHTML());
 
         let childNodes = copySeg.getChildNodes();

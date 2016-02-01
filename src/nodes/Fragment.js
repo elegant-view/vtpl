@@ -17,20 +17,28 @@ export default class Fragment {
         return this.$$fragment.getChildNodes();
     }
 
+    getFirstChild() {
+        return this.$$fragment.getFirstChild();
+    }
+
+    getLastChild() {
+        return this.$$fragment.getLastChild();
+    }
+
     setInnerHTML(html) {
         let container;
         let realContainer;
-        if (/^\s*<(thead|tbody|tfoot)\s*>/i.test(html)) {
+        if (/^(\s*|(\s*<!--[\s\S]*?-->\s*)+)<(thead|tbody|tfoot)\s*[\s\S]*>/i.test(html)) {
             container = document.createElement('table');
             container.innerHTML = html;
             realContainer = container;
         }
-        else if (/^\s*<tr\s*>/i.test(html)) {
+        else if (/^(\s*|(\s*<!--[\s\S]*?-->\s*)+)<tr\s*[\s\S]*>/i.test(html)) {
             container = document.createElement('table');
             container.innerHTML = `<tbody>${html}</tbody>`;
             realContainer = container.firstChild;
         }
-        else if (/^\s*<td\s*>/i.test(html)) {
+        else if (/^(\s*|(\s*<!--[\s\S]*?-->\s*)+)<td\s*[\s\S]*>/i.test(html)) {
             container = document.createElement('table');
             container.innerHTML = `<tbody><tr>${html}</tr></tbody>`;
             realContainer = container.firstChild.firstChild;
