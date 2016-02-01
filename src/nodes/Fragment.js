@@ -4,31 +4,36 @@
  */
 
 export default class Fragment {
-    constructor() {
-        this.$$fragment = document.createElement('div');
+    constructor(manager) {
+        this.$$manager = manager;
+        this.$$fragment = manager.createElement('div');
     }
 
     appendChild(node) {
-        this.$$fragment.appendChild(node.$node);
+        this.$$fragment.appendChild(node);
+    }
+
+    getChildNodes() {
+        return this.$$fragment.getChildNodes();
     }
 
     setInnerHTML(html) {
         let container;
         let realContainer;
-        if (/^\s*<(thead|tbody|tbody)\s*>/i.test(html)) {
+        if (/^\s*<(thead|tbody|tfoot)\s*>/i.test(html)) {
             container = document.createElement('table');
-            container.innerHTML = `<table>${html}</table>`;
-            realContainer = container.firstChild;
+            container.innerHTML = html;
+            realContainer = container;
         }
         else if (/^\s*<tr\s*>/i.test(html)) {
             container = document.createElement('table');
-            container.innerHTML = `<table><tbody>${html}</tbody></table>`;
-            realContainer = container.firstChild.firstChild;
+            container.innerHTML = `<tbody>${html}</tbody>`;
+            realContainer = container.firstChild;
         }
         else if (/^\s*<td\s*>/i.test(html)) {
             container = document.createElement('table');
-            container.innerHTML = `<table><tbody><tr>${html}</tr></tbody></table>`;
-            realContainer = container.firstChild.firstChild.firstChild;
+            container.innerHTML = `<tbody><tr>${html}</tr></tbody>`;
+            realContainer = container.firstChild.firstChild;
         }
         else {
             container = document.createElement('div');
@@ -37,11 +42,11 @@ export default class Fragment {
         }
 
         while (realContainer.childNodes[0]) {
-            this.$$fragment.appendChild(realContainer.childNodes[0]);
+            this.$$fragment.appendChild(this.$$manager.getNode(realContainer.childNodes[0]));
         }
     }
 
     getInnerHTML() {
-        return this.$$fragment.innerHTML;
+        return this.$$fragment.getInnerHTML();
     }
 }

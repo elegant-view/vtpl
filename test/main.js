@@ -7,6 +7,7 @@ import TreeSpec from './spec/TreeSpec';
 import ForDirectiveParserSpec from './spec/ForDirectiveParserSpec';
 import VarDirectiveParserSpec from './spec/VarDirectiveParserSpec';
 import ExprWatcherSpec from './spec/ExprWatcherSpec';
+import FragmentSpec from './spec/FragmentSpec';
 
 ExprParserSpec();
 NodesManagerSpec();
@@ -16,3 +17,4 @@ TreeSpec();
 ForDirectiveParserSpec();
 VarDirectiveParserSpec();
 ExprWatcherSpec();
+FragmentSpec();

@@ -66,6 +66,6 @@ export default class NodesManager extends Base {
     }
 
     createDocumentFragment() {
-        return new Fragment();
+        return new Fragment(this);
     }
 }
