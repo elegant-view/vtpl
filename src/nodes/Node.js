@@ -17,11 +17,6 @@ import Event from '../Event';
 class Node {
 
     constructor(node, manager) {
-        // 弱弱地判断一下node是不是节点
-        if (!node || node.ownerDocument !== document) {
-            throw new TypeError('wrong `node` argument');
-        }
-
         this.$node = node;
         this.$manager = manager;
 

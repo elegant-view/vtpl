@@ -6,7 +6,19 @@
 export default class Fragment {
     constructor(manager) {
         this.$$manager = manager;
-        this.$$fragment = manager.createElement('div');
+
+        let xmlDoc;
+        if (window.DOMParser) {
+            let parser = new DOMParser();
+            xmlDoc = parser.parseFromString('<div></div>', 'text/xml');
+        }
+        // Internet Explorer
+        else {
+            xmlDoc = new ActiveXObject('Microsoft.XMLDOM');
+            xmlDoc.async = false;
+            xmlDoc.loadXML('<div></div>');
+        }
+        this.$$fragment = manager.getNode(xmlDoc.childNodes[0]);
     }
 
     appendChild(node) {
@@ -26,32 +38,7 @@ export default class Fragment {
     }
 
     setInnerHTML(html) {
-        let container;
-        let realContainer;
-        if (/^(\s*|(\s*<!--[\s\S]*?-->\s*)+)<(thead|tbody|tfoot)\s*[\s\S]*>/i.test(html)) {
-            container = document.createElement('table');
-            container.innerHTML = html;
-            realContainer = container;
-        }
-        else if (/^(\s*|(\s*<!--[\s\S]*?-->\s*)+)<tr\s*[\s\S]*>/i.test(html)) {
-            container = document.createElement('table');
-            container.innerHTML = `<tbody>${html}</tbody>`;
-            realContainer = container.firstChild;
-        }
-        else if (/^(\s*|(\s*<!--[\s\S]*?-->\s*)+)<td\s*[\s\S]*>/i.test(html)) {
-            container = document.createElement('table');
-            container.innerHTML = `<tbody><tr>${html}</tr></tbody>`;
-            realContainer = container.firstChild.firstChild;
-        }
-        else {
-            container = document.createElement('div');
-            container.innerHTML = html;
-            realContainer = container;
-        }
-
-        while (realContainer.childNodes[0]) {
-            this.$$fragment.appendChild(this.$$manager.getNode(realContainer.childNodes[0]));
-        }
+        this.$$fragment.setInnerHTML(html);
     }
 
     getInnerHTML() {
