@@ -31,17 +31,17 @@ export default class Fragment {
         let xmlDoc;
         if (window.DOMParser) {
             let parser = new DOMParser();
-            xmlDoc = parser.parseFromString(html, 'text/xml');
+            xmlDoc = parser.parseFromString(`<div>${html}</div>`, 'text/xml');
         }
         // Internet Explorer
         else {
             xmlDoc = new ActiveXObject('Microsoft.XMLDOM');
             xmlDoc.async = false;
-            xmlDoc.loadXML(html);
+            xmlDoc.loadXML(`<div>${html}</div>`);
         }
 
         this.$$fragment.setInnerHTML('');
-        walk.call(this, xmlDoc, this.$$fragment);
+        walk.call(this, xmlDoc.childNodes[0], this.$$fragment);
 
         function createDOMNode(parserNode) {
             let nodeType = parserNode.nodeType;
