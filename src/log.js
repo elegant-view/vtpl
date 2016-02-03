@@ -5,6 +5,13 @@
 
 /* eslint-disable no-console */
 export default {
+    error: function () {
+        if (!console || !console.error) {
+            return;
+        }
+
+        console.error.apply(console, arguments);
+    },
     warn: function () {
         if (!console || !console.warn) {
             return;

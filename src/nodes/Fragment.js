@@ -4,6 +4,7 @@
  */
 
 import Node from './Node';
+import log from '../log';
 
 export default class Fragment {
     constructor(manager) {
@@ -31,13 +32,21 @@ export default class Fragment {
         let xmlDoc;
         if (window.DOMParser) {
             let parser = new DOMParser();
-            xmlDoc = parser.parseFromString(`<div>${html}</div>`, 'text/xml');
+            xmlDoc = parser.parseFromString(`<div></div>`, 'text/xml');
         }
         // Internet Explorer
         else {
             xmlDoc = new ActiveXObject('Microsoft.XMLDOM');
             xmlDoc.async = false;
-            xmlDoc.loadXML(`<div>${html}</div>`);
+            xmlDoc.loadXML(`<div></div>`);
+        }
+
+        try {
+            xmlDoc.childNodes[0].innerHTML = html;
+        }
+        catch (error) {
+            log.error(error, `\n${html}`);
+            throw error;
         }
 
         this.$$fragment.setInnerHTML('');
