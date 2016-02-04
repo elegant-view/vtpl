@@ -72,7 +72,7 @@ export default class ExprCalculater {
         }
         catch (e) {
             // 将表达式的错误打印出来，方便调试
-            log.warn(e.stack, scopeModel);
+            log.info(e.stack, '\n', expr, scopeModel);
             result = '';
         }
         return result;

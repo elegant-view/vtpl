@@ -134,6 +134,10 @@ class Node {
         return this.$node.tagName.toLowerCase();
     }
 
+    getValue() {
+        return this.$node.value;
+    }
+
     /**
      * 判断当前节点是否和node是兄弟关系，并且在node之后。
      *
