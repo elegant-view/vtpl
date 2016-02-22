@@ -67,8 +67,8 @@ class ForDirectiveParser extends DirectiveParser {
     }
 
     initRender() {
-        //let exprWatcher = this.tree.getExprWatcher();
-        //this.updateFn(exprWatcher.calculate(this.listExpr));
+        let exprWatcher = this.tree.getExprWatcher();
+        this.updateFn(exprWatcher.calculate(this.listExpr));
     }
 
     /**

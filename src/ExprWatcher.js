@@ -121,11 +121,6 @@ export default class ExprWatcher extends Event {
     start() {
         this.$$scopeModel.on('change', this.check, this);
         this.$$scopeModel.on('parentchange', this.check, this);
-
-        // 强制刷新一下数据
-        for (let expr in this.$$exprs) {
-            this.compute(expr);
-        }
     }
 
     /**
@@ -135,6 +130,21 @@ export default class ExprWatcher extends Event {
      */
     stop() {
         this.$$scopeModel.off('change', this.check, this);
+        this.$$scopeModel.off('parentchange', this.check, this);
+    }
+
+    /**
+     * 唤醒
+     *
+     * @public
+     */
+    resume() {
+        this.start();
+
+        // 强制刷新一下数据
+        for (let expr in this.$$exprs) {
+            this.compute(expr);
+        }
     }
 
     /**

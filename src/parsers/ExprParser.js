@@ -142,10 +142,10 @@ class ExprParser extends Parser {
     }
 
     initRender() {
-        //let exprWatcher = this.tree.getExprWatcher();
-        //forEach(this.$exprUpdateFns, (fns, expr) => {
-        //    forEach(fns, fn => fn(exprWatcher.calculate(expr)));
-        //});
+        let exprWatcher = this.tree.getExprWatcher();
+        forEach(this.$exprUpdateFns, (fns, expr) => {
+            forEach(fns, fn => fn(exprWatcher.calculate(expr)));
+        });
     }
 
     /**

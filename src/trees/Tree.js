@@ -215,7 +215,7 @@ export default class Tree extends Base {
 
     restoreFromDark() {
         forEach(this.$parsers, parser => parser.restoreFromDark());
-        this.$exprWatcher.start();
+        this.$exprWatcher.resume();
     }
 
     destroy() {
