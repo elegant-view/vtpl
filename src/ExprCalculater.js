@@ -9,9 +9,7 @@ import log from './log';
 export default class ExprCalculater {
     constructor() {
         this.fns = {};
-
         this.exprNameMap = {};
-        this.exprNameRegExp = /\.?\$?([a-z|A-Z]+|([a-z|A-Z]+[0-9]+[a-z|A-Z]*))/g;
     }
 
     /**
@@ -81,7 +79,6 @@ export default class ExprCalculater {
     destroy() {
         this.fns = null;
         this.exprNameMap = null;
-        this.exprNameRegExp = null;
     }
 }
 

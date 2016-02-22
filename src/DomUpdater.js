@@ -8,12 +8,8 @@ import {empty} from './utils';
 export default class DomUpdater {
     constructor() {
         this.tasks = {};
-        this.isExecuting = false;
-        this.doneFns = [];
         this.counter = 0;
-
         this.$$nodeAttrNameTaskIdMap = {};
-
         this.$$isExecuting = false;
     }
 
@@ -42,7 +38,7 @@ export default class DomUpdater {
      * @return {number}          任务ID
      */
     generateNodeAttrUpdateId(node, attrName) {
-        var key = node.getNodeId() + '-' + attrName;
+        let key = node.getNodeId() + '-' + attrName;
         if (!this.$$nodeAttrNameTaskIdMap[key]) {
             this.$$nodeAttrNameTaskIdMap[key] = this.generateTaskId();
         }
@@ -74,6 +70,7 @@ export default class DomUpdater {
     destroy() {
         this.stop();
         this.tasks = null;
+        this.$$nodeAttrNameTaskIdMap = null;
     }
 
     /**

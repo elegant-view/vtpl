@@ -356,6 +356,8 @@ class Node {
                 this.$node.removeEventListener(eventName, eventFn);
             }
         }
+
+        this.$node = null;
     }
 
     static getClassList(klass) {

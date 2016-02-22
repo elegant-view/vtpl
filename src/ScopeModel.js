@@ -11,7 +11,7 @@ class ScopeModel extends Event {
         super(...args);
 
         this.store = {};
-        this.parent;
+        this.parent = null;
         this.children = [];
     }
 

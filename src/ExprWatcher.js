@@ -102,7 +102,7 @@ export default class ExprWatcher extends Event {
 
         return {
             paramNameDependency,
-            fn: scopeModel => {
+            fn: () => {
                 if (rawExprs.length === 1) {
                     return this.$$exprCalculater.calculate(rawExprs[0], false, this.$$scopeModel);
                 }
@@ -121,6 +121,11 @@ export default class ExprWatcher extends Event {
     start() {
         this.$$scopeModel.on('change', this.check, this);
         this.$$scopeModel.on('parentchange', this.check, this);
+
+        // 强制刷新一下数据
+        for (let expr in this.$$exprs) {
+            this.compute(expr);
+        }
     }
 
     /**
@@ -172,23 +177,23 @@ export default class ExprWatcher extends Event {
                     return;
                 }
 
-                let fn = this.$$exprs[expr];
-                delayFns.push(bind(calculate, this, expr, fn));
+                delayFns.push(bind(this.compute, this, expr));
             });
         });
         forEach(delayFns, fn => fn());
+    }
 
-        function calculate(expr, fn) {
-            let exprValue = fn();
-            let oldValue = this.$$exprOldValues[expr];
+    // private
+    compute(expr) {
+        let exprValue = this.$$exprs[expr]();
+        let oldValue = this.$$exprOldValues[expr];
 
-            let equals = bind(this.$$exprEqualFn[expr], null) || bind(this.equals, this);
-            let clone = bind(this.$$exprCloneFn[expr], null) || bind(this.dump, this);
+        let equals = bind(this.$$exprEqualFn[expr], null) || bind(this.equals, this);
+        let clone = bind(this.$$exprCloneFn[expr], null) || bind(this.dump, this);
 
-            if (!equals(expr, exprValue, oldValue)) {
-                this.trigger('change', {expr, newValue: exprValue, oldValue: oldValue});
-                this.$$exprOldValues[expr] = clone(expr, exprValue);
-            }
+        if (!equals(expr, exprValue, oldValue)) {
+            this.trigger('change', {expr, newValue: exprValue, oldValue: oldValue});
+            this.$$exprOldValues[expr] = clone(expr, exprValue);
         }
     }
 
@@ -241,5 +246,15 @@ export default class ExprWatcher extends Event {
 
     destroy() {
         this.stop();
+
+        this.$$scopeModel = null;
+        this.$$exprCalculater = null;
+
+        this.$$exprs = null;
+        this.$$paramNameToExprMap = null;
+        this.$$exprOldValues = null;
+
+        this.$$exprEqualFn = null;
+        this.$$exprCloneFn = null;
     }
 }

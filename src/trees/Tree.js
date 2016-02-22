@@ -188,8 +188,6 @@ export default class Tree extends Base {
             parser.linkScope();
             parser.$state = parserState.END_LINK;
         }
-
-        this.$exprWatcher.start();
     }
 
     /**
@@ -205,6 +203,8 @@ export default class Tree extends Base {
             parser.initRender();
             parser.$state = parserState.READY;
         }
+
+        this.$exprWatcher.start();
     }
 
     goDark() {
@@ -233,7 +233,7 @@ export default class Tree extends Base {
         function walk(parsers) {
             each(parsers, function (parser) {
                 parser.destroy();
-                parser.$state = parserState.DETROIED;
+                parser.$state = parserState.DESTROIED;
             });
         }
     }

@@ -32,12 +32,6 @@ class ExprParser extends Parser {
 
         this.node = options.node;
 
-        /**
-         * DOM节点属性与更新属性的任务id的映射
-         * @type {Object}
-         */
-        this.attrToDomTaskIdMap = {};
-
         this.isGoDark = false;
 
         this.$exprUpdateFns = {};
@@ -148,10 +142,10 @@ class ExprParser extends Parser {
     }
 
     initRender() {
-        let exprWatcher = this.tree.getExprWatcher();
-        forEach(this.$exprUpdateFns, (fns, expr) => {
-            forEach(fns, fn => fn(exprWatcher.calculate(expr)));
-        });
+        //let exprWatcher = this.tree.getExprWatcher();
+        //forEach(this.$exprUpdateFns, (fns, expr) => {
+        //    forEach(fns, fn => fn(exprWatcher.calculate(expr)));
+        //});
     }
 
     /**
@@ -183,11 +177,9 @@ class ExprParser extends Parser {
      */
     destroy() {
         this.node = null;
-        this.exprFns = null;
-        this.exprOldValues = null;
-        this.attrToDomTaskIdMap = null;
+        this.$exprUpdateFns = null;
 
-        Parser.prototype.destroy.call(this);
+        super.destroy();
     }
 
     /**

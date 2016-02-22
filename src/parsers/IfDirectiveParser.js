@@ -145,11 +145,11 @@ class IfDirectiveParser extends DirectiveParser {
     }
 
     initRender() {
-        this.renderDOM(this);
+        //this.renderDOM(this);
 
-        for (let i = 0, il = this.$branchTrees.length; i < il; ++i) {
-            this.$branchTrees[i].initRender();
-        }
+        //for (let i = 0, il = this.$branchTrees.length; i < il; ++i) {
+        //    this.$branchTrees[i].initRender();
+        //}
     }
 
     renderDOM() {

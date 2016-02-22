@@ -10,7 +10,7 @@
         "test": "./node_modules/karma/bin/karma start",
         "build": "gulp build",
         "dev-bak": "webpack-dev-server --progress --colors",
-        "dev": "edp webserver"
+        "dev": "./node_modules/edp/bin/edp-cli webserver"
     },
     "repository": {
         "type": "git",

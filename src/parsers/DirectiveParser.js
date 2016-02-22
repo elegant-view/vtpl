@@ -41,6 +41,12 @@ class DirectiveParser extends Parser {
         return this.node;
     }
 
+    destroy() {
+        this.node = null;
+
+        super.destroy();
+    }
+
     static isProperNode(node, config) {
         return node.getNodeType() === Node.COMMENT_NODE;
     }
