@@ -203,7 +203,7 @@ export default class ExprWatcher extends Event {
 
         if (!equals(expr, exprValue, oldValue)) {
             this.trigger('change', {expr, newValue: exprValue, oldValue: oldValue});
-            this.$$exprOldValues[expr] = clone(expr, exprValue);
+            this.$$exprOldValues[expr] = clone(exprValue);
         }
     }
 
@@ -215,7 +215,14 @@ export default class ExprWatcher extends Event {
      * @return {*}      计算结果
      */
     calculate(expr) {
-        return this.$$exprs[expr]();
+        if (!(expr in this.$$exprs)) {
+            throw new Error('no such expression under the scope.');
+        }
+
+        let clone = bind(this.$$exprCloneFn[expr], null) || bind(this.dump, this);
+        let value = this.$$exprs[expr]();
+        this.$$exprOldValues[expr] = clone(value);
+        return value;
     }
 
     /**
@@ -226,7 +233,7 @@ export default class ExprWatcher extends Event {
      * @param  {*} obj 要复制的对象
      * @return {*} 复制好的对象
      */
-    dump(expr, obj) {
+    dump(obj) {
         if (obj instanceof Data) {
             return obj.clone();
         }
