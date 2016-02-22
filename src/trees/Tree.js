@@ -210,10 +210,12 @@ export default class Tree extends Base {
     goDark() {
         // 调用这棵树下面所有解析器的goDark方法
         forEach(this.$parsers, parser => parser.goDark());
+        this.$exprWatcher.stop();
     }
 
     restoreFromDark() {
         forEach(this.$parsers, parser => parser.restoreFromDark());
+        this.$exprWatcher.start();
     }
 
     destroy() {

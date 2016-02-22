@@ -57,7 +57,7 @@ export default class DomUpdater {
      * @public
      * @param {number} taskId 任务ID
      * @param {function()} taskFn 任务函数
-     * @param {function(Error, *)} callback 执行结果的回调函数
+     * @param {function(Error, *)=} callback 执行结果的回调函数
      */
     addTaskFn(taskId, taskFn, callback) {
         this.tasks[taskId] = {

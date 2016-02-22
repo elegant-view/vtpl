@@ -23,6 +23,9 @@ export default class ExprWatcher extends Event {
 
         this.$$exprEqualFn = {};
         this.$$exprCloneFn = {};
+
+        // 暂时不需要计算的表达式
+        this.$$exprSuspend = {};
     }
 
     /**
@@ -130,6 +133,28 @@ export default class ExprWatcher extends Event {
     }
 
     /**
+     * 将指定表达式暂时挂起，在check的时候不做处理。
+     *
+     * @param expr
+     */
+    suspendExpr(expr) {
+        if (this.$$exprs[expr]) {
+            this.$$exprSuspend[expr] = true;
+        }
+    }
+
+    /**
+     * 将指定表达式恢复检测。
+     *
+     * @param expr
+     */
+    resumeExpr(expr) {
+        if (this.$$exprs[expr]) {
+            this.$$exprSuspend[expr] = false;
+        }
+    }
+
+    /**
      * 检查this.$$exprs里面的脏值情况，如果脏了，就会触发change事件
      *
      * @private
@@ -142,6 +167,11 @@ export default class ExprWatcher extends Event {
             let influencedExprs = this.getExprsByParamName(change.name);
 
             forEach(influencedExprs, expr => {
+                // 表达式被挂起了
+                if (this.$$exprSuspend[expr]) {
+                    return;
+                }
+
                 let fn = this.$$exprs[expr];
                 delayFns.push(bind(calculate, this, expr, fn));
             });
