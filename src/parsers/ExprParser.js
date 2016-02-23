@@ -108,6 +108,10 @@ class ExprParser extends Parser {
      */
     setAttr(attrName, attrValue) {
         if (Node.isEventName(attrName) || attrName === 'on-outclick') {
+            if (!attrValue) {
+                return;
+            }
+
             let eventName = attrName.replace('on-', '');
             this.node.off(eventName);
             this.node.on(eventName, event => {
