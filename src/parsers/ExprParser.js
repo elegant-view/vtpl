@@ -75,7 +75,12 @@ class ExprParser extends Parser {
             for (let i = 0, il = attributes.length; i < il; ++i) {
                 let attribute = attributes[i];
                 if (!isExpr.call(this, attribute.value)) {
-                    this.setAttr(attribute.name, attribute.value);
+                    if (Node.isEventName(attribute.name) || attribute.name === 'on-outclick') {
+                        this.setEvent(attribute.name, attribute.value);
+                    }
+                    else {
+                        this.setAttr(attribute.name, attribute.value);
+                    }
                     continue;
                 }
 
@@ -99,6 +104,24 @@ class ExprParser extends Parser {
         }
     }
 
+    setEvent(attrName, attrValue) {
+        if (!attrValue) {
+            return;
+        }
+
+        let eventName = attrName.replace('on-', '');
+        this.node.off(eventName);
+        this.node.on(eventName, event => {
+            let exprCalculater = this.tree.getTreeVar('exprCalculater');
+            exprCalculater.createExprFn(attrValue, true);
+
+            let localScope = new ScopeModel();
+            localScope.setParent(this.tree.rootScope);
+            localScope.set('event', event);
+            exprCalculater.calculate(attrValue, true, localScope);
+        });
+    }
+
     /**
      * 设置属性
      *
@@ -107,26 +130,7 @@ class ExprParser extends Parser {
      * @param {string} attrValue 属性值
      */
     setAttr(attrName, attrValue) {
-        if (Node.isEventName(attrName) || attrName === 'on-outclick') {
-            if (!attrValue) {
-                return;
-            }
-
-            let eventName = attrName.replace('on-', '');
-            this.node.off(eventName);
-            this.node.on(eventName, event => {
-                let exprCalculater = this.tree.getTreeVar('exprCalculater');
-                exprCalculater.createExprFn(attrValue, true);
-
-                let localScope = new ScopeModel();
-                localScope.setParent(this.tree.rootScope);
-                localScope.set('event', event);
-                exprCalculater.calculate(attrValue, true, localScope);
-            });
-        }
-        else {
-            this.node.attr(attrName, attrValue);
-        }
+        this.node.attr(attrName, attrValue);
     }
 
     /**
