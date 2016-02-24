@@ -75,20 +75,20 @@ class ExprParser extends Parser {
             for (let i = 0, il = attributes.length; i < il; ++i) {
                 let attribute = attributes[i];
                 if (!isExpr.call(this, attribute.value)) {
-                    if (Node.isEventName(attribute.name) || attribute.name === 'on-outclick') {
-                        this.setEvent(attribute.name, attribute.value);
-                    }
-                    else {
-                        this.setAttr(attribute.name, attribute.value);
-                    }
+                    this.setAttr(attribute.name, attribute.value);
                     continue;
                 }
 
-                exprWatcher.addExpr(attribute.value);
+                if (Node.isEventName(attribute.name) || attribute.name === 'on-outclick') {
+                    this.setEvent(attribute.name, attribute.value);
+                }
+                else{
+                    exprWatcher.addExpr(attribute.value);
 
-                let updateFns = this.$exprUpdateFns[attribute.value] || [];
-                updateFns.push(bind(updateAttr, this, this.getTaskId(attribute.name), domUpdater, attribute.name));
-                this.$exprUpdateFns[attribute.value] = updateFns;
+                    let updateFns = this.$exprUpdateFns[attribute.value] || [];
+                    updateFns.push(bind(updateAttr, this, this.getTaskId(attribute.name), domUpdater, attribute.name));
+                    this.$exprUpdateFns[attribute.value] = updateFns;
+                }
             }
         }
 
