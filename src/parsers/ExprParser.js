@@ -112,6 +112,8 @@ class ExprParser extends Parser {
         let eventName = attrName.replace('on-', '');
         this.node.off(eventName);
         this.node.on(eventName, event => {
+            attrValue = attrValue.replace(/^\${|}$/g, '');
+            
             let exprCalculater = this.tree.getTreeVar('exprCalculater');
             exprCalculater.createExprFn(attrValue, true);
 
