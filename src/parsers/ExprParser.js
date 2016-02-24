@@ -14,7 +14,7 @@ import ScopeModel from '../ScopeModel';
 import Parser from './Parser';
 import {bind} from '../utils';
 import Node from '../nodes/Node';
-import {forEach} from '../utils';
+import {forEach, line2camel} from '../utils';
 import parserState from './parserState';
 // import log from '../log';
 
@@ -72,8 +72,11 @@ class ExprParser extends Parser {
         // 元素节点
         if (nodeType === Node.ELEMENT_NODE) {
             let attributes = this.node.getAttributes();
+            let attrs = {};
             for (let i = 0, il = attributes.length; i < il; ++i) {
                 let attribute = attributes[i];
+                attrs[line2camel(attribute.name)] = true;
+
                 if (!isExpr.call(this, attribute.value)) {
                     this.setAttr(attribute.name, attribute.value);
                     continue;
@@ -86,7 +89,11 @@ class ExprParser extends Parser {
                     exprWatcher.addExpr(attribute.value);
 
                     let updateFns = this.$exprUpdateFns[attribute.value] || [];
-                    updateFns.push(bind(updateAttr, this, this.getTaskId(attribute.name), domUpdater, attribute.name));
+                    attribute.name === 'd-rest'
+                        ? updateFns.push(value => this.setRestAttrs(value, attrs))
+                        : updateFns.push(
+                            bind(updateAttr, this, this.getTaskId(attribute.name), domUpdater, attribute.name)
+                        );
                     this.$exprUpdateFns[attribute.value] = updateFns;
                 }
             }
@@ -100,7 +107,19 @@ class ExprParser extends Parser {
         }
 
         function isExpr(expr) {
-            return /\$\{(.+?)\}/.test(expr);
+            return /\$\{(.+?)}/.test(expr);
+        }
+    }
+
+    setRestAttrs(value, attrs) {
+        if (!value || typeof value !== 'object') {
+            return;
+        }
+
+        for (let key in value) {
+            if (!(key in attrs)) {
+                this.setAttr(key, value[key]);
+            }
         }
     }
 
@@ -113,7 +132,7 @@ class ExprParser extends Parser {
         this.node.off(eventName);
         this.node.on(eventName, event => {
             attrValue = attrValue.replace(/^\${|}$/g, '');
-            
+
             let exprCalculater = this.tree.getTreeVar('exprCalculater');
             exprCalculater.createExprFn(attrValue, true);
 

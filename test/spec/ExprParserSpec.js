@@ -134,5 +134,28 @@ export default function () {
                 }, 70);
             }, 70);
         });
+
+        it('d-rest', done => {
+            let node = document.createElement('div');
+            node.setAttribute('d-rest', '${rest}');
+            node.setAttribute('name', 'yibuyisheng1');
+            node.setAttribute('in-school', 'school1');
+
+            let tpl = new Vtpl({startNode: node, endNode: node});
+            tpl.render();
+
+            tpl.setData('rest', {
+                name: 'yibuyisheng2',
+                age: 20,
+                inSchool: 'school2'
+            });
+            node = tpl.$nodesManager.getNode(node);
+            setTimeout(() => {
+                expect(node.getAttribute('name')).toBe('yibuyisheng1');
+                expect(node.getAttribute('age')).toBe('20');
+                expect(node.getAttribute('in-school')).toBe('school1');
+                done();
+            }, 70);
+        });
     });
 }
