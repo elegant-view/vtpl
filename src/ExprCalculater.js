@@ -35,7 +35,7 @@ export default class ExprCalculater {
             return this.fns[expr][avoidReturn];
         }
 
-        let params = getVariableNamesFromExpr(this, expr);
+        let params = this.getVariableNamesFromExpr(expr);
         let fn = new Function(params, (avoidReturn ? '' : 'return ') + expr);
 
         let exprObj = {
@@ -80,59 +80,38 @@ export default class ExprCalculater {
         this.fns = null;
         this.exprNameMap = null;
     }
-}
 
-/**
- * 从表达式中抽离出变量名
- *
- * @inner
- * @param {ExprCalculater} me 对应实例
- * @param  {string} expr 表达式字符串，类似于 `${name}` 中的 name
- * @return {Array.<string>}      变量名数组
- */
-function getVariableNamesFromExpr(me, expr) {
-    if (me.exprNameMap[expr]) {
-        return me.exprNameMap[expr];
-    }
-
-    let reg = /[\$|_|a-z|A-Z]{1}(?:[a-z|A-Z|0-9|\$|_]*)/g;
-
-    let names = {};
-    for (let name = reg.exec(expr); name; name = reg.exec(expr)) {
-        let restStr = expr.slice(name.index + name[0].length);
-
-        // 是左值
-        if (/^\s*=(?!=)/.test(restStr)) {
-            continue;
+    /**
+     * 从表达式中抽离出变量名
+     *
+     * @inner
+     * @param {ExprCalculater} me 对应实例
+     * @param  {string} expr 表达式字符串，类似于 `${name}` 中的 name
+     * @return {Array.<string>}      变量名数组
+     */
+    getVariableNamesFromExpr(expr) {
+        if (this.exprNameMap[expr]) {
+            return this.exprNameMap[expr];
         }
 
-        // 变量名前面是否存在 `.` ，或者变量名是否位于引号内部
-        if (name.index
-            && (expr[name.index - 1] === '.'
-                || isInQuote(
-                        expr.slice(0, name.index),
-                        restStr
-                   )
-            )
-        ) {
-            continue;
+        let possibleVariables = expr.match(/[\w$]+/g);
+        if (!possibleVariables || !possibleVariables.length) {
+            return [];
         }
 
-        names[name[0]] = true;
-    }
+        let variables = [];
+        for (let variable of possibleVariables) {
+            // 如果以数字开头,那就不是变量
+            if (!isNaN(parseInt(variable))) {
+                continue;
+            }
 
-    let ret = [];
-    each(names, function (isOk, name) {
-        if (isOk) {
-            ret.push(name);
+            variables.push(variable);
         }
-    });
-    me.exprNameMap[expr] = ret;
 
-    return ret;
+        this.exprNameMap[expr] = variables;
 
-    function isInQuote(preStr, restStr) {
-        return ((preStr.lastIndexOf('\'') + 1 && restStr.indexOf('\'') + 1)
-            || (preStr.lastIndexOf('"') + 1 && restStr.indexOf('"') + 1));
+        return variables;
     }
 }
+
