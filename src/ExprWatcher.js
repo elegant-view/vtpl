@@ -103,7 +103,7 @@ export default class ExprWatcher extends Event {
         return {
             paramNameDependency,
             fn: () => {
-                if (rawExprs.length === 1) {
+                if (rawExprs.length === 1 && expr.replace(/^\$\{|\}$/g, '') === rawExprs[0]) {
                     return this.$$exprCalculater.calculate(rawExprs[0], false, this.$$scopeModel);
                 }
                 return expr.replace(/\$\{(.+?)\}/g, (...args) => {
