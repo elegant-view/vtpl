@@ -42,7 +42,6 @@ class VarDirectiveParser extends DirectiveParser {
     }
 
     initRender() {
-        debugger
         let exprWatcher = this.tree.getExprWatcher();
         this.tree.rootScope.set(this.$$leftValueName, exprWatcher.calculate(this.$$expr));
     }

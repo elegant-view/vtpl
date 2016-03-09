@@ -239,7 +239,7 @@ export default class ExprWatcher extends Event {
     convertExpressionResult(result) {
         if (result === undefined
             || result === null
-            || isNaN(result)
+            || result !== result // 是NaN
         ) {
             return '';
         }

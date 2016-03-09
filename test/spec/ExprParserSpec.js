@@ -158,25 +158,17 @@ export default function () {
             }, 70);
         });
 
-        //it('undefined expression', done => {
-        //    let node = document.createElement('div');
-        //    node.setAttribute('name', '${student.name}');
-        //
-        //    let tpl = new Vtpl({startNode: node, endNode: node});
-        //    tpl.render();
-        //
-        //    setTimeout(() => {
-        //        console.log(node.getAttribute('name'));
-        //        done();
-        //    }, 70);
-        //});
+        it('undefined expression', done => {
+            let node = document.createElement('div');
+            node.setAttribute('name', '${student.name}');
 
-        //it('expression exception test', done => {
-        //    let node = document.createElement('div');
-        //    node.setAttribute('name', '${student.name}');
-        //
-        //    let tpl = new Vtpl({startNode: node, endNode: node});
-        //    tpl.render();
-        //});
+            let tpl = new Vtpl({startNode: node, endNode: node});
+            tpl.render();
+
+            setTimeout(() => {
+                expect(node.getAttribute('name')).toBe('');
+                done();
+            }, 70);
+        });
     });
 }
