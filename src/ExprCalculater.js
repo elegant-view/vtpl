@@ -108,7 +108,17 @@ export default class ExprCalculater {
         return exprObj;
     }
 
-    calculate(expr, avoidReturn, scopeModel) {
+    /**
+     * 计算表达式的值
+     *
+     * public
+     * @param {string} expr 要计算的表达式
+     * @param {boolean} avoidReturn 是否需要返回值
+     * @param {ScopeModel} scopeModel 当前表达式所在的scope数据
+     * @param {boolean=} shouldThrowException 是否应该抛出异常.默认情况下,会自动处理掉异常,但是在事件回调函数的场景中,还是需要抛出这个异常
+     * @returns {*}
+     */
+    calculate(expr, avoidReturn, scopeModel, shouldThrowException) {
         // 对expr='class'进行下转换
         if (expr === 'class') {
             expr = 'klass';
@@ -127,14 +137,20 @@ export default class ExprCalculater {
         }
 
         let result;
-        try {
+        if (shouldThrowException) {
             result = fnObj.fn.apply(null, fnArgs);
         }
-        catch (e) {
-            // 将表达式的错误打印出来，方便调试
-            log.info(e.stack, '\n', expr, scopeModel);
-            result = '';
+        else {
+            try {
+                result = fnObj.fn.apply(null, fnArgs);
+            }
+            catch (e) {
+                // 将表达式的错误打印出来，方便调试
+                log.info(e.stack, '\n', expr, scopeModel);
+                result = '';
+            }
         }
+
         return result;
     }
 

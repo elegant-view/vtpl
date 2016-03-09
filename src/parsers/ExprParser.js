@@ -139,7 +139,7 @@ class ExprParser extends Parser {
             let localScope = new ScopeModel();
             localScope.setParent(this.tree.rootScope);
             localScope.set('event', event);
-            exprCalculater.calculate(attrValue, true, localScope);
+            exprCalculater.calculate(attrValue, true, localScope, true);
         });
     }
 

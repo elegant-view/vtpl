@@ -104,10 +104,14 @@ export default class ExprWatcher extends Event {
             paramNameDependency,
             fn: () => {
                 if (rawExprs.length === 1 && expr.replace(/^\$\{|\}$/g, '') === rawExprs[0]) {
-                    return this.$$exprCalculater.calculate(rawExprs[0], false, this.$$scopeModel);
+                    let result = this.$$exprCalculater.calculate(rawExprs[0], false, this.$$scopeModel);
+                    this.convertExpressionResult(result);
+                    return result;
                 }
                 return expr.replace(/\$\{(.+?)\}/g, (...args) => {
-                    return this.$$exprCalculater.calculate(args[1], false, this.$$scopeModel);
+                    let result = this.$$exprCalculater.calculate(args[1], false, this.$$scopeModel);
+                    this.convertExpressionResult(result);
+                    return result;
                 });
             }
         };
@@ -222,7 +226,25 @@ export default class ExprWatcher extends Event {
         let clone = bind(this.$$exprCloneFn[expr], null) || bind(this.dump, this);
         let value = this.$$exprs[expr]();
         this.$$exprOldValues[expr] = clone(value);
-        return value;
+        return this.convertExpressionResult(value);
+    }
+
+    /**
+     * 对某些值做预处理,方便显示
+     *
+     * @private
+     * @param {*} result 表达式计算结果
+     * @returns {*} 预处理结果
+     */
+    convertExpressionResult(result) {
+        if (result === undefined
+            || result === null
+            || isNaN(result)
+        ) {
+            return '';
+        }
+
+        return result;
     }
 
     /**
