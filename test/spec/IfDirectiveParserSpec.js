@@ -119,5 +119,49 @@ export default function () {
                 }, 70);
             }, 70);
         });
+
+        it('`if` `for` nest', done => {
+            node.innerHTML = [
+                '<!-- if: type === 1 -->',
+                    '1',
+                    '<!-- for: items as item -->',
+                        '${item}',
+                    '<!-- /for -->',
+                '<!-- elif: type === 2 -->',
+                    '2',
+                    '<!-- for: items as item -->',
+                        '${item}',
+                    '<!-- /for -->',
+                '<!-- /if -->'
+            ].join('');
+
+            let tpl = new Vtpl({startNode: node, endNode: node});
+            tpl.render();
+
+            tpl.setData({
+                type: 2,
+                items: ['a', 'b']
+            });
+
+            setTimeout(() => {
+                expect(node.innerText).toBe('2ab');
+
+                tpl.setData({
+                    items: ['a', 'b', 'c']
+                });
+                setTimeout(() => {
+                    expect(node.innerText).toBe('2abc');
+
+                    tpl.setData({
+                        type: 1
+                    });
+
+                    setTimeout(() => {
+                        expect(node.innerText).toBe('1abc');
+                        done();
+                    }, 70);
+                }, 70);
+            }, 70);
+        });
     });
 }

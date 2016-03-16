@@ -127,7 +127,10 @@ class ForDirectiveParser extends DirectiveParser {
         if (!this.isGoDark) {
             return;
         }
-        forEach(this.trees, tree => tree.restoreFromDark());
+
+        let exprWatcher = this.tree.getExprWatcher();
+        this.updateFn(exprWatcher.calculate(this.listExpr));
+
         this.isGoDark = false;
     }
 

@@ -8,11 +8,11 @@
     <script src="../node_modules/jasmine-core/lib/jasmine-core/jasmine-html.js"></script>
     <script src="../node_modules/jasmine-core/lib/jasmine-core/boot.js"></script>
 
-    <script type="text/javascript" src="../node_modules/esl/src/esl.js"></script>
+    <script src="../node_modules/esl/src/esl.js"></script>
 </head>
 <body>
     <script src="../external/babel-support.js"></script>
-    <script type="text/javascript">
+    <script>
     require.config({
         "baseUrl": "../src",
         "paths": {},
@@ -38,7 +38,7 @@
         ]
     });
     </script>
-    <script type="text/javascript">
+    <script>
     require(['test']);
     </script>
 </body>
