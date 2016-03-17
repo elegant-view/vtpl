@@ -11,6 +11,12 @@ export default class DomUpdater {
         this.counter = 0;
         this.$$nodeAttrNameTaskIdMap = {};
         this.$$isExecuting = false;
+
+        this.$$requestAnimationFrame = function (fn) {
+            window.requestAnimationFrame(fn);
+        } || function (fn) {
+            setTimeout(fn, 17);
+        };
     }
 
     /**
@@ -96,7 +102,7 @@ export default class DomUpdater {
         execute.call(this);
 
         function execute() {
-            requestAnimationFrame(() => {
+            this.$$requestAnimationFrame(() => {
                 if (!this.$$isExecuting) {
                     return;
                 }

@@ -15,11 +15,11 @@ export default function () {
             tpl.render();
 
             setTimeout(() => {
-                expect(node.innerText).toBe('');
+                expect(node.textContent).toBe('');
 
                 tpl.setData('name', 'yibuyisheng');
                 setTimeout(() => {
-                    expect(node.innerText).toBe('yes');
+                    expect(node.textContent).toBe('yes');
                     tpl.destroy();
                     done();
                 }, 70);
@@ -34,11 +34,11 @@ export default function () {
 
             tpl.setData('name', 'yibuyisheng');
             setTimeout(() => {
-                expect(node.innerText).toBe('yes');
+                expect(node.textContent).toBe('yes');
 
                 tpl.setData('name', null);
                 setTimeout(() => {
-                    expect(node.innerText).toBe('no');
+                    expect(node.textContent).toBe('no');
                     tpl.destroy();
                     done();
                 }, 70);
@@ -63,19 +63,19 @@ export default function () {
 
             tpl.setData('name', 'yibuyisheng');
             setTimeout(() => {
-                expect(node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng');
+                expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng');
 
                 tpl.setData('name', 'yibuyisheng1');
                 setTimeout(() => {
-                    expect(node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng1');
+                    expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng1');
 
                     tpl.setData('name', 'yibuyisheng2');
                     setTimeout(() => {
-                        expect(node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng2');
+                        expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng2');
 
                         tpl.setData('name', 'yibuyisheng3');
                         setTimeout(() => {
-                            expect(node.innerText.replace(/\s*/g, '')).toBe('unknown');
+                            expect(node.textContent.replace(/\s*/g, '')).toBe('unknown');
 
                             tpl.destroy();
                             done();
@@ -104,15 +104,15 @@ export default function () {
 
             tpl.setData({name: 'yibuyisheng1'});
             setTimeout(() => {
-                expect(node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng1');
+                expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng1');
 
                 tpl.setData({name: 'yibuyisheng2'});
                 setTimeout(() => {
-                    expect(node.innerText.replace(/\s*/g, '')).toBe('notyibuyisheng1yibuyisheng2');
+                    expect(node.textContent.replace(/\s*/g, '')).toBe('notyibuyisheng1yibuyisheng2');
 
                     tpl.setData({name: 'yibuyisheng3'});
                     setTimeout(() => {
-                        expect(node.innerText.replace(/\s*/g, '')).toBe('notyibuyisheng1notyibuyisheng2');
+                        expect(node.textContent.replace(/\s*/g, '')).toBe('notyibuyisheng1notyibuyisheng2');
                         tpl.destroy();
                         done();
                     }, 70);
@@ -144,20 +144,20 @@ export default function () {
             });
 
             setTimeout(() => {
-                expect(node.innerText).toBe('2ab');
+                expect(node.textContent).toBe('2ab');
 
                 tpl.setData({
                     items: ['a', 'b', 'c']
                 });
                 setTimeout(() => {
-                    expect(node.innerText).toBe('2abc');
+                    expect(node.textContent).toBe('2abc');
 
                     tpl.setData({
                         type: 1
                     });
 
                     setTimeout(() => {
-                        expect(node.innerText).toBe('1abc');
+                        expect(node.textContent).toBe('1abc');
                         done();
                     }, 70);
                 }, 70);

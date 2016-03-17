@@ -24,7 +24,7 @@ export default function () {
             ]});
 
             setTimeout(() => {
-                expect(node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng1yibuyisheng2');
+                expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng1yibuyisheng2');
 
                 tpl.setData({students: [
                     {
@@ -32,7 +32,7 @@ export default function () {
                     }
                 ]});
                 setTimeout(() => {
-                    expect(node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng3');
+                    expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng3');
                     done();
                 }, 70);
             }, 70);
@@ -53,7 +53,7 @@ export default function () {
             });
             setTimeout(() => {
                 // TODO: 顺序可能不是这样的。。。。暂时写成这样
-                expect(node.innerText.replace(/\s*/g, '')).toBe('name-yibuyisheng,age-30,company-Baidu,');
+                expect(node.textContent.replace(/\s*/g, '')).toBe('name-yibuyisheng,age-30,company-Baidu,');
                 done();
             }, 70);
         });
@@ -80,7 +80,7 @@ export default function () {
             });
             setTimeout(() => {
                 // TODO: Object打印顺序问题
-                expect(node.innerText.replace(/\s*/g, '')).toBe('yibuyishengname-yibuyishengage-30company-Baidu');
+                expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyishengname-yibuyishengage-30company-Baidu');
                 done();
             }, 70);
         });
@@ -132,7 +132,7 @@ export default function () {
                 ]
             });
             setTimeout(() => {
-                expect(node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldyibuyisheng10yearsoldnotyibuyishengnotyibuyisheng2yearsold');
+                expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldyibuyisheng10yearsoldnotyibuyishengnotyibuyisheng2yearsold');
 
                 tpl.setData('students', [
                     {
@@ -145,7 +145,7 @@ export default function () {
                     }
                 ]);
                 setTimeout(() => {
-                    expect(node.innerText.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldnotyibuyisheng2yearsold');
+                    expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldnotyibuyisheng2yearsold');
                     done();
                 }, 70);
             }, 70);
