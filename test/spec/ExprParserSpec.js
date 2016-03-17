@@ -170,5 +170,24 @@ export default function () {
                 done();
             }, 70);
         });
+
+        it('replace by html', done => {
+            let node = document.createElement('p');
+            node.innerHTML = '${html}';
+
+            let tpl = new Vtpl({startNode: node, endNode: node});
+            tpl.render();
+
+            tpl.setData({
+                html: {
+                    type: 'html',
+                    html: '<span></span>'
+                }
+            });
+            setTimeout(() => {
+                expect(node.innerHTML).toBe('<span></span>');
+                done();
+            }, 70);
+        });
     });
 }

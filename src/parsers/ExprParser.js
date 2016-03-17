@@ -14,8 +14,7 @@ import ScopeModel from '../ScopeModel';
 import Parser from './Parser';
 import {bind} from '../utils';
 import Node from '../nodes/Node';
-import {forEach, line2camel} from '../utils';
-import parserState from './parserState';
+import {forEach, line2camel, isPureObject} from '../utils';
 // import log from '../log';
 
 class ExprParser extends Parser {
@@ -59,7 +58,20 @@ class ExprParser extends Parser {
                     domUpdater.addTaskFn(
                         this.getTaskId('nodeValue'),
                         () => {
-                            parser.setAttr('nodeValue', exprValue);
+                            if (isPureObject(exprValue) && exprValue.type === 'html') {
+                                try {
+                                    let result = parser.node.replaceByHtml(exprValue.html);
+                                    parser.startNode = result.startNode;
+                                    parser.endNode = result.endNode;
+                                    parser.node = null;
+                                }
+                                catch (e) {
+                                    debugger
+                                }
+                            }
+                            else {
+                                parser.setAttr('nodeValue', exprValue);
+                            }
                             callback && callback();
                         }
                     );
@@ -85,7 +97,7 @@ class ExprParser extends Parser {
                 if (Node.isEventName(attribute.name) || attribute.name === 'on-outclick') {
                     this.setEvent(attribute.name, attribute.value);
                 }
-                else{
+                else {
                     exprWatcher.addExpr(attribute.value);
 
                     let updateFns = this.$exprUpdateFns[attribute.value] || [];
@@ -185,7 +197,12 @@ class ExprParser extends Parser {
      * @return {Node}
      */
     getStartNode() {
-        return this.node;
+        if (this.node) {
+            return this.node;
+        }
+
+        // 对文本节点设置html的时候，可能会产生多个节点
+        return this.startNode;
     }
 
     /**
@@ -196,7 +213,12 @@ class ExprParser extends Parser {
      * @return {Node}
      */
     getEndNode() {
-        return this.node;
+        if (this.node) {
+            return this.node;
+        }
+
+        // 对文本节点设置html的时候，可能会产生多个节点
+        return this.endNode;
     }
 
     /**

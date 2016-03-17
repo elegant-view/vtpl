@@ -1,6 +1,6 @@
 {
     "name": "vtpl",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "This is a template library. Unlike those traditional templates (such as [Jade](http://jade-lang.com/)), It is based on DOM.",
     "main": "./src/main.js",
     "directories": {

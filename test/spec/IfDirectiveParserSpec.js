@@ -163,5 +163,29 @@ export default function () {
                 }, 70);
             }, 70);
         });
+
+        it('`if` end node', done => {
+            node.innerHTML = `
+                <!-- if: type === 1 -->
+                    1
+                <!-- else -->
+                    other
+                <!-- /if -->
+                <div><span>outside</span></div>
+            `;
+
+            let tpl = new Vtpl({startNode: node, endNode: node});
+            tpl.render();
+
+            tpl.setData({
+                type: 1
+            });
+
+            setTimeout(() => {
+                expect(node.textContent.replace(/\s/g, ''), '').toBe('1outside');
+                done();
+            }, 70);
+        });
+
     });
 }

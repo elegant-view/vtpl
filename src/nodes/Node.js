@@ -14,7 +14,7 @@ import {
 } from '../utils';
 import Event from '../Event';
 
-class Node {
+export default class Node {
 
     constructor(node, manager) {
         this.$node = node;
@@ -336,6 +336,26 @@ class Node {
     }
 
     /**
+     * html替换
+     *
+     * @public
+     * @param {string} html html字符串
+     * @return {Object}
+     */
+    replaceByHtml(html) {
+        let fragment = this.$manager.createDocumentFragment();
+        fragment.setInnerHTML(html);
+        let startNode = fragment.getFirstChild();
+        let endNode = fragment.getLastChild();
+        let childNodes = fragment.getChildNodes();
+        for (let i = 0, il = childNodes.length; i < il; ++i) {
+            this.getParentNode().insertBefore(childNodes[i], this);
+        }
+        this.remove();
+        return {startNode, endNode};
+    }
+
+    /**
      * 销毁，做一些清理工作：
      * 1、清理outclick；
      * 2、清理事件；
@@ -522,5 +542,3 @@ extend(Node, {
         + 'mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave '
         + 'change select submit keydown keypress keyup error contextmenu').split(' ')
 });
-
-export default Node;
