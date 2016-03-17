@@ -181,11 +181,11 @@ export default function () {
             tpl.setData({
                 html: {
                     type: 'html',
-                    html: '<span></span>'
+                    html: '<span></span><span></span>'
                 }
             });
             setTimeout(() => {
-                expect(node.innerHTML).toBe('<span></span>');
+                expect(node.innerHTML).toBe('<span></span><span></span>');
 
                 tpl.setData({html: {type: 'html', html: '123'}});
                 setTimeout(() => {

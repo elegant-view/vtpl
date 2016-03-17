@@ -58,36 +58,7 @@ class ExprParser extends Parser {
                     domUpdater.addTaskFn(
                         this.getTaskId('nodeValue'),
                         () => {
-                            if (isPureObject(exprValue) && exprValue.type === 'html') {
-                                if (parser.startNode && parser.endNode) {
-                                    parser.startNode.getParentNode().insertBefore(parser.node, parser.startNode);
-                                    for (let curNode = parser.startNode;
-                                        curNode && !curNode.isAfter(parser.endNode);
-                                        curNode = curNode.getNextSibling()
-                                    ) {
-                                        curNode.remove();
-                                    }
-                                    parser.startNode = parser.endNode = null;
-                                }
-
-                                let result = parser.node.replaceByHtml(exprValue.html);
-                                parser.startNode = result.startNode;
-                                parser.endNode = result.endNode;
-                            }
-                            else {
-                                if (parser.startNode && parser.endNode) {
-                                    parser.startNode.getParentNode().insertBefore(parser.node, parser.startNode);
-                                    for (let curNode = parser.startNode;
-                                        curNode && !curNode.isAfter(parser.endNode);
-                                        curNode = curNode.getNextSibling()
-                                    ) {
-                                        curNode.remove();
-                                    }
-                                    parser.startNode = parser.endNode = null;
-                                }
-
-                                parser.setAttr('nodeValue', exprValue);
-                            }
+                            parser.setAttr('nodeValue', exprValue);
                             callback && callback();
                         }
                     );
@@ -179,7 +150,68 @@ class ExprParser extends Parser {
      * @param {string} attrValue 属性值
      */
     setAttr(attrName, attrValue) {
-        this.node.attr(attrName, attrValue);
+        if (attrName === 'nodeValue') {
+            this.setNodeValue(attrValue);
+        }
+        else {
+            this.node.attr(attrName, attrValue);
+        }
+    }
+
+    /**
+     * 设置文本节点的“nodeValue”，此处对html的情况也做了支持
+     *
+     * @private
+     * @param {*} value 要设置的值
+     */
+    setNodeValue(value) {
+        if (isPureObject(value) && value.type === 'html') {
+            let nodesManager = this.tree.getTreeVar('nodesManager');
+            let fragment = nodesManager.createDocumentFragment();
+            fragment.setInnerHTML(value.html);
+            let childNodes = fragment.getChildNodes();
+
+            let baseNode;
+            if (this.startNode && this.endNode) {
+                baseNode = this.startNode;
+            }
+            else {
+                baseNode = this.node;
+            }
+
+            for (let childNode of childNodes) {
+                baseNode.getParentNode().insertBefore(childNode, baseNode);
+            }
+
+            this.node.setNodeValue('');
+            removeNodes(this.startNode, this.endNode);
+
+            this.startNode = childNodes[0];
+            this.endNode = childNodes[childNodes.length - 1];
+        }
+        else {
+            if (this.startNode && this.endNode) {
+                removeNodes(this.startNode, this.endNode);
+                this.startNode = this.endNode = null;
+            }
+
+            this.node.setNodeValue(value);
+        }
+
+        function removeNodes(startNode, endNode) {
+            let delayFns = [];
+            for (let curNode = startNode;
+                curNode && !curNode.isAfter(endNode);
+                curNode = curNode.getNextSibling()
+            ) {
+                delayFns.push(
+                    bind(curNode => curNode.remove(), null, curNode)
+                );
+            }
+            for (let fn of delayFns) {
+                fn();
+            }
+        }
     }
 
     /**
