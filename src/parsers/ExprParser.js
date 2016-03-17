@@ -59,15 +59,10 @@ class ExprParser extends Parser {
                         this.getTaskId('nodeValue'),
                         () => {
                             if (isPureObject(exprValue) && exprValue.type === 'html') {
-                                try {
-                                    let result = parser.node.replaceByHtml(exprValue.html);
-                                    parser.startNode = result.startNode;
-                                    parser.endNode = result.endNode;
-                                    parser.node = null;
-                                }
-                                catch (e) {
-                                    debugger
-                                }
+                                let result = parser.node.replaceByHtml(exprValue.html);
+                                parser.startNode = result.startNode;
+                                parser.endNode = result.endNode;
+                                parser.node = null;
                             }
                             else {
                                 parser.setAttr('nodeValue', exprValue);

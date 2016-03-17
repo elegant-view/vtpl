@@ -173,7 +173,7 @@ export default function () {
 
         it('replace by html', done => {
             let node = document.createElement('p');
-            node.innerHTML = '${html}';
+            node.innerHTML = ' ${html} ';
 
             let tpl = new Vtpl({startNode: node, endNode: node});
             tpl.render();
