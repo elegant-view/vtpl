@@ -5,7 +5,7 @@
 
 import DirectiveParser from './DirectiveParser';
 
-class VarDirectiveParser extends DirectiveParser {
+export default class VarDirectiveParser extends DirectiveParser {
     constructor(options) {
         super(options);
 
@@ -82,5 +82,3 @@ class VarDirectiveParser extends DirectiveParser {
             && nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;
     }
 }
-
-export default VarDirectiveParser;

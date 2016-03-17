@@ -80,10 +80,18 @@ class VTpl {
         }
 
         let parserClasses = this.$tree.getTreeVar('parserClasses');
-        parserClasses.push(parserClass);
-        parserClasses.sort((prev, next) => {
-            return isSubClassOf(prev, next) ? -1 : 1;
-        });
+        let hasInserted = false;
+        for (let i in parserClasses) {
+            let klass = parserClasses[i];
+            if (isSubClassOf(parserClass, klass)) {
+                hasInserted = true;
+                parserClasses.splice(i, 0, parserClass);
+                break;
+            }
+        }
+        if (!hasInserted) {
+            parserClasses.push(parserClass);
+        }
     }
 
     render() {
@@ -93,9 +101,9 @@ class VTpl {
         this.$tree.initRender();
     }
 
-    setData() {
+    setData(...args) {
         let scope = this.$tree.rootScope;
-        scope.set.apply(scope, arguments);
+        scope.set.apply(scope, args);
     }
 
     destroy() {
@@ -112,4 +120,3 @@ class VTpl {
 }
 
 export default VTpl;
-

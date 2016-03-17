@@ -1,6 +1,6 @@
 import Vtpl from 'vtpl';
 
-export default function () {
+export default function VarDirectiveParser() {
     describe('VarDirectiveParser', () => {
         let node;
 

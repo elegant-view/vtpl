@@ -32,21 +32,25 @@ export default class Fragment {
         let xmlDoc;
         if (window.DOMParser) {
             let parser = new DOMParser();
-            xmlDoc = parser.parseFromString(`<div></div>`, 'text/xml');
+            try {
+                xmlDoc = parser.parseFromString(`<div>${html}</div>`, 'text/xml');
+            }
+            catch (error) {
+                log.error(error, `\n${html}`);
+                throw error;
+            }
         }
         // Internet Explorer
         else {
             xmlDoc = new ActiveXObject('Microsoft.XMLDOM');
             xmlDoc.async = false;
-            xmlDoc.loadXML(`<div></div>`);
-        }
-
-        try {
-            xmlDoc.childNodes[0].innerHTML = html;
-        }
-        catch (error) {
-            log.error(error, `\n${html}`);
-            throw error;
+            try {
+                xmlDoc.loadXML(`<div>${html}</div>`);
+            }
+            catch (error) {
+                log.error(error, `\n${html}`);
+                throw error;
+            }
         }
 
         this.$$fragment.setInnerHTML('');
