@@ -186,7 +186,19 @@ export default function () {
             });
             setTimeout(() => {
                 expect(node.innerHTML).toBe('<span></span>');
-                done();
+
+                tpl.setData({html: {type: 'html', html: '123'}});
+                setTimeout(() => {
+                    expect(node.innerHTML).toBe('123');
+
+                    tpl.setData({
+                        html: 'text'
+                    });
+                    setTimeout(() => {
+                        expect(node.textContent).toBe('text');
+                        done();
+                    }, 70);
+                }, 70);
             }, 70);
         });
     });

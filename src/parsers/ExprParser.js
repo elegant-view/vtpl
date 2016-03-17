@@ -59,12 +59,33 @@ class ExprParser extends Parser {
                         this.getTaskId('nodeValue'),
                         () => {
                             if (isPureObject(exprValue) && exprValue.type === 'html') {
+                                if (parser.startNode && parser.endNode) {
+                                    parser.startNode.getParentNode().insertBefore(parser.node, parser.startNode);
+                                    for (let curNode = parser.startNode;
+                                        curNode && !curNode.isAfter(parser.endNode);
+                                        curNode = curNode.getNextSibling()
+                                    ) {
+                                        curNode.remove();
+                                    }
+                                    parser.startNode = parser.endNode = null;
+                                }
+
                                 let result = parser.node.replaceByHtml(exprValue.html);
                                 parser.startNode = result.startNode;
                                 parser.endNode = result.endNode;
-                                parser.node = null;
                             }
                             else {
+                                if (parser.startNode && parser.endNode) {
+                                    parser.startNode.getParentNode().insertBefore(parser.node, parser.startNode);
+                                    for (let curNode = parser.startNode;
+                                        curNode && !curNode.isAfter(parser.endNode);
+                                        curNode = curNode.getNextSibling()
+                                    ) {
+                                        curNode.remove();
+                                    }
+                                    parser.startNode = parser.endNode = null;
+                                }
+
                                 parser.setAttr('nodeValue', exprValue);
                             }
                             callback && callback();
@@ -192,12 +213,11 @@ class ExprParser extends Parser {
      * @return {Node}
      */
     getStartNode() {
-        if (this.node) {
-            return this.node;
+        if (this.startNode) {
+            return this.startNode;
         }
 
-        // 对文本节点设置html的时候，可能会产生多个节点
-        return this.startNode;
+        return this.node;
     }
 
     /**
@@ -208,12 +228,11 @@ class ExprParser extends Parser {
      * @return {Node}
      */
     getEndNode() {
-        if (this.node) {
-            return this.node;
+        if (this.endNode) {
+            return this.endNode;
         }
 
-        // 对文本节点设置html的时候，可能会产生多个节点
-        return this.endNode;
+        return this.node;
     }
 
     /**
