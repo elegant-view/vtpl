@@ -268,9 +268,7 @@ export default class Tree extends Base {
         let parser = new ParserClass(
             extend(
                 options,
-                {
-                    endNode: endNode
-                }
+                {endNode}
             )
         );
 

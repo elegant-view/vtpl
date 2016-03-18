@@ -57,12 +57,12 @@ export default class NodesManager extends Base {
         /* eslint-enable guard-for-in */
     }
 
-    createElement() {
-        return this.getNode(document.createElement.apply(document, arguments));
+    createElement(...args) {
+        return this.getNode(document.createElement(...args));
     }
 
-    createComment() {
-        return this.getNode(document.createComment.apply(document, arguments));
+    createComment(...args) {
+        return this.getNode(document.createComment(...args));
     }
 
     createDocumentFragment() {

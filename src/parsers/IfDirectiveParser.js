@@ -10,7 +10,7 @@ import DirectiveParser from './DirectiveParser';
 import {forEach} from '../utils';
 import Node from '../nodes/Node';
 
-class IfDirectiveParser extends DirectiveParser {
+export default class IfDirectiveParser extends DirectiveParser {
 
     constructor(options) {
         super(options);
@@ -233,8 +233,8 @@ class IfDirectiveParser extends DirectiveParser {
         return getIfNodeType(node, config) === IfDirectiveParser.IF_END;
     }
 
-    static findEndNode() {
-        return this.walkToEnd.apply(this, arguments);
+    static findEndNode(...args) {
+        return this.walkToEnd(...args);
     }
 
     static getNoEndNodeError() {
@@ -270,5 +270,3 @@ function getIfNodeType(node, config) {
         return IfDirectiveParser.IF_END;
     }
 }
-
-export default IfDirectiveParser;

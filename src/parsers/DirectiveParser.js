@@ -6,7 +6,7 @@
 import Parser from './Parser';
 import Node from '../nodes/Node';
 
-class DirectiveParser extends Parser {
+export default class DirectiveParser extends Parser {
     constructor(options) {
         super(options);
 
@@ -23,10 +23,7 @@ class DirectiveParser extends Parser {
      * @return {Tree}  创建好的子树
      */
     createTree(parentTree, startNode, endNode) {
-        let tree = this.tree.createTree({
-            startNode: startNode,
-            endNode: endNode
-        });
+        let tree = this.tree.createTree({startNode, endNode});
         tree.setParent(parentTree);
         tree.rootScope.setParent(parentTree.rootScope);
         parentTree.rootScope.addChild(tree.rootScope);
@@ -81,5 +78,3 @@ class DirectiveParser extends Parser {
         }
     }
 }
-
-export default DirectiveParser;

@@ -7,7 +7,7 @@ import DirectiveParser from './DirectiveParser';
 import {forEach} from '../utils';
 import Node from '../nodes/Node';
 
-class ForDirectiveParser extends DirectiveParser {
+export default class ForDirectiveParser extends DirectiveParser {
 
     constructor(options) {
         super(options);
@@ -198,13 +198,11 @@ class ForDirectiveParser extends DirectiveParser {
             && config.forEndPrefixRegExp.test(node.getNodeValue());
     }
 
-    static findEndNode() {
-        return this.walkToEnd.apply(this, arguments);
+    static findEndNode(...args) {
+        return this.walkToEnd(...args);
     }
 
     static getNoEndNodeError() {
         return new Error('the `for` directive is not properly ended!');
     }
 }
-
-export default ForDirectiveParser;

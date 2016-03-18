@@ -17,7 +17,7 @@ import Node from '../nodes/Node';
 import {forEach, line2camel, isPureObject} from '../utils';
 // import log from '../log';
 
-class ExprParser extends Parser {
+export default class ExprParser extends Parser {
 
     /**
      * 初始化
@@ -336,5 +336,3 @@ class ExprParser extends Parser {
         return nodeType === Node.ELEMENT_NODE || nodeType === Node.TEXT_NODE;
     }
 }
-
-export default ExprParser;

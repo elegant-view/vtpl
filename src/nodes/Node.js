@@ -110,9 +110,9 @@ export default class Node {
         this.$node.appendChild(node.$node);
     }
 
-    cloneNode() {
+    cloneNode(...args) {
         return this.$manager.getNode(
-            this.$node.cloneNode.apply(this.$node, arguments)
+            this.$node.cloneNode(...args)
         );
     }
 

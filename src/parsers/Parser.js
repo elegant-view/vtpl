@@ -6,7 +6,7 @@
 import Base from '../Base';
 import parserState from './parserState';
 
-class Parser extends Base {
+export default class Parser extends Base {
     constructor(options) {
         super(options);
 
@@ -85,5 +85,3 @@ class Parser extends Base {
         this.tree = null;
     }
 }
-
-export default Parser;
