@@ -8,10 +8,9 @@
     <script src="../node_modules/jasmine-core/lib/jasmine-core/jasmine-html.js"></script>
     <script src="../node_modules/jasmine-core/lib/jasmine-core/boot.js"></script>
 
-    <script src="../node_modules/esl/src/esl.js"></script>
+    <script src="../node_modules/requirejs/require.js"></script>
 </head>
 <body>
-    <script src="../external/babel-support.js"></script>
     <script>
     require.config({
         "baseUrl": "../src",
@@ -39,7 +38,9 @@
     });
     </script>
     <script>
-    require(['test']);
+    require(['test'], function () {
+        jasmine.getEnv().execute();
+    });
     </script>
 </body>
 </html>

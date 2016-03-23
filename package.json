@@ -8,8 +8,8 @@
   },
   "scripts": {
     "test": "./node_modules/karma/bin/karma start",
-    "build": "gulp build",
-    "dev": "./node_modules/edp/bin/edp-cli webserver"
+    "build": "babel src -d lib",
+    "dev": "node dev.js"
   },
   "repository": {
     "type": "git",
@@ -22,23 +22,13 @@
   },
   "homepage": "https://github.com/elegant-view/vtpl#readme",
   "devDependencies": {
-    "babel-core": "^6.4.5",
-    "babel-loader": "^6.2.1",
-    "babel-plugin-transform-es2015-modules-amd": "^6.4.3",
-    "babel-preset-es2015": "^6.3.13",
-    "edp": "^1.1.1",
-    "edp-webserver": "^1.2.5",
+    "babel-cli": "^6.6.5",
+    "babel-core": "^6.7.4",
+    "babel-plugin-transform-es2015-modules-amd": "^6.6.5",
+    "babel-preset-es2015": "^6.6.0",
+    "dev-server": "github:elegant-view/dev-server",
     "jasmine": "^2.4.1",
     "jasmine-core": "^2.4.1",
-    "object-assign": "^4.0.1",
-    "requirejs": "^2.1.22",
-    "webpack": "^1.12.11"
-  },
-  "edp": {
-    "wwwroot": "/",
-    "depDir": "dep",
-    "srcDir": "dist",
-    "loaderAutoConfig": "js,htm,html,tpl,vm,phtml",
-    "loaderUrl": "http://s1.bdstatic.com/r/www/cache/ecom/esl/1-8-2/esl.js"
+    "requirejs": "^2.2.0"
   }
 }
