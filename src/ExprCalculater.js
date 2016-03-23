@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {each} from './utils';
+// import {each} from './utils';
 import log from './log';
 
 export default class ExprCalculater {
@@ -111,12 +111,12 @@ export default class ExprCalculater {
     /**
      * 计算表达式的值
      *
-     * public
+     * @public
      * @param {string} expr 要计算的表达式
      * @param {boolean} avoidReturn 是否需要返回值
      * @param {ScopeModel} scopeModel 当前表达式所在的scope数据
      * @param {boolean=} shouldThrowException 是否应该抛出异常.默认情况下,会自动处理掉异常,但是在事件回调函数的场景中,还是需要抛出这个异常
-     * @returns {*}
+     * @return {*}
      */
     calculate(expr, avoidReturn, scopeModel, shouldThrowException) {
         // 对expr='class'进行下转换
@@ -163,7 +163,6 @@ export default class ExprCalculater {
      * 从表达式中抽离出变量名
      *
      * @inner
-     * @param {ExprCalculater} me 对应实例
      * @param  {string} expr 表达式字符串，类似于 `${name}` 中的 name
      * @return {Array.<string>}      变量名数组
      */
@@ -180,7 +179,7 @@ export default class ExprCalculater {
         let variables = [];
         for (let variable of possibleVariables) {
             // 如果以数字开头,那就不是变量
-            if (!isNaN(parseInt(variable))) {
+            if (!isNaN(parseInt(variable, 10))) {
                 continue;
             }
 
@@ -204,4 +203,3 @@ export default class ExprCalculater {
         return variables;
     }
 }
-
