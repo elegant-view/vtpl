@@ -1,16 +1,14 @@
 import Vtpl from 'vtpl';
 
-export default function () {
-    describe('Tree', () => {
-        it('#compile()', () => {
-            let div = document.createElement('div');
-            div.setAttribute('id', 'root');
-            div.innerHTML = `<div id="1">2-1<div id="2-2">3-1</div><div id="2-3"></div></div>`;
+describe('Tree', () => {
+    it('#compile()', () => {
+        let div = document.createElement('div');
+        div.setAttribute('id', 'root');
+        div.innerHTML = `<div id="1">2-1<div id="2-2">3-1</div><div id="2-3"></div></div>`;
 
-            let tpl = new Vtpl({startNode: div, endNode: div});
-            tpl.render();
+        let tpl = new Vtpl({startNode: div, endNode: div});
+        tpl.render();
 
-            expect(tpl.$tree.$parsers.length).toBe(6);
-        });
+        expect(tpl.$tree.$parsers.length).toBe(6);
     });
-}
+});

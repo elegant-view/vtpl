@@ -5,26 +5,26 @@
 
 /* eslint-disable no-console */
 export default {
-    error: function () {
+    error(...args) {
         if (!console || !console.error) {
             return;
         }
 
-        console.error.apply(console, arguments);
+        console.error(...args);
     },
-    warn: function () {
+    warn(...args) {
         if (!console || !console.warn) {
             return;
         }
 
-        console.warn.apply(console, arguments);
+        console.warn(...args);
     },
-    info: function () {
+    info(...args) {
         if (!console || !console.info) {
             return;
         }
 
-        console.info.apply(console, arguments);
+        console.info(...args);
     }
 };
 /* eslint-enable no-console */

@@ -5,9 +5,12 @@
 
 import log from './log';
 
+const GET_VARIABLE_NAMES_FROM_EXPR = Symbol('getVariableNamesFromExpr');
+const FNS = Symbol('fns');
+
 export default class ExprCalculater {
     constructor() {
-        this.fns = {};
+        this[FNS] = {};
         this.exprNameMap = {};
 
         this.reservedWords = [
@@ -91,19 +94,19 @@ export default class ExprCalculater {
         }
 
         avoidReturn = !!avoidReturn;
-        this.fns[expr] = this.fns[expr] || {};
-        if (this.fns[expr][avoidReturn]) {
-            return this.fns[expr][avoidReturn];
+        this[FNS][expr] = this[FNS][expr] || {};
+        if (this[FNS][expr][avoidReturn]) {
+            return this[FNS][expr][avoidReturn];
         }
 
-        let params = this.getVariableNamesFromExpr(expr);
+        let params = this[GET_VARIABLE_NAMES_FROM_EXPR](expr);
         let fn = new Function(params, (avoidReturn ? '' : 'return ') + expr);
 
         let exprObj = {
             paramNames: params,
             fn: fn
         };
-        this.fns[expr][avoidReturn] = exprObj;
+        this[FNS][expr][avoidReturn] = exprObj;
         return exprObj;
     }
 
@@ -123,7 +126,7 @@ export default class ExprCalculater {
             expr = 'klass';
         }
 
-        let fnObj = this.fns[expr][avoidReturn];
+        let fnObj = this[FNS][expr][avoidReturn];
         if (!fnObj) {
             throw new Error('no such expression function created!');
         }
@@ -154,18 +157,18 @@ export default class ExprCalculater {
     }
 
     destroy() {
-        this.fns = null;
+        this[FNS] = null;
         this.exprNameMap = null;
     }
 
     /**
      * 从表达式中抽离出变量名
      *
-     * @inner
+     * @private
      * @param  {string} expr 表达式字符串，类似于 `${name}` 中的 name
      * @return {Array.<string>}      变量名数组
      */
-    getVariableNamesFromExpr(expr) {
+    [GET_VARIABLE_NAMES_FROM_EXPR](expr) {
         if (this.exprNameMap[expr]) {
             return this.exprNameMap[expr];
         }
