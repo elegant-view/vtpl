@@ -5,14 +5,20 @@
 
 import {empty} from './utils';
 
+const TASKS = Symbol('tasks');
+const COUNTER = Symbol('counter');
+const NODE_ATTR_NAME_TASK_ID_MAP = Symbol('nodeAttrNameTaskIdMap');
+const IS_EXECUTING = Symbol('isExecuting');
+const REQUEST_ANIMATION_FRAME = Symbol('requestAnimationFrame');
+
 export default class DomUpdater {
     constructor() {
-        this.tasks = {};
-        this.counter = 0;
-        this.$$nodeAttrNameTaskIdMap = {};
-        this.$$isExecuting = false;
+        this[TASKS] = {};
+        this[COUNTER] = 0;
+        this[NODE_ATTR_NAME_TASK_ID_MAP] = {};
+        this[IS_EXECUTING] = false;
 
-        this.$$requestAnimationFrame = function (fn) {
+        this[REQUEST_ANIMATION_FRAME] = function (fn) {
             window.requestAnimationFrame(fn);
         } || function (fn) {
             setTimeout(fn, 17);
@@ -32,7 +38,7 @@ export default class DomUpdater {
      * @return {number} 任务ID号
      */
     generateTaskId() {
-        return this.counter++;
+        return this[COUNTER]++;
     }
 
     /**
@@ -45,11 +51,11 @@ export default class DomUpdater {
      */
     generateNodeAttrUpdateId(node, attrName) {
         let key = node.getNodeId() + '-' + attrName;
-        if (!this.$$nodeAttrNameTaskIdMap[key]) {
-            this.$$nodeAttrNameTaskIdMap[key] = this.generateTaskId();
+        if (!this[NODE_ATTR_NAME_TASK_ID_MAP][key]) {
+            this[NODE_ATTR_NAME_TASK_ID_MAP][key] = this.generateTaskId();
         }
 
-        return this.$$nodeAttrNameTaskIdMap[key];
+        return this[NODE_ATTR_NAME_TASK_ID_MAP][key];
     }
 
     /**
@@ -62,7 +68,7 @@ export default class DomUpdater {
      * @param {function(Error, *)=} callback 执行结果的回调函数
      */
     addTaskFn(taskId, taskFn, callback) {
-        this.tasks[taskId] = {
+        this[TASKS][taskId] = {
             fn: taskFn,
             notifyFn: callback || empty
         };
@@ -75,8 +81,8 @@ export default class DomUpdater {
      */
     destroy() {
         this.stop();
-        this.tasks = null;
-        this.$$nodeAttrNameTaskIdMap = null;
+        this[TASKS] = null;
+        this[NODE_ATTR_NAME_TASK_ID_MAP] = null;
     }
 
     /**
@@ -85,7 +91,7 @@ export default class DomUpdater {
      * @public
      */
     stop() {
-        this.$$isExecuting = false;
+        this[IS_EXECUTING] = false;
     }
 
     /**
@@ -94,23 +100,23 @@ export default class DomUpdater {
      * @public
      */
     start() {
-        if (this.$$isExecuting) {
+        if (this[IS_EXECUTING]) {
             return;
         }
 
-        this.$$isExecuting = true;
+        this[IS_EXECUTING] = true;
         execute.call(this);
 
         function execute() {
-            this.$$requestAnimationFrame(() => {
-                if (!this.$$isExecuting) {
+            this[REQUEST_ANIMATION_FRAME](() => {
+                if (!this[IS_EXECUTING]) {
                     return;
                 }
 
                 /* eslint-disable guard-for-in */
-                for (let taskId in this.tasks) {
+                for (let taskId in this[TASKS]) {
                 /* eslint-enable guard-for-in */
-                    let task = this.tasks[taskId];
+                    let task = this[TASKS][taskId];
                     if (!task) {
                         continue;
                     }
@@ -121,8 +127,8 @@ export default class DomUpdater {
                     catch (error) {
                         task.notifyFn(error);
                     }
-                    if (this.tasks) {
-                        this.tasks[taskId] = null;
+                    if (this[TASKS]) {
+                        this[TASKS][taskId] = null;
                     }
                 }
                 execute.call(this);

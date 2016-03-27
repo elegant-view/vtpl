@@ -3,11 +3,13 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {isClass, isFunction, slice, forEach} from './utils';
+import {isClass, isFunction, forEach} from './utils';
+
+const EVENTS = Symbol('events');
 
 export default class Event {
     constructor() {
-        this.evnts = {};
+        this[EVENTS] = {};
     }
 
     on(eventName, fn, context) {
@@ -15,16 +17,14 @@ export default class Event {
             return;
         }
 
-        this.evnts[eventName] = this.evnts[eventName] || [];
+        this[EVENTS][eventName] = this[EVENTS][eventName] || [];
 
-        this.evnts[eventName].push({fn, context});
+        this[EVENTS][eventName].push({fn, context});
     }
 
-    trigger(eventName) {
-        let fnObjs = this.evnts[eventName];
+    trigger(eventName, ...args) {
+        let fnObjs = this[EVENTS][eventName];
         if (fnObjs && fnObjs.length) {
-            let args = slice(arguments, 1);
-
             // 这个地方现在不处理事件回调队列污染的问题了，
             // 因为对于本库来说，收效甚微，同时可以在另外的地方解决掉由此带来的bug
             forEach(fnObjs, fnObj => this.invokeEventHandler(fnObj, ...args));
@@ -36,20 +36,21 @@ export default class Event {
     }
 
     getEventHandlers(eventName) {
-        return this.evnts[eventName];
+        return this[EVENTS][eventName];
     }
 
-    off(eventName, fn) {
-        if (arguments.length === 0) {
-            this.evnts = {};
+    off(...args) {
+        let [eventName, fn] = args;
+        if (args.length === 0) {
+            this[EVENTS] = {};
         }
 
         if (!fn) {
-            this.evnts[eventName] = null;
+            this[EVENTS][eventName] = null;
             return;
         }
 
-        let fnObjs = this.evnts[eventName];
+        let fnObjs = this[EVENTS][eventName];
         if (fnObjs && fnObjs.length) {
             let newFnObjs = [];
             forEach(fnObjs, fnObj => {
@@ -57,25 +58,25 @@ export default class Event {
                     newFnObjs.push(fnObj);
                 }
             });
-            this.evnts[eventName] = newFnObjs;
+            this[EVENTS][eventName] = newFnObjs;
         }
     }
 
-    isAllRemoved() {
+    isAllRemoved(...args) {
         let eventName;
         let fn;
-        if (arguments.length === 0 || arguments.length > 2) {
+        if (args.length === 0 || args.length > 2) {
             throw new TypeError('wrong arguments');
         }
 
-        if (arguments.length >= 1 && isClass(arguments[0], 'String')) {
-            eventName = arguments[0];
+        if (args.length >= 1 && isClass(args[0], 'String')) {
+            eventName = args[0];
         }
-        if (arguments.length === 2 && isFunction(arguments[1])) {
-            fn = arguments[1];
+        if (args.length === 2 && isFunction(args[1])) {
+            fn = args[1];
         }
 
-        let fnObjs = this.evnts[eventName];
+        let fnObjs = this[EVENTS][eventName];
         if (fnObjs && fnObjs.length) {
             if (fn) {
                 for (let i = 0, il = fnObjs.length; i < il; ++i) {

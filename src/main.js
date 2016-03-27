@@ -17,21 +17,21 @@ import Config from './Config';
 import NodesManager from './nodes/NodesManager';
 import Parser from './parsers/Parser';
 
-class VTpl {
+export default class VTpl {
     constructor(options) {
         options = extend({
             config: new Config()
         }, options);
 
-        this.$nodesManager = new NodesManager();
+        this.nodesManager = new NodesManager();
         if (options.startNode) {
-            options.startNode = this.$nodesManager.getNode(options.startNode);
+            options.startNode = this.nodesManager.getNode(options.startNode);
         }
         if (options.endNode) {
-            options.endNode = this.$nodesManager.getNode(options.endNode);
+            options.endNode = this.nodesManager.getNode(options.endNode);
         }
         if (options.node) {
-            options.node = this.$nodesManager.getNode(options.node);
+            options.node = this.nodesManager.getNode(options.node);
         }
 
         this.$options = options;
@@ -40,7 +40,7 @@ class VTpl {
         tree.setTreeVar('exprCalculater', new ExprCalculater());
         tree.setTreeVar('domUpdater', new DomUpdater());
         tree.setTreeVar('config', this.$options.config);
-        tree.setTreeVar('nodesManager', this.$nodesManager);
+        tree.setTreeVar('nodesManager', this.nodesManager);
         tree.setTreeVar('parserClasses', []);
         this.$tree = tree;
 
@@ -81,7 +81,9 @@ class VTpl {
 
         let parserClasses = this.$tree.getTreeVar('parserClasses');
         let hasInserted = false;
+        /* eslint-disable guard-for-in */
         for (let i in parserClasses) {
+        /* eslint-enable guard-for-in */
             let klass = parserClasses[i];
             if (isSubClassOf(parserClass, klass)) {
                 hasInserted = true;
@@ -111,12 +113,10 @@ class VTpl {
         this.$tree.getTreeVar('domUpdater').destroy();
 
         this.$tree.destroy();
-        this.$nodesManager.destroy();
+        this.nodesManager.destroy();
 
-        this.$nodesManager = null;
+        this.nodesManager = null;
         this.$options = null;
         this.$tree = null;
     }
 }
-
-export default VTpl;

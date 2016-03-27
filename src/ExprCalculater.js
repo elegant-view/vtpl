@@ -7,13 +7,15 @@ import log from './log';
 
 const GET_VARIABLE_NAMES_FROM_EXPR = Symbol('getVariableNamesFromExpr');
 const FNS = Symbol('fns');
+const EXPR_NAME_MAP = Symbol('exprNameMap');
+const RESERVED_WORDS = Symbol('reservedWords');
 
 export default class ExprCalculater {
     constructor() {
         this[FNS] = {};
-        this.exprNameMap = {};
+        this[EXPR_NAME_MAP] = {};
 
-        this.reservedWords = [
+        this[RESERVED_WORDS] = [
             'abstract',
             'boolean',
             'break',
@@ -158,7 +160,7 @@ export default class ExprCalculater {
 
     destroy() {
         this[FNS] = null;
-        this.exprNameMap = null;
+        this[EXPR_NAME_MAP] = null;
     }
 
     /**
@@ -169,8 +171,8 @@ export default class ExprCalculater {
      * @return {Array.<string>}      变量名数组
      */
     [GET_VARIABLE_NAMES_FROM_EXPR](expr) {
-        if (this.exprNameMap[expr]) {
-            return this.exprNameMap[expr];
+        if (this[EXPR_NAME_MAP][expr]) {
+            return this[EXPR_NAME_MAP][expr];
         }
 
         let possibleVariables = expr.match(/[\w$]+/g);
@@ -187,8 +189,8 @@ export default class ExprCalculater {
 
             // 如果是javascript保留字,就不是变量
             let isReservedWord = false;
-            for (let i = 0, il = this.reservedWords.length; i < il; ++i) {
-                if (this.reservedWords[i] === variable) {
+            for (let i = 0, il = this[RESERVED_WORDS].length; i < il; ++i) {
+                if (this[RESERVED_WORDS][i] === variable) {
                     isReservedWord = true;
                     break;
                 }
@@ -200,7 +202,7 @@ export default class ExprCalculater {
             variables.push(variable);
         }
 
-        this.exprNameMap[expr] = variables;
+        this[EXPR_NAME_MAP][expr] = variables;
 
         return variables;
     }

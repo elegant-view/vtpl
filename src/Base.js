@@ -3,19 +3,17 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-class Base {
+export default class Base {
     constructor() {}
 }
 
 Base.trait = function trait(props) {
-    var proto = this.prototype;
+    let proto = this.prototype;
     /* eslint-disable guard-for-in */
-    for (var key in props) {
+    for (let key in props) {
         proto[key] = props[key];
     }
     /* eslint-enable guard-for-in */
 
     return this;
 };
-
-export default Base;

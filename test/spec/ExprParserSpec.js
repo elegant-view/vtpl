@@ -84,7 +84,7 @@ describe('ExprParser', () => {
         tpl.render();
 
         tpl.setData('name', 'yibuyisheng');
-        node = tpl.$nodesManager.getNode(node);
+        node = tpl.nodesManager.getNode(node);
         setTimeout(() => {
             expect(node.getNodeValue()).toBe('yibuyisheng');
 
@@ -119,7 +119,7 @@ describe('ExprParser', () => {
         let dt = new Date();
         let now = new Date();
         tpl.setData('dt', dt);
-        node = tpl.$nodesManager.getNode(node);
+        node = tpl.nodesManager.getNode(node);
         setTimeout(() => {
             expect(node.getNodeValue()).toBe(`${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`);
 
@@ -147,7 +147,7 @@ describe('ExprParser', () => {
             age: 20,
             inSchool: 'school2'
         });
-        node = tpl.$nodesManager.getNode(node);
+        node = tpl.nodesManager.getNode(node);
         setTimeout(() => {
             expect(node.getAttribute('name')).toBe('yibuyisheng1');
             expect(node.getAttribute('age')).toBe('20');

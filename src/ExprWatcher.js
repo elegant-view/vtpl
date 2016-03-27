@@ -9,23 +9,41 @@ import clone from './clone';
 import deepEqual from './deepEqual';
 import Data from './Data';
 
+const SCOPE_MODEL = Symbol('scopeModel');
+const EXPR_CALCULATER = Symbol('exprCalculater');
+const EXPRS = Symbol('exprs');
+const PARAM_NAME_TO_EXPR_MAP = Symbol('paramNameToExprMap');
+const EXPR_OLD_VALUES = Symbol('exprOldValues');
+const EXPR_EQUAL_FN = Symbol('exprEqualFn');
+const EXPR_CLONE_FN = Symbol('exprCloneFn');
+const EXPR_SUSPEND = Symbol('exprSuspend');
+
+const ADD_PARAM_NAME_TO_EXPR_MAP = Symbol('addParamName2ExprMap');
+const GET_EXPRS_BY_PARAM_NAME = Symbol('getExprsByParamName');
+const GENERATE_EXPRESSION_FUNCTION = Symbol('generateExpressionFunction');
+const CHECK = Symbol('check');
+const COMPUTE = Symbol('compute');
+const CONVERT_EXPRESSION_RESULT = Symbol('convertExpressionResult');
+const DUMP = Symbol('dump');
+const EQUALS = Symbol('equals');
+
 export default class ExprWatcher extends Event {
 
     constructor(scopeModel, exprCalculater) {
         super();
 
-        this.$$scopeModel = scopeModel;
-        this.$$exprCalculater = exprCalculater;
+        this[SCOPE_MODEL] = scopeModel;
+        this[EXPR_CALCULATER] = exprCalculater;
 
-        this.$$exprs = {};
-        this.$$paramNameToExprMap = {};
-        this.$$exprOldValues = {};
+        this[EXPRS] = {};
+        this[PARAM_NAME_TO_EXPR_MAP] = {};
+        this[EXPR_OLD_VALUES] = {};
 
-        this.$$exprEqualFn = {};
-        this.$$exprCloneFn = {};
+        this[EXPR_EQUAL_FN] = {};
+        this[EXPR_CLONE_FN] = {};
 
         // 暂时不需要计算的表达式
-        this.$$exprSuspend = {};
+        this[EXPR_SUSPEND] = {};
     }
 
     /**
@@ -35,12 +53,12 @@ export default class ExprWatcher extends Event {
      * @param {Array.<string>} names 分析出来的expr依赖的一组变量
      * @param {string} expr  表达式
      */
-    addParamName2ExprMap(names, expr) {
+    [ADD_PARAM_NAME_TO_EXPR_MAP](names, expr) {
         for (let i = 0, il = names.length; i < il; ++i) {
             let paramName = names[i];
-            let exprArr = this.$$paramNameToExprMap[paramName] || [];
+            let exprArr = this[PARAM_NAME_TO_EXPR_MAP][paramName] || [];
             exprArr.push(expr);
-            this.$$paramNameToExprMap[paramName] = exprArr;
+            this[PARAM_NAME_TO_EXPR_MAP][paramName] = exprArr;
         }
     }
 
@@ -51,8 +69,8 @@ export default class ExprWatcher extends Event {
      * @param  {string} name 变量名
      * @return {Array.<string>} 受影响的表达式
      */
-    getExprsByParamName(name) {
-        return this.$$paramNameToExprMap[name];
+    [GET_EXPRS_BY_PARAM_NAME](name) {
+        return this[PARAM_NAME_TO_EXPR_MAP][name];
     }
 
     /**
@@ -62,17 +80,17 @@ export default class ExprWatcher extends Event {
      * @param {string} expr 表达式字符串，带有`${}`的
      */
     addExpr(expr) {
-        let {paramNameDependency, fn} = this.generateExpressionFunction(expr);
-        this.addParamName2ExprMap(paramNameDependency, expr);
-        this.$$exprs[expr] = () => fn(this.$$scopeModel);
+        let {paramNameDependency, fn} = this[GENERATE_EXPRESSION_FUNCTION](expr);
+        this[ADD_PARAM_NAME_TO_EXPR_MAP](paramNameDependency, expr);
+        this[EXPRS][expr] = () => fn(this[SCOPE_MODEL]);
     }
 
     setExprEqualsFn(expr, equalFn) {
-        this.$$exprEqualFn[expr] = equalFn;
+        this[EXPR_EQUAL_FN][expr] = equalFn;
     }
 
     setExprCloneFn(expr, cloneFn) {
-        this.$$exprCloneFn[expr] = cloneFn;
+        this[EXPR_CLONE_FN][expr] = cloneFn;
     }
 
     /**
@@ -82,7 +100,7 @@ export default class ExprWatcher extends Event {
      * @param  {string} expr 表达式字符串
      * @return {Object}
      */
-    generateExpressionFunction(expr) {
+    [GENERATE_EXPRESSION_FUNCTION](expr) {
         // 先去掉expr里面前后空格
         expr = expr.replace(/^\s+|\s+$/g, '');
 
@@ -96,7 +114,7 @@ export default class ExprWatcher extends Event {
         for (let i = 0, il = exprs.length; i < il; ++i) {
             let rawExpr = exprs[i].replace(/^\$\{|\}$/g, '');
             rawExprs.push(rawExpr);
-            let {paramNames} = this.$$exprCalculater.createExprFn(rawExpr, false);
+            let {paramNames} = this[EXPR_CALCULATER].createExprFn(rawExpr, false);
             paramNameDependency.push.apply(paramNameDependency, paramNames);
         }
 
@@ -104,13 +122,13 @@ export default class ExprWatcher extends Event {
             paramNameDependency,
             fn: () => {
                 if (rawExprs.length === 1 && expr.replace(/^\$\{|\}$/g, '') === rawExprs[0]) {
-                    let result = this.$$exprCalculater.calculate(rawExprs[0], false, this.$$scopeModel);
-                    this.convertExpressionResult(result);
+                    let result = this[EXPR_CALCULATER].calculate(rawExprs[0], false, this[SCOPE_MODEL]);
+                    this[CONVERT_EXPRESSION_RESULT](result);
                     return result;
                 }
                 return expr.replace(/\$\{(.+?)\}/g, (...args) => {
-                    let result = this.$$exprCalculater.calculate(args[1], false, this.$$scopeModel);
-                    this.convertExpressionResult(result);
+                    let result = this[EXPR_CALCULATER].calculate(args[1], false, this[SCOPE_MODEL]);
+                    this[CONVERT_EXPRESSION_RESULT](result);
                     return result;
                 });
             }
@@ -123,8 +141,8 @@ export default class ExprWatcher extends Event {
      * @public
      */
     start() {
-        this.$$scopeModel.on('change', this.check, this);
-        this.$$scopeModel.on('parentchange', this.check, this);
+        this[SCOPE_MODEL].on('change', this[CHECK], this);
+        this[SCOPE_MODEL].on('parentchange', this[CHECK], this);
     }
 
     /**
@@ -133,8 +151,8 @@ export default class ExprWatcher extends Event {
      * @public
      */
     stop() {
-        this.$$scopeModel.off('change', this.check, this);
-        this.$$scopeModel.off('parentchange', this.check, this);
+        this[SCOPE_MODEL].off('change', this[CHECK], this);
+        this[SCOPE_MODEL].off('parentchange', this[CHECK], this);
     }
 
     /**
@@ -146,68 +164,70 @@ export default class ExprWatcher extends Event {
         this.start();
 
         // 强制刷新一下数据
-        for (let expr in this.$$exprs) {
-            this.compute(expr);
+        /* eslint-disable guard-for-in */
+        for (let expr in this[EXPRS]) {
+        /* eslint-enable guard-for-in */
+            this[COMPUTE](expr);
         }
     }
 
     /**
      * 将指定表达式暂时挂起，在check的时候不做处理。
      *
-     * @param expr
+     * @param {string} expr 表达式
      */
     suspendExpr(expr) {
-        if (this.$$exprs[expr]) {
-            this.$$exprSuspend[expr] = true;
+        if (this[EXPRS][expr]) {
+            this[EXPR_SUSPEND][expr] = true;
         }
     }
 
     /**
      * 将指定表达式恢复检测。
      *
-     * @param expr
+     * @param {string} expr 表达式
      */
     resumeExpr(expr) {
-        if (this.$$exprs[expr]) {
-            this.$$exprSuspend[expr] = false;
+        if (this[EXPRS][expr]) {
+            this[EXPR_SUSPEND][expr] = false;
         }
     }
 
     /**
-     * 检查this.$$exprs里面的脏值情况，如果脏了，就会触发change事件
+     * 检查this[EXPRS]里面的脏值情况，如果脏了，就会触发change事件
      *
      * @private
      * @param {Event} event 附带的一些参数
      */
-    check(event) {
+    [CHECK](event) {
         let delayFns = [];
 
         forEach(event.changes, change => {
-            let influencedExprs = this.getExprsByParamName(change.name);
+            let influencedExprs = this[GET_EXPRS_BY_PARAM_NAME](change.name);
 
             forEach(influencedExprs, expr => {
                 // 表达式被挂起了
-                if (this.$$exprSuspend[expr]) {
+                if (this[EXPR_SUSPEND][expr]) {
                     return;
                 }
 
-                delayFns.push(bind(this.compute, this, expr));
+                delayFns.push(bind(this[COMPUTE], this, expr));
             });
         });
         forEach(delayFns, fn => fn());
     }
 
     // private
-    compute(expr) {
-        let exprValue = this.$$exprs[expr]();
-        let oldValue = this.$$exprOldValues[expr];
+    [COMPUTE](expr) {
+        let exprValue = this[EXPRS][expr]();
+        let oldValue = this[EXPR_OLD_VALUES][expr];
 
-        let equals = bind(this.$$exprEqualFn[expr], null) || bind(this.equals, this);
-        let clone = bind(this.$$exprCloneFn[expr], null) || bind(this.dump, this);
+        let equals = bind(this[EXPR_EQUAL_FN][expr], null) || bind(this[EQUALS], this);
+        let clone = bind(this[EXPR_CLONE_FN][expr], null) || bind(this[DUMP], this);
 
         if (!equals(expr, exprValue, oldValue)) {
             this.trigger('change', {expr, newValue: exprValue, oldValue: oldValue});
-            this.$$exprOldValues[expr] = clone(exprValue);
+            this[EXPR_OLD_VALUES][expr] = clone(exprValue);
         }
     }
 
@@ -219,14 +239,14 @@ export default class ExprWatcher extends Event {
      * @return {*}      计算结果
      */
     calculate(expr) {
-        if (!(expr in this.$$exprs)) {
+        if (!(expr in this[EXPRS])) {
             throw new Error('no such expression under the scope.');
         }
 
-        let clone = bind(this.$$exprCloneFn[expr], null) || bind(this.dump, this);
-        let value = this.$$exprs[expr]();
-        this.$$exprOldValues[expr] = clone(value);
-        return this.convertExpressionResult(value);
+        let clone = bind(this[EXPR_CLONE_FN][expr], null) || bind(this[DUMP], this);
+        let value = this[EXPRS][expr]();
+        this[EXPR_OLD_VALUES][expr] = clone(value);
+        return this[CONVERT_EXPRESSION_RESULT](value);
     }
 
     /**
@@ -234,12 +254,14 @@ export default class ExprWatcher extends Event {
      *
      * @private
      * @param {*} result 表达式计算结果
-     * @returns {*} 预处理结果
+     * @return {*} 预处理结果
      */
-    convertExpressionResult(result) {
+    [CONVERT_EXPRESSION_RESULT](result) {
         if (result === undefined
             || result === null
+            /* eslint-disable no-self-compare */
             || result !== result // 是NaN
+            /* eslint-enable no-self-compare */
         ) {
             return '';
         }
@@ -251,11 +273,10 @@ export default class ExprWatcher extends Event {
      * 深复制一份obj（只针对可枚举的属性）。
      *
      * @private
-     * @param {string} expr 对应的表达式
      * @param  {*} obj 要复制的对象
      * @return {*} 复制好的对象
      */
-    dump(obj) {
+    [DUMP](obj) {
         if (obj instanceof Data) {
             return obj.clone();
         }
@@ -272,12 +293,12 @@ export default class ExprWatcher extends Event {
      * @param  {*} oldValue 旧值
      * @return {boolean} 是否相等
      */
-    equals(expr, newValue, oldValue) {
+    [EQUALS](expr, newValue, oldValue) {
         if (newValue instanceof Data) {
-            return newValue.equals(oldValue);
+            return newValue[EQUALS](oldValue);
         }
         if (oldValue instanceof Data) {
-            return oldValue.equals(newValue);
+            return oldValue[EQUALS](newValue);
         }
 
         return deepEqual(newValue, oldValue);
@@ -286,14 +307,14 @@ export default class ExprWatcher extends Event {
     destroy() {
         this.stop();
 
-        this.$$scopeModel = null;
-        this.$$exprCalculater = null;
+        this[SCOPE_MODEL] = null;
+        this[EXPR_CALCULATER] = null;
 
-        this.$$exprs = null;
-        this.$$paramNameToExprMap = null;
-        this.$$exprOldValues = null;
+        this[EXPRS] = null;
+        this[PARAM_NAME_TO_EXPR_MAP] = null;
+        this[EXPR_OLD_VALUES] = null;
 
-        this.$$exprEqualFn = null;
-        this.$$exprCloneFn = null;
+        this[EXPR_EQUAL_FN] = null;
+        this[EXPR_CLONE_FN] = null;
     }
 }
