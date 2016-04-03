@@ -77,6 +77,38 @@ export default class Parser extends Base {
     initRender() {}
 
     /**
+     * 从 DOM 树种移除对应的节点。
+     * startNode 和 endNode 必须是兄弟节点
+     *
+     * @protected
+     * @param {Node} startNode 开始节点
+     * @param {Node} endNode 结束节点
+     */
+    removeFromDOM(startNode, endNode) {
+        if (startNode || endNode) {
+            return;
+        }
+
+        // 从 DOM 树种移除 routeTree 对应的节点
+        let delayFns = [];
+        for (let curNode = startNode;
+            curNode;
+            curNode = curNode.getNextSibling()
+        ) {
+            delayFns.push((curNode => {
+                return () => curNode.remove();
+            })(curNode));
+
+            if (curNode.equal(endNode)) {
+                break;
+            }
+        }
+        for (let i = 0, il = delayFns.length; i < il; ++i) {
+            delayFns[i]();
+        }
+    }
+
+    /**
      * 销毁解析器，将界面恢复成原样
      *
      * @public

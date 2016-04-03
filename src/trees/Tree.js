@@ -116,7 +116,7 @@ export default class Tree extends Base {
     }
 
     /**
-     * 编译
+     * 编译。会先遍历自己，然后再是儿子节点。
      *
      * @public
      */
@@ -219,7 +219,10 @@ export default class Tree extends Base {
     }
 
     destroy() {
-        walk(this.$parsers);
+        each(this.$parsers, function (parser) {
+            parser.destroy();
+            parser.$state = parserState.DESTROIED;
+        });
 
         this.startNode = null;
         this.endNode = null;
@@ -229,13 +232,6 @@ export default class Tree extends Base {
         this.treeVars = null;
 
         this.$$nodeIdParserMap = null;
-
-        function walk(parsers) {
-            each(parsers, function (parser) {
-                parser.destroy();
-                parser.$state = parserState.DESTROIED;
-            });
-        }
     }
 
     /**
