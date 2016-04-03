@@ -37,11 +37,11 @@ export default class DirectiveParser extends Parser {
      * @param {Tree} tree 要移除的树
      */
     removeTree(tree) {
-        tree.rootScope.setParent(null);
-        this.tree.rootScope.removeChild(tree.rootScope);
-
-        tree.setParent(null);
+        let treeScope = tree.rootScope;
         tree.destroy();
+        treeScope.setParent(null);
+        this.tree.rootScope.removeChild(treeScope);
+        tree.setParent(null);
     }
 
     getStartNode() {
