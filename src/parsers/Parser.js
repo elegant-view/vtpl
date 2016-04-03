@@ -85,7 +85,7 @@ export default class Parser extends Base {
      * @param {Node} endNode 结束节点
      */
     removeFromDOM(startNode, endNode) {
-        if (startNode || endNode) {
+        if (!startNode || !endNode) {
             return;
         }
 
