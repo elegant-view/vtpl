@@ -16,7 +16,7 @@ class ScopeModel extends Event {
     }
 
     setParent(parent) {
-        if (!(parent instanceof ScopeModel)) {
+        if (parent && !(parent instanceof ScopeModel)) {
             throw new TypeError('wrong scope parent');
         }
         this.parent = parent;

@@ -30,6 +30,20 @@ export default class DirectiveParser extends Parser {
         return tree;
     }
 
+    /**
+     * 移除使用 createTree 创建好的树
+     *
+     * @protected
+     * @param {Tree} tree 要移除的树
+     */
+    removeTree(tree) {
+        tree.rootScope.setParent(null);
+        this.tree.rootScope.removeChild(tree.rootScope);
+
+        tree.setParent(null);
+        tree.destroy();
+    }
+
     getStartNode() {
         return this.node;
     }
