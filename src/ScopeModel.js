@@ -6,7 +6,7 @@
 import {isClass, extend, forEach, type, isFunction} from './utils';
 import Event from './Event';
 
-class ScopeModel extends Event {
+export default class ScopeModel extends Event {
     constructor(...args) {
         super(...args);
 
@@ -62,8 +62,9 @@ class ScopeModel extends Event {
         }
     }
 
-    get(name) {
-        if (arguments.length > 1 || name === undefined) {
+    get(...args) {
+        let [name] = args;
+        if (args.length > 1 || name === undefined) {
             return extend({}, this.store);
         }
 
@@ -88,8 +89,6 @@ class ScopeModel extends Event {
         /* eslint-enable guard-for-in */
     }
 }
-
-export default ScopeModel;
 
 /**
  * 设置单个属性值
