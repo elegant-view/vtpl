@@ -40,25 +40,32 @@ export default class Event {
     }
 
     off(...args) {
-        let [eventName, fn] = args;
+        let [eventName, fn, context] = args;
         if (args.length === 0) {
             this[EVENTS] = {};
         }
 
-        if (!fn) {
-            this[EVENTS][eventName] = null;
-            return;
-        }
+        let iterator = checkFn => {
+            let fnObjs = this[EVENTS][eventName];
+            if (fnObjs && fnObjs.length) {
+                let newFnObjs = [];
+                forEach(fnObjs, fnObj => {
+                    if (checkFn(fnObj)) {
+                        newFnObjs.push(fnObj);
+                    }
+                });
+                this[EVENTS][eventName] = newFnObjs;
+            }
+        };
 
-        let fnObjs = this[EVENTS][eventName];
-        if (fnObjs && fnObjs.length) {
-            let newFnObjs = [];
-            forEach(fnObjs, fnObj => {
-                if (fn !== fnObj.fn) {
-                    newFnObjs.push(fnObj);
-                }
-            });
-            this[EVENTS][eventName] = newFnObjs;
+        if (args.length === 1) {
+            this[EVENTS][eventName] = null;
+        }
+        else if (args.length === 2) {
+            iterator(fnObj => fn !== fnObj.fn);
+        }
+        else if (args.length === 3) {
+            iterator(fnObj => fn !== fnObj.fn || context !== fnObj.context);
         }
     }
 
