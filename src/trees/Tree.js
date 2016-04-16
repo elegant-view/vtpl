@@ -18,6 +18,7 @@ const START_NODE = Symbol('startNode');
 const END_NODE = Symbol('endNode');
 const EXPRESSION_WATCHER = Symbol('expressionWatcher');
 const ROOT_SCOPE = Symbol('rootScope');
+const CREATE_PARSER = Symbol('createParser');
 
 export default class Tree extends Base {
 
@@ -152,7 +153,7 @@ export default class Tree extends Base {
 
         let delayFns = [];
         Node.iterate(this[START_NODE], this[END_NODE], node => {
-            let options = {
+            const options = {
                 startNode: node,
                 node: node,
                 tree: this
@@ -162,7 +163,7 @@ export default class Tree extends Base {
             let ParserClasses = this.getTreeVar('parserClasses');
             for (let i = 0, il = ParserClasses.length; i < il; ++i) {
                 let ParserClass = ParserClasses[i];
-                parser = this.createParser(ParserClass, options);
+                parser = this[CREATE_PARSER](ParserClass, options);
 
                 if (!parser) {
                     continue;
@@ -264,12 +265,12 @@ export default class Tree extends Base {
     /**
      * 创建解析器实例。
      *
-     * @inner
+     * @private
      * @param {Class} ParserClass parser 类
      * @param  {Object} options 初始化参数
      * @return {Object}         返回值
      */
-    createParser(ParserClass, options) {
+    [CREATE_PARSER](ParserClass, options) {
         let startNode = options.startNode || options.node;
         let config = this.getTreeVar('config');
         if (!ParserClass.isProperNode(startNode, config)) {
