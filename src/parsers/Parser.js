@@ -5,15 +5,25 @@
 
 import Base from '../Base';
 import parserState from './parserState';
+import Tree from '../trees/Tree';
 
 const STATE = Symbol('state');
+const TREE = Symbol('tree');
 
 export default class Parser extends Base {
     constructor(options) {
         super(options);
 
+        if (!(options.tree instanceof Tree)) {
+            throw new Error('you should pass in a `Tree`');
+        }
+        this[TREE] = options.tree;
+
         this[STATE] = parserState.INITIALIZING;
-        this.tree = options.tree;
+    }
+
+    get tree() {
+        return this[TREE];
     }
 
     get state() {
@@ -135,6 +145,8 @@ export default class Parser extends Base {
      * @public
      */
     destroy() {
-        this.tree = null;
+        // parser是附着在tree上面的，所以在销毁parser的时候，
+        // 不要调用tree.destroy()，否则会引起无限递归
+        this[TREE] = null;
     }
 }

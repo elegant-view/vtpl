@@ -23,6 +23,11 @@ export default class Event {
     }
 
     trigger(eventName, ...args) {
+        // 已经被销毁掉了，不再触发事件
+        if (!this[EVENTS]) {
+            return;
+        }
+
         let fnObjs = this[EVENTS][eventName];
         if (fnObjs && fnObjs.length) {
             // 这个地方现在不处理事件回调队列污染的问题了，
@@ -40,6 +45,10 @@ export default class Event {
     }
 
     off(...args) {
+        if (!this[EVENTS]) {
+            return;
+        }
+
         let [eventName, fn, context] = args;
         if (args.length === 0) {
             this[EVENTS] = {};
