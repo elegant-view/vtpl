@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {isClass, extend, forEach, type, isFunction} from './utils';
+import {isClass, extend, type, isFunction} from './utils';
 import Event from './Event';
 
 export default class ScopeModel extends Event {
@@ -121,7 +121,7 @@ function setProperty(model, name, value) {
  */
 function change(rootModel, changes) {
     let delayFns = getDelayFns(rootModel, 'change');
-    forEach(delayFns, fn => fn());
+    delayFns.forEach(fn => fn());
 
     function getDelayFns(model, eventName) {
         let delayFns = [];
@@ -129,7 +129,7 @@ function change(rootModel, changes) {
         // 直接锁定model的所有事件回调函数，防止前面的事件回调函数污染回调函数队列。
         let handlers = model.getEventHandlers(eventName);
         if (handlers && handlers.length) {
-            forEach(handlers, handler => {
+            handlers.forEach(handler => {
                 delayFns.push(() => {
                     model.invokeEventHandler(
                         handler,

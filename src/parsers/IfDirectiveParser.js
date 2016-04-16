@@ -7,7 +7,6 @@
  */
 
 import DirectiveParser from './DirectiveParser';
-import {forEach} from '../utils';
 import Node from '../nodes/Node';
 
 export default class IfDirectiveParser extends DirectiveParser {
@@ -210,7 +209,7 @@ export default class IfDirectiveParser extends DirectiveParser {
         if (this.isGoDark) {
             return;
         }
-        forEach(this.$branchTrees, tree => tree.goDark());
+        this.$branchTrees.forEach(tree => tree.goDark());
         this.isGoDark = true;
     }
 
@@ -219,7 +218,7 @@ export default class IfDirectiveParser extends DirectiveParser {
         if (!this.isGoDark) {
             return;
         }
-        forEach(this.$branchTrees, tree => tree.restoreFromDark());
+        this.$branchTrees.forEach(tree => tree.restoreFromDark());
         this.isGoDark = false;
 
         this.renderDOM();

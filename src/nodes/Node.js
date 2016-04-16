@@ -9,7 +9,6 @@ import {
     isClass,
     isArray,
     distinctArr,
-    slice,
     extend
 } from '../utils';
 import Event from '../Event';
@@ -408,7 +407,7 @@ export default class Node {
         }
 
         try {
-            return slice(nodeList, 0);
+            return Array.prototype.slice.call(nodeList, 0);
         }
         catch (e) {
             // IE8 及更早版本将 NodeList 实现为一个 COM 对象，因此只能一个一个遍历出来。

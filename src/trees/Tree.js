@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {each, extend, forEach} from '../utils';
+import {extend} from '../utils';
 import ScopeModel from '../ScopeModel';
 import Base from '../Base';
 import Node from '../nodes/Node';
@@ -209,17 +209,17 @@ export default class Tree extends Base {
 
     goDark() {
         // 调用这棵树下面所有解析器的goDark方法
-        forEach(this.$parsers, parser => parser.goDark());
+        this.$parsers.forEach(parser => parser.goDark());
         this.$exprWatcher.stop();
     }
 
     restoreFromDark() {
-        forEach(this.$parsers, parser => parser.restoreFromDark());
+        this.$parsers.forEach(parser => parser.restoreFromDark());
         this.$exprWatcher.resume();
     }
 
     destroy() {
-        each(this.$parsers, function (parser) {
+        this.$parsers.forEach(parser => {
             parser.destroy();
             parser.$state = parserState.DESTROIED;
         });

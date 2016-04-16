@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {isClass, isFunction, forEach} from './utils';
+import {isClass, isFunction} from './utils';
 
 const EVENTS = Symbol('events');
 
@@ -27,7 +27,7 @@ export default class Event {
         if (fnObjs && fnObjs.length) {
             // 这个地方现在不处理事件回调队列污染的问题了，
             // 因为对于本库来说，收效甚微，同时可以在另外的地方解决掉由此带来的bug
-            forEach(fnObjs, fnObj => this.invokeEventHandler(fnObj, ...args));
+            fnObjs.forEach(fnObj => this.invokeEventHandler(fnObj, ...args));
         }
     }
 
@@ -48,13 +48,7 @@ export default class Event {
         let iterator = checkFn => {
             let fnObjs = this[EVENTS][eventName];
             if (fnObjs && fnObjs.length) {
-                let newFnObjs = [];
-                forEach(fnObjs, fnObj => {
-                    if (checkFn(fnObj)) {
-                        newFnObjs.push(fnObj);
-                    }
-                });
-                this[EVENTS][eventName] = newFnObjs;
+                this[EVENTS][eventName] = fnObjs.filter(fnObj => checkFn(fnObj));
             }
         };
 

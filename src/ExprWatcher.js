@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {bind, forEach} from './utils';
+import {bind} from './utils';
 import Event from './Event';
 import clone from './clone';
 import deepEqual from './deepEqual';
@@ -200,21 +200,28 @@ export default class ExprWatcher extends Event {
      * @param {Event} event 附带的一些参数
      */
     [CHECK](event) {
-        let delayFns = [];
+        const delayFns = [];
 
-        forEach(event.changes, change => {
+        for (let change of event.changes) {
             let influencedExprs = this[GET_EXPRS_BY_PARAM_NAME](change.name);
 
-            forEach(influencedExprs, expr => {
+            if (!influencedExprs) {
+                continue;
+            }
+
+            for (let expr of influencedExprs) {
                 // 表达式被挂起了
                 if (this[EXPR_SUSPEND][expr]) {
-                    return;
+                    continue;
                 }
 
-                delayFns.push(bind(this[COMPUTE], this, expr));
-            });
-        });
-        forEach(delayFns, fn => fn());
+                delayFns.push(this[COMPUTE].bind(this, expr));
+            }
+        }
+
+        for (let fn of delayFns) {
+            fn();
+        }
     }
 
     // private

@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {forEach, getClassNameOf} from './utils';
+import {getClassNameOf} from './utils';
 import Data from './Data';
 
 /**
@@ -48,11 +48,7 @@ export default function clone(value, deep) {
     }
 
     if (className === 'Array') {
-        let ret = [];
-        forEach(value, item => {
-            ret.push(clone(item, deep - 1));
-        });
-        return ret;
+        return value.map(item => clone(item, deep - 1));
     }
 
     if (value instanceof Data) {

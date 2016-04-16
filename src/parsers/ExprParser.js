@@ -14,7 +14,7 @@ import ScopeModel from '../ScopeModel';
 import Parser from './Parser';
 import {bind} from '../utils';
 import Node from '../nodes/Node';
-import {forEach, line2camel, isPureObject} from '../utils';
+import {line2camel, isPureObject} from '../utils';
 // import log from '../log';
 
 export default class ExprParser extends Parser {
@@ -225,16 +225,25 @@ export default class ExprParser extends Parser {
             let updateFns = this.$exprUpdateFns[event.expr];
             // 此处并不会处理isGoDark为true的情况，因为Node那边处理了。
             if (updateFns && updateFns.length) {
-                forEach(updateFns, fn => fn(event.newValue));
+                updateFns.forEach(fn => fn(event.newValue));
             }
         });
     }
 
     initRender() {
         let exprWatcher = this.tree.getExprWatcher();
-        forEach(this.$exprUpdateFns, (fns, expr) => {
-            forEach(fns, fn => fn(exprWatcher.calculate(expr)));
-        });
+        for (let expr in this.$exprUpdateFns) {
+            if (!this.$exprUpdateFns.hasOwnProperty(expr)) {
+                continue;
+            }
+
+            const fns = this.$exprUpdateFns[expr];
+            fns.forEach(execute.bind(null, expr));
+        }
+
+        function execute(expr, fn) {
+            fn(exprWatcher.calculate(expr));
+        }
     }
 
     /**

@@ -4,7 +4,6 @@
  */
 
 import DirectiveParser from './DirectiveParser';
-import {forEach} from '../utils';
 import Node from '../nodes/Node';
 
 export default class ForDirectiveParser extends DirectiveParser {
@@ -119,7 +118,7 @@ export default class ForDirectiveParser extends DirectiveParser {
         if (this.isGoDark) {
             return;
         }
-        forEach(this.trees, tree => tree.goDark());
+        this.trees.forEach(tree => tree.goDark());
         this.isGoDark = true;
     }
 
@@ -135,7 +134,7 @@ export default class ForDirectiveParser extends DirectiveParser {
     }
 
     destroy() {
-        forEach(this.trees, tree => tree.destroy());
+        this.trees.forEach(tree => tree.destroy());
 
         this.tplSeg = null;
         this.expr = null;

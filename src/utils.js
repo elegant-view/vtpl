@@ -3,53 +3,23 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-export function slice(arr, start, end) {
-    return Array.prototype.slice.call(arr, start, end);
-}
-
 /**
  * 超级简单的 extend ，因为本库对 extend 没那高的要求，
  * 等到有要求的时候再完善。
  *
- * @inner
  * @param  {Object} target 目标对象
+ * @param  {...<Object>} srcs 源对象数组
  * @return {Object}        最终合并后的对象
  */
-export function extend(target) {
-    var srcs = slice(arguments, 1);
-    for (var i = 0, il = srcs.length; i < il; i++) {
-        /* eslint-disable guard-for-in */
-        for (var key in srcs[i]) {
-            target[key] = srcs[i][key];
+export function extend(target, ...srcs) {
+    for (let i = 0, il = srcs.length; i < il; i++) {
+        for (let key in srcs[i]) {
+            if (srcs[i].hasOwnProperty(key)) {
+                target[key] = srcs[i][key];
+            }
         }
-        /* eslint-enable guard-for-in */
     }
     return target;
-}
-
-export function each(arr, fn, context) {
-    if (isArray(arr)) {
-        for (var i = 0, il = arr.length; i < il; i++) {
-            if (fn.call(context, arr[i], i, arr)) {
-                break;
-            }
-        }
-    }
-    else if (typeof arr === 'object') {
-        for (var k in arr) {
-            if (fn.call(context, arr[k], k, arr)) {
-                break;
-            }
-        }
-    }
-}
-
-export function forEach(arr, fn, context) {
-    /* eslint-disable guard-for-in */
-    for (let i in arr) {
-    /* eslint-enable guard-for-in */
-        fn.call(context, arr[i], i, arr);
-    }
 }
 
 export function isClass(obj, clsName) {
