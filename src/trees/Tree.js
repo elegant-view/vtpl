@@ -14,6 +14,9 @@ const TREE_VARS = Symbol('treeVars');
 const NODE_ID_PARSER_MAP = Symbol('nodeIdParserMap');
 const PARSERS = Symbol('parsers');
 const PARENT = Symbol('parent');
+const START_NODE = Symbol('startNode');
+const END_NODE = Symbol('endNode');
+const EXPRESSION_WATCHER = Symbol('expressionWatcher');
 
 export default class Tree extends Base {
 
@@ -28,8 +31,8 @@ export default class Tree extends Base {
     constructor(options) {
         super(options);
 
-        this.startNode = options.startNode;
-        this.endNode = options.endNode;
+        this[START_NODE] = options.startNode;
+        this[END_NODE] = options.endNode;
 
         this[TREE_VARS] = {};
         this[PARSERS] = [];
@@ -38,7 +41,7 @@ export default class Tree extends Base {
 
         this.rootScope = new ScopeModel();
 
-        this.$exprWatcher = null;
+        this[EXPRESSION_WATCHER] = null;
     }
 
     /**
@@ -117,7 +120,7 @@ export default class Tree extends Base {
      * @return {ExprWatcher} 表达式监视器
      */
     getExprWatcher() {
-        return this.$exprWatcher;
+        return this[EXPRESSION_WATCHER];
     }
 
     /**
@@ -136,10 +139,10 @@ export default class Tree extends Base {
      * @public
      */
     compile() {
-        this.$exprWatcher = new ExprWatcher(this.rootScope, this.getTreeVar('exprCalculater'));
+        this[EXPRESSION_WATCHER] = new ExprWatcher(this.rootScope, this.getTreeVar('exprCalculater'));
 
         let delayFns = [];
-        Node.iterate(this.startNode, this.endNode, node => {
+        Node.iterate(this[START_NODE], this[END_NODE], node => {
             let options = {
                 startNode: node,
                 node: node,
@@ -219,18 +222,18 @@ export default class Tree extends Base {
             parser.$state = parserState.READY;
         }
 
-        this.$exprWatcher.start();
+        this[EXPRESSION_WATCHER].start();
     }
 
     goDark() {
         // 调用这棵树下面所有解析器的goDark方法
         this[PARSERS].forEach(parser => parser.goDark());
-        this.$exprWatcher.stop();
+        this[EXPRESSION_WATCHER].stop();
     }
 
     restoreFromDark() {
         this[PARSERS].forEach(parser => parser.restoreFromDark());
-        this.$exprWatcher.resume();
+        this[EXPRESSION_WATCHER].resume();
     }
 
     destroy() {
@@ -239,8 +242,8 @@ export default class Tree extends Base {
             parser.$state = parserState.DESTROIED;
         });
 
-        this.startNode = null;
-        this.endNode = null;
+        this[START_NODE] = null;
+        this[END_NODE] = null;
         this.config = null;
 
         this.$parser = null;
