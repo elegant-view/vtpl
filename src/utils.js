@@ -56,30 +56,13 @@ export function isPureObject(obj) {
         return false;
     }
 
-    for (var k in obj) {
+    for (let k in obj) {
         if (!obj.hasOwnProperty(k)) {
             return false;
         }
     }
 
     return true;
-}
-
-export function bind(fn, thisArg) {
-    if (!isFunction(fn)) {
-        return;
-    }
-
-    let bind = Function.prototype.bind || function () {
-        let args = arguments;
-        let obj = args.length > 0 ? args[0] : undefined;
-        let me = this;
-        return function () {
-            let totalArgs = Array.prototype.concat.apply(Array.prototype.slice.call(args, 1), arguments);
-            return me.apply(obj, totalArgs);
-        };
-    };
-    return bind.apply(fn, [thisArg].concat(Array.prototype.slice.call(arguments, 2)));
 }
 
 export function isSubClassOf(SubClass, SuperClass) {
@@ -129,13 +112,13 @@ export function distinctArr(arr, hashFn) {
     hashFn = isFunction(hashFn) ? hashFn : function (elem) {
         return String(elem);
     };
-    var obj = {};
-    for (var i = 0, il = arr.length; i < il; ++i) {
+    let obj = {};
+    for (let i = 0, il = arr.length; i < il; ++i) {
         obj[hashFn(arr[i])] = arr[i];
     }
 
-    var ret = [];
-    for (var key in obj) {
+    let ret = [];
+    for (let key in obj) {
         if (!obj.hasOwnProperty(key)) {
             continue;
         }

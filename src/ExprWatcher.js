@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {bind} from './utils';
+import {isFunction} from './utils';
 import Event from './Event';
 import clone from './clone';
 import deepEqual from './deepEqual';
@@ -229,8 +229,8 @@ export default class ExprWatcher extends Event {
         let exprValue = this[EXPRS][expr]();
         let oldValue = this[EXPR_OLD_VALUES][expr];
 
-        let equals = bind(this[EXPR_EQUAL_FN][expr], null) || bind(this[EQUALS], this);
-        let clone = bind(this[EXPR_CLONE_FN][expr], null) || bind(this[DUMP], this);
+        let equals = isFunction(this[EXPR_EQUAL_FN][expr]) ? this[EXPR_EQUAL_FN][expr] : this[EQUALS].bind(this);
+        let clone = isFunction(this[EXPR_CLONE_FN][expr]) ? this[EXPR_CLONE_FN][expr] : this[DUMP].bind(this);
 
         if (!equals(expr, exprValue, oldValue)) {
             this.trigger('change', {expr, newValue: exprValue, oldValue: oldValue});
@@ -250,7 +250,7 @@ export default class ExprWatcher extends Event {
             throw new Error('no such expression under the scope.');
         }
 
-        let clone = bind(this[EXPR_CLONE_FN][expr], null) || bind(this[DUMP], this);
+        let clone = isFunction(this[EXPR_CLONE_FN][expr]) ? this[EXPR_CLONE_FN][expr] : this[DUMP].bind(this);
         let value = this[EXPRS][expr]();
         this[EXPR_OLD_VALUES][expr] = clone(value);
         return this[CONVERT_EXPRESSION_RESULT](value);

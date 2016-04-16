@@ -12,7 +12,6 @@
 import ScopeModel from '../ScopeModel';
 
 import Parser from './Parser';
-import {bind} from '../utils';
 import Node from '../nodes/Node';
 import {line2camel, isPureObject} from '../utils';
 // import log from '../log';
@@ -89,13 +88,17 @@ export default class ExprParser extends Parser {
 
                     let updateFns = this.$exprUpdateFns[attribute.value] || [];
                     attribute.name === 'd-rest'
-                        ? updateFns.push(value => this.setRestAttrs(value, attrs))
+                        ? updateFns.push(setRestAttrs.bind(this, attrs))
                         : updateFns.push(
-                            bind(updateAttr, this, this.getTaskId(attribute.name), domUpdater, attribute.name)
+                            updateAttr.bind(this, this.getTaskId(attribute.name), domUpdater, attribute.name)
                         );
                     this.$exprUpdateFns[attribute.value] = updateFns;
                 }
             }
+        }
+
+        function setRestAttrs(attrs, value) {
+            this.setRestAttrs(value, attrs);
         }
 
         function updateAttr(taskId, domUpdater, attrName, exprValue, callback) {
@@ -204,9 +207,7 @@ export default class ExprParser extends Parser {
                 curNode && !curNode.isAfter(endNode);
                 curNode = curNode.getNextSibling()
             ) {
-                delayFns.push(
-                    bind(curNode => curNode.remove(), null, curNode)
-                );
+                delayFns.push(::curNode.remove);
             }
             for (let fn of delayFns) {
                 fn();
