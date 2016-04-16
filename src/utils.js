@@ -136,3 +136,7 @@ export function type(obj) {
 }
 
 export function empty() {}
+
+export function isExpr(expr) {
+    return /\$\{(.+?)}/.test(expr);
+}

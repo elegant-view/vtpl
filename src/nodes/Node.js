@@ -47,7 +47,7 @@ export default class Node {
     }
 
     equal(node) {
-        return this.$node === node.$node;
+        return Node.isNode(node) && this.$node === node.$node;
     }
 
     getParentNode() {
@@ -500,6 +500,10 @@ export default class Node {
                 }
             }
         }
+    }
+
+    static isNode(obj) {
+        return obj instanceof Node;
     }
 }
 

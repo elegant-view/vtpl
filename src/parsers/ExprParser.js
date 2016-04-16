@@ -13,8 +13,11 @@ import ScopeModel from '../ScopeModel';
 
 import Parser from './Parser';
 import Node from '../nodes/Node';
-import {line2camel, isPureObject} from '../utils';
+import {line2camel, isPureObject, isExpr} from '../utils';
+import DomUpdater from '../DomUpdater';
 // import log from '../log';
+
+const EXPRESION_UPDATE_FUNCTIONS = Symbol('expressionUpdateFunctions');
 
 export default class ExprParser extends Parser {
 
@@ -28,11 +31,7 @@ export default class ExprParser extends Parser {
     constructor(options) {
         super(options);
 
-        this.node = options.node;
-
-        this.isGoDark = false;
-
-        this.$exprUpdateFns = {};
+        this[EXPRESION_UPDATE_FUNCTIONS] = {};
     }
 
     /**
@@ -41,41 +40,44 @@ export default class ExprParser extends Parser {
      * @public
      */
     collectExprs() {
-        let nodeType = this.node.getNodeType();
-        let domUpdater = this.tree.getTreeVar('domUpdater');
-        let exprWatcher = this.tree.getExprWatcher();
+        const parserNode = this.startNode;
+
+        const domUpdater = this.tree.getTreeVar('domUpdater');
+        if (!(domUpdater instanceof DomUpdater)) {
+            throw new Error('the tree has no DOM updater');
+        }
+
+        const nodeType = parserNode.getNodeType();
+        const exprWatcher = this.tree.getExprWatcher();
 
         // 文本节点
         if (nodeType === Node.TEXT_NODE) {
-            let nodeValue = this.node.getNodeValue();
+            const nodeValue = parserNode.getNodeValue();
             if (isExpr(nodeValue)) {
                 exprWatcher.addExpr(nodeValue);
 
-                let updateFns = this.$exprUpdateFns[nodeValue] || [];
+                const updateFns = this[EXPRESION_UPDATE_FUNCTIONS][nodeValue] || [];
                 updateFns.push((exprValue, callback) => {
-                    let parser = this;
                     domUpdater.addTaskFn(
                         this.getTaskId('nodeValue'),
                         () => {
-                            parser.setAttr('nodeValue', exprValue);
+                            this.setAttr('nodeValue', exprValue);
                             callback && callback();
                         }
                     );
                 });
-                this.$exprUpdateFns[nodeValue] = updateFns;
+                this[EXPRESION_UPDATE_FUNCTIONS][nodeValue] = updateFns;
             }
-            return;
         }
-
         // 元素节点
-        if (nodeType === Node.ELEMENT_NODE) {
-            let attributes = this.node.getAttributes();
-            let attrs = {};
+        else if (nodeType === Node.ELEMENT_NODE) {
+            const attributes = parserNode.getAttributes();
+            const attrs = {};
             for (let i = 0, il = attributes.length; i < il; ++i) {
-                let attribute = attributes[i];
+                const attribute = attributes[i];
                 attrs[line2camel(attribute.name)] = true;
 
-                if (!isExpr.call(this, attribute.value)) {
+                if (!isExpr(attribute.value)) {
                     this.setAttr(attribute.name, attribute.value);
                     continue;
                 }
@@ -86,13 +88,13 @@ export default class ExprParser extends Parser {
                 else {
                     exprWatcher.addExpr(attribute.value);
 
-                    let updateFns = this.$exprUpdateFns[attribute.value] || [];
+                    const updateFns = this[EXPRESION_UPDATE_FUNCTIONS][attribute.value] || [];
                     attribute.name === 'd-rest'
                         ? updateFns.push(setRestAttrs.bind(this, attrs))
                         : updateFns.push(
-                            updateAttr.bind(this, this.getTaskId(attribute.name), domUpdater, attribute.name)
+                            updateAttr.bind(this, this.getTaskId(attribute.name), attribute.name)
                         );
-                    this.$exprUpdateFns[attribute.value] = updateFns;
+                    this[EXPRESION_UPDATE_FUNCTIONS][attribute.value] = updateFns;
                 }
             }
         }
@@ -101,15 +103,11 @@ export default class ExprParser extends Parser {
             this.setRestAttrs(value, attrs);
         }
 
-        function updateAttr(taskId, domUpdater, attrName, exprValue, callback) {
+        function updateAttr(taskId, attrName, exprValue, callback) {
             domUpdater.addTaskFn(taskId, () => {
                 this.setAttr(attrName, exprValue);
                 callback && callback();
             });
-        }
-
-        function isExpr(expr) {
-            return /\$\{(.+?)}/.test(expr);
         }
     }
 
@@ -131,8 +129,8 @@ export default class ExprParser extends Parser {
         }
 
         let eventName = attrName.replace('on-', '');
-        this.node.off(eventName);
-        this.node.on(eventName, event => {
+        this.startNode.off(eventName);
+        this.startNode.on(eventName, event => {
             attrValue = attrValue.replace(/^\${|}$/g, '');
 
             let exprCalculater = this.tree.getTreeVar('exprCalculater');
@@ -157,7 +155,7 @@ export default class ExprParser extends Parser {
             this.setNodeValue(attrValue);
         }
         else {
-            this.node.attr(attrName, attrValue);
+            this.startNode.attr(attrName, attrValue);
         }
     }
 
@@ -168,51 +166,7 @@ export default class ExprParser extends Parser {
      * @param {*} value 要设置的值
      */
     setNodeValue(value) {
-        if (isPureObject(value) && value.type === 'html') {
-            let nodesManager = this.tree.getTreeVar('nodesManager');
-            let fragment = nodesManager.createDocumentFragment();
-            fragment.setInnerHTML(value.html);
-            let childNodes = fragment.getChildNodes();
-
-            let baseNode;
-            if (this.startNode && this.endNode) {
-                baseNode = this.startNode;
-            }
-            else {
-                baseNode = this.node;
-            }
-
-            for (let childNode of childNodes) {
-                baseNode.getParentNode().insertBefore(childNode, baseNode);
-            }
-
-            this.node.setNodeValue('');
-            removeNodes(this.startNode, this.endNode);
-
-            this.startNode = childNodes[0];
-            this.endNode = childNodes[childNodes.length - 1];
-        }
-        else {
-            if (this.startNode && this.endNode) {
-                removeNodes(this.startNode, this.endNode);
-                this.startNode = this.endNode = null;
-            }
-
-            this.node.setNodeValue(value);
-        }
-
-        function removeNodes(startNode, endNode) {
-            let delayFns = [];
-            for (let curNode = startNode;
-                curNode && !curNode.isAfter(endNode);
-                curNode = curNode.getNextSibling()
-            ) {
-                delayFns.push(::curNode.remove);
-            }
-            for (let fn of delayFns) {
-                fn();
-            }
-        }
+        this.startNode.setNodeValue(value);
     }
 
     /**
@@ -223,7 +177,7 @@ export default class ExprParser extends Parser {
     linkScope() {
         let exprWatcher = this.tree.getExprWatcher();
         exprWatcher.on('change', event => {
-            let updateFns = this.$exprUpdateFns[event.expr];
+            let updateFns = this[EXPRESION_UPDATE_FUNCTIONS][event.expr];
             // 此处并不会处理isGoDark为true的情况，因为Node那边处理了。
             if (updateFns && updateFns.length) {
                 updateFns.forEach(fn => fn(event.newValue));
@@ -233,12 +187,12 @@ export default class ExprParser extends Parser {
 
     initRender() {
         let exprWatcher = this.tree.getExprWatcher();
-        for (let expr in this.$exprUpdateFns) {
-            if (!this.$exprUpdateFns.hasOwnProperty(expr)) {
+        for (let expr in this[EXPRESION_UPDATE_FUNCTIONS]) {
+            if (!this[EXPRESION_UPDATE_FUNCTIONS].hasOwnProperty(expr)) {
                 continue;
             }
 
-            const fns = this.$exprUpdateFns[expr];
+            const fns = this[EXPRESION_UPDATE_FUNCTIONS][expr];
             fns.forEach(execute.bind(null, expr));
         }
 
@@ -248,43 +202,12 @@ export default class ExprParser extends Parser {
     }
 
     /**
-     * 获取开始节点
-     *
-     * @protected
-     * @inheritDoc
-     * @return {Node}
-     */
-    getStartNode() {
-        if (this.startNode) {
-            return this.startNode;
-        }
-
-        return this.node;
-    }
-
-    /**
-     * 获取结束节点
-     *
-     * @protected
-     * @inheritDoc
-     * @return {Node}
-     */
-    getEndNode() {
-        if (this.endNode) {
-            return this.endNode;
-        }
-
-        return this.node;
-    }
-
-    /**
      * 销毁
      *
      * @inheritDoc
      */
     destroy() {
-        this.node = null;
-        this.$exprUpdateFns = null;
+        this[EXPRESION_UPDATE_FUNCTIONS] = null;
 
         super.destroy();
     }
@@ -302,7 +225,7 @@ export default class ExprParser extends Parser {
         // 避免了冲突。
         let taskId = this.getTaskId(' hide');
         let domUpdater = this.tree.getTreeVar('domUpdater');
-        domUpdater.addTaskFn(taskId, () => this.node.hide());
+        domUpdater.addTaskFn(taskId, () => this.startNode.hide());
 
         this.isGoDark = true;
     }
@@ -318,7 +241,7 @@ export default class ExprParser extends Parser {
         }
         let taskId = this.getTaskId(' hide');
         let domUpdater = this.tree.getTreeVar('domUpdater');
-        domUpdater.addTaskFn(taskId, () => this.node.show());
+        domUpdater.addTaskFn(taskId, () => this.startNode.show());
 
         this.isGoDark = false;
     }
@@ -331,7 +254,8 @@ export default class ExprParser extends Parser {
      * @return {string}          任务id
      */
     getTaskId(attrName) {
-        return this.tree.getTreeVar('domUpdater').generateNodeAttrUpdateId(this.node, attrName);
+        const domUpdater = this.tree.getTreeVar('domUpdater');
+        return domUpdater.generateNodeAttrUpdateId(this.startNode, attrName);
     }
 
     /**

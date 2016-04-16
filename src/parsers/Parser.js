@@ -1,14 +1,22 @@
 /**
- * @file 解析器的抽象基类
+ * @file 解析器的抽象基类。
+ *       对于节点类的解析器来说，只会包含一个节点，而对于指令类型的解析器来说，一般会包含两个节点，
+ *       所以解析器统一使用两个节点。
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
 import Base from '../Base';
 import parserState from './parserState';
 import Tree from '../trees/Tree';
+import Node from '../nodes/Node';
 
 const STATE = Symbol('state');
 const TREE = Symbol('tree');
+
+const START_NODE = Symbol('startNode');
+const END_NODE = Symbol('endNode');
+
+const IS_DARK = Symbol('isDark');
 
 export default class Parser extends Base {
     constructor(options) {
@@ -20,6 +28,30 @@ export default class Parser extends Base {
         this[TREE] = options.tree;
 
         this[STATE] = parserState.INITIALIZING;
+
+        if (!Node.isNode(options.startNode) || !Node.isNode(options.endNode)) {
+            throw new Error('you should pass in `startNode` and `endNode`');
+        }
+        this[START_NODE] = options.startNode;
+        this[END_NODE] = options.endNode;
+
+        this[IS_DARK] = false;
+    }
+
+    get startNode() {
+        return this[START_NODE];
+    }
+
+    set startNode(startNode) {
+        this[START_NODE] = startNode;
+    }
+
+    get endNode() {
+        return this[END_NODE];
+    }
+
+    set endNode(endNode) {
+        this[END_NODE] = endNode;
     }
 
     get tree() {
@@ -51,7 +83,9 @@ export default class Parser extends Base {
      * @public
      * @abstract
      */
-    goDark() {}
+    goDark() {
+        this[IS_DARK] = true;
+    }
 
     /**
      * 显示相关元素
@@ -59,7 +93,13 @@ export default class Parser extends Base {
      * @public
      * @abstract
      */
-    restoreFromDark() {}
+    restoreFromDark() {
+        this[IS_DARK] = false;
+    }
+
+    get isDark() {
+        return this[IS_DARK];
+    }
 
     /**
      * 获取解析器当前状态下的开始DOM节点。
@@ -71,7 +111,7 @@ export default class Parser extends Base {
      * @return {Node} DOM节点对象
      */
     getStartNode() {
-        return this.startNode;
+        return this[START_NODE];
     }
 
     /**
@@ -81,7 +121,7 @@ export default class Parser extends Base {
      * @return {Node} 节点对象
      */
     getEndNode() {
-        return this.endNode;
+        return this[END_NODE];
     }
 
     /**
@@ -108,7 +148,7 @@ export default class Parser extends Base {
     initRender() {}
 
     /**
-     * 从 DOM 树种移除对应的节点。
+     * 从 DOM 树中移除对应的节点。
      * startNode 和 endNode 必须是兄弟节点
      *
      * @protected
@@ -116,27 +156,19 @@ export default class Parser extends Base {
      * @param {Node} endNode 结束节点
      */
     removeFromDOM(startNode, endNode) {
-        if (!startNode || !endNode) {
+        if (!Node.isNode(startNode) || !Node.isNode(endNode)) {
             return;
         }
 
-        // 从 DOM 树种移除 routeTree 对应的节点
-        let delayFns = [];
-        for (let curNode = startNode;
-            curNode;
-            curNode = curNode.getNextSibling()
-        ) {
-            delayFns.push((curNode => {
-                return () => curNode.remove();
-            })(curNode));
-
-            if (curNode.equal(endNode)) {
-                break;
-            }
-        }
-        for (let i = 0, il = delayFns.length; i < il; ++i) {
-            delayFns[i]();
-        }
+        Node.iterate(startNode, endNode, curNode => {
+            const nextNode = startNode.getNextSibling();
+            curNode.remove();
+            return {
+                type: 'options',
+                getChildNodes: () => [],
+                getNextNode: () => nextNode
+            };
+        });
     }
 
     /**

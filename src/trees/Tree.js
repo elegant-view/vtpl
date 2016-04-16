@@ -283,7 +283,7 @@ export default class Tree extends Base {
             return;
         }
 
-        let endNode;
+        let endNode = startNode;
         if (ParserClass.findEndNode) {
             endNode = ParserClass.findEndNode(startNode, config);
 
@@ -295,16 +295,14 @@ export default class Tree extends Base {
             }
         }
 
-        let parser = new ParserClass(
+        const parser = new ParserClass(
             extend(
                 options,
                 {endNode}
             )
         );
 
-        let key = !endNode || startNode.equal(endNode)
-            ? startNode.getNodeId()
-            : startNode.getNodeId() + '-' + endNode.getNodeId();
+        const key = `${startNode.getNodeId()}-${endNode.getNodeId()}`;
         this[NODE_ID_PARSER_MAP][key] = parser;
 
         return parser;

@@ -9,8 +9,6 @@ import Node from '../nodes/Node';
 export default class DirectiveParser extends Parser {
     constructor(options) {
         super(options);
-
-        this.node = options.node;
     }
 
     /**
@@ -42,14 +40,6 @@ export default class DirectiveParser extends Parser {
         treeScope.setParent(null);
         this.tree.rootScope.removeChild(treeScope);
         tree.setParent(null);
-    }
-
-    getStartNode() {
-        return this.node;
-    }
-
-    getEndNode() {
-        return this.node;
     }
 
     destroy() {

@@ -8,6 +8,7 @@ import IfDirectiveParser from './parsers/IfDirectiveParser';
 import DirectiveParser from './parsers/DirectiveParser';
 import ExprParser from './parsers/ExprParser';
 import VarDirectiveParser from './parsers/VarDirectiveParser';
+import HTMLExprParser from './parsers/HTMLExprParser';
 
 import Tree from './trees/Tree';
 import ExprCalculater from './ExprCalculater';
@@ -50,6 +51,7 @@ export default class VTpl {
         this.registerParser(DirectiveParser);
         this.registerParser(ExprParser);
         this.registerParser(VarDirectiveParser);
+        this.registerParser(HTMLExprParser);
     }
 
     setExprEqualFn(expr, handler) {
