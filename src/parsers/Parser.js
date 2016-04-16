@@ -6,12 +6,33 @@
 import Base from '../Base';
 import parserState from './parserState';
 
+const STATE = Symbol('state');
+
 export default class Parser extends Base {
     constructor(options) {
         super(options);
 
-        this.$state = parserState.INITIALIZING;
+        this[STATE] = parserState.INITIALIZING;
         this.tree = options.tree;
+    }
+
+    get state() {
+        return this[STATE];
+    }
+
+    set state(state) {
+        let illegal = false;
+        for (let key in parserState) {
+            if (parserState[key] === state) {
+                illegal = true;
+                break;
+            }
+        }
+        if (!illegal) {
+            throw new TypeError('wrong state value');
+        }
+
+        this[STATE] = state;
     }
 
     /**

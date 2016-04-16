@@ -179,9 +179,9 @@ export default class Tree extends Base {
             delayFns.push(handle);
 
             function handle() {
-                parser.$state = parserState.BEGIN_COMPILING;
+                parser.state = parserState.BEGIN_COMPILING;
                 parser.collectExprs();
-                parser.$state = parserState.END_COMPILING;
+                parser.state = parserState.END_COMPILING;
             }
 
             return {
@@ -212,9 +212,9 @@ export default class Tree extends Base {
         for (let i = 0, il = this[PARSERS].length; i < il; ++i) {
             let parser = this[PARSERS][i];
             // 将解析器对象和对应树的scope绑定起来
-            parser.$state = parserState.BEGIN_LINK;
+            parser.state = parserState.BEGIN_LINK;
             parser.linkScope();
-            parser.$state = parserState.END_LINK;
+            parser.state = parserState.END_LINK;
         }
     }
 
@@ -227,9 +227,9 @@ export default class Tree extends Base {
         for (let i = 0, il = this[PARSERS].length; i < il; ++i) {
             let parser = this[PARSERS][i];
             // 将解析器对象和对应树的scope绑定起来
-            parser.$state = parserState.BEGIN_INIT_RENDER;
+            parser.state = parserState.BEGIN_INIT_RENDER;
             parser.initRender();
-            parser.$state = parserState.READY;
+            parser.state = parserState.READY;
         }
 
         this[EXPRESSION_WATCHER].start();
@@ -249,7 +249,7 @@ export default class Tree extends Base {
     destroy() {
         this[PARSERS].forEach(parser => {
             parser.destroy();
-            parser.$state = parserState.DESTROIED;
+            parser.state = parserState.DESTROIED;
         });
         this[PARSERS] = null;
 

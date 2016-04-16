@@ -94,4 +94,8 @@ export default class Event {
 
         return true;
     }
+
+    destroy() {
+        this[EVENTS] = null;
+    }
 }
