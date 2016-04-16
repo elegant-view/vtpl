@@ -52,17 +52,9 @@ export function getClassNameOf(obj) {
  * @return {boolean}
  */
 export function isPureObject(obj) {
-    if (!isClass(obj, 'Object')) {
-        return false;
-    }
-
-    for (let k in obj) {
-        if (!obj.hasOwnProperty(k)) {
-            return false;
-        }
-    }
-
-    return true;
+    return typeof obj === 'object'
+        && obj !== null
+        && Object.getPrototypeOf(obj).constructor === Object;
 }
 
 export function isSubClassOf(SubClass, SuperClass) {
