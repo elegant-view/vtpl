@@ -88,6 +88,8 @@ export default class ScopeModel extends Event {
         }
         /* eslint-enable guard-for-in */
     }
+
+    destroy() {}
 }
 
 /**

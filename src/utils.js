@@ -90,7 +90,6 @@ export function camel2line(str) {
 /**
  * 将字符串中的短横线命名方式改为驼峰的形式
  *
- * @public
  * @param  {string} str 要转换的字符串
  * @return {string}
  */
@@ -100,6 +99,13 @@ export function line2camel(str) {
     });
 }
 
+/**
+ * 将数组里面的元素去重
+ *
+ * @param  {Array.<*>} arr    待去重的数组
+ * @param  {function(*)} hashFn 计算数组每个元素的唯一标识
+ * @return {Array.<*>}
+ */
 export function distinctArr(arr, hashFn) {
     hashFn = isFunction(hashFn) ? hashFn : function (elem) {
         return String(elem);

@@ -251,15 +251,21 @@ export default class Tree extends Base {
             parser.destroy();
             parser.$state = parserState.DESTROIED;
         });
+        this[PARSERS] = null;
 
         this[START_NODE] = null;
         this[END_NODE] = null;
         this.config = null;
 
-        this.$parser = null;
         this[TREE_VARS] = null;
-
         this[NODE_ID_PARSER_MAP] = null;
+        this[PARENT] = null;
+
+        this[ROOT_SCOPE].destroy();
+        this[ROOT_SCOPE] = null;
+
+        this[EXPRESSION_WATCHER].destroy();
+        this[EXPRESSION_WATCHER] = null;
     }
 
     /**

@@ -4,7 +4,6 @@
  */
 
 export default class Base {
-    constructor() {}
 }
 
 Base.trait = function trait(props) {
