@@ -17,6 +17,7 @@ const PARENT = Symbol('parent');
 const START_NODE = Symbol('startNode');
 const END_NODE = Symbol('endNode');
 const EXPRESSION_WATCHER = Symbol('expressionWatcher');
+const ROOT_SCOPE = Symbol('rootScope');
 
 export default class Tree extends Base {
 
@@ -39,9 +40,17 @@ export default class Tree extends Base {
         this[PARENT] = null;
         this[NODE_ID_PARSER_MAP] = {};
 
-        this.rootScope = new ScopeModel();
+        this[ROOT_SCOPE] = new ScopeModel();
 
         this[EXPRESSION_WATCHER] = null;
+    }
+
+    get rootScope() {
+        return this[ROOT_SCOPE];
+    }
+
+    set rootScope(scope) {
+        this[ROOT_SCOPE] = scope;
     }
 
     /**
@@ -139,7 +148,7 @@ export default class Tree extends Base {
      * @public
      */
     compile() {
-        this[EXPRESSION_WATCHER] = new ExprWatcher(this.rootScope, this.getTreeVar('exprCalculater'));
+        this[EXPRESSION_WATCHER] = new ExprWatcher(this[ROOT_SCOPE], this.getTreeVar('exprCalculater'));
 
         let delayFns = [];
         Node.iterate(this[START_NODE], this[END_NODE], node => {
