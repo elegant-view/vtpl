@@ -10,6 +10,11 @@ import Node from '../nodes/Node';
 import ExprWatcher from '../ExprWatcher';
 import parserState from '../parsers/parserState';
 
+const TREE_VARS = Symbol('treeVars');
+const NODE_ID_PARSER_MAP = Symbol('nodeIdParserMap');
+const PARSERS = Symbol('parsers');
+const PARENT = Symbol('parent');
+
 export default class Tree extends Base {
 
     /**
@@ -26,10 +31,10 @@ export default class Tree extends Base {
         this.startNode = options.startNode;
         this.endNode = options.endNode;
 
-        this.treeVars = {};
-        this.$parsers = [];
-        this.$parent = null;
-        this.$$nodeIdParserMap = {};
+        this[TREE_VARS] = {};
+        this[PARSERS] = [];
+        this[PARENT] = null;
+        this[NODE_ID_PARSER_MAP] = {};
 
         this.rootScope = new ScopeModel();
 
@@ -47,10 +52,10 @@ export default class Tree extends Base {
      * @return {boolean} 是否设置成功
      */
     setTreeVar(name, value) {
-        if (this.treeVars[name] !== undefined) {
+        if (this[TREE_VARS][name] !== undefined) {
             return false;
         }
-        this.treeVars[name] = value;
+        this[TREE_VARS][name] = value;
         return true;
     }
 
@@ -61,7 +66,17 @@ export default class Tree extends Base {
      * @param  {string} name 变量名
      */
     unsetTreeVar(name) {
-        this.treeVars[name] = undefined;
+        this[TREE_VARS][name] = undefined;
+    }
+
+    /**
+     * 获取解析器对象的数量，目前只是在测试中用到。
+     *
+     * @public
+     * @return {number}
+     */
+    getParsersLength() {
+        return this[PARSERS].length;
     }
 
     /**
@@ -74,12 +89,12 @@ export default class Tree extends Base {
      * @return {*}
      */
     getTreeVar(name, shouldNotFindInParent) {
-        let val = this.treeVars[name];
+        let val = this[TREE_VARS][name];
         if (!shouldNotFindInParent
             && val === undefined
-            && this.$parent
+            && this[PARENT]
         ) {
-            val = this.$parent.getTreeVar(name);
+            val = this[PARENT].getTreeVar(name);
         }
         return val;
     }
@@ -91,7 +106,7 @@ export default class Tree extends Base {
      * @param {Tree} parent 父级树
      */
     setParent(parent) {
-        this.$parent = parent;
+        this[PARENT] = parent;
     }
 
     /**
@@ -112,7 +127,7 @@ export default class Tree extends Base {
      * @return {Array.<Parser>}
      */
     getParsers() {
-        return this.$parsers;
+        return this[PARSERS];
     }
 
     /**
@@ -140,7 +155,7 @@ export default class Tree extends Base {
                 if (!parser) {
                     continue;
                 }
-                this.$parsers.push(parser);
+                this[PARSERS].push(parser);
                 break;
             }
 
@@ -181,8 +196,8 @@ export default class Tree extends Base {
      * @public
      */
     link() {
-        for (let i = 0, il = this.$parsers.length; i < il; ++i) {
-            let parser = this.$parsers[i];
+        for (let i = 0, il = this[PARSERS].length; i < il; ++i) {
+            let parser = this[PARSERS][i];
             // 将解析器对象和对应树的scope绑定起来
             parser.$state = parserState.BEGIN_LINK;
             parser.linkScope();
@@ -196,8 +211,8 @@ export default class Tree extends Base {
      * @public
      */
     initRender() {
-        for (let i = 0, il = this.$parsers.length; i < il; ++i) {
-            let parser = this.$parsers[i];
+        for (let i = 0, il = this[PARSERS].length; i < il; ++i) {
+            let parser = this[PARSERS][i];
             // 将解析器对象和对应树的scope绑定起来
             parser.$state = parserState.BEGIN_INIT_RENDER;
             parser.initRender();
@@ -209,17 +224,17 @@ export default class Tree extends Base {
 
     goDark() {
         // 调用这棵树下面所有解析器的goDark方法
-        this.$parsers.forEach(parser => parser.goDark());
+        this[PARSERS].forEach(parser => parser.goDark());
         this.$exprWatcher.stop();
     }
 
     restoreFromDark() {
-        this.$parsers.forEach(parser => parser.restoreFromDark());
+        this[PARSERS].forEach(parser => parser.restoreFromDark());
         this.$exprWatcher.resume();
     }
 
     destroy() {
-        this.$parsers.forEach(parser => {
+        this[PARSERS].forEach(parser => {
             parser.destroy();
             parser.$state = parserState.DESTROIED;
         });
@@ -229,9 +244,9 @@ export default class Tree extends Base {
         this.config = null;
 
         this.$parser = null;
-        this.treeVars = null;
+        this[TREE_VARS] = null;
 
-        this.$$nodeIdParserMap = null;
+        this[NODE_ID_PARSER_MAP] = null;
     }
 
     /**
@@ -271,7 +286,7 @@ export default class Tree extends Base {
         let key = !endNode || startNode.equal(endNode)
             ? startNode.getNodeId()
             : startNode.getNodeId() + '-' + endNode.getNodeId();
-        this.$$nodeIdParserMap[key] = parser;
+        this[NODE_ID_PARSER_MAP][key] = parser;
 
         return parser;
     }
