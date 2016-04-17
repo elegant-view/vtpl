@@ -5,79 +5,55 @@
 
 import DirectiveParser from './DirectiveParser';
 
+const EXPRESSION = Symbol('expression');
+const LEFT_VALUE_NAME = Symbol('leftValueName');
+
 export default class VarDirectiveParser extends DirectiveParser {
     constructor(options) {
         super(options);
 
-        this.node = options.node;
-        this.updateFn = null;
-
-        this.$$expr = null;
-        this.$$leftValueName = null;
+        this[EXPRESSION] = null;
+        this[LEFT_VALUE_NAME] = null;
     }
 
     collectExprs() {
-        let nodeValue = this.node.getNodeValue();
+        let nodeValue = this.startNode.getNodeValue();
 
-        this.$$expr = '${' + nodeValue.slice(nodeValue.indexOf('=', 0) + 1) + '}';
+        this[EXPRESSION] = `$\{${nodeValue.slice(nodeValue.indexOf('=', 0) + 1)}}`;
 
-        let exprWatcher = this.tree.getExprWatcher();
-        exprWatcher.addExpr(this.$$expr);
+        let exprWatcher = this.getExpressionWatcher();
+        exprWatcher.addExpr(this[EXPRESSION]);
 
         try {
-            this.$$leftValueName = nodeValue.match(/var:\s*([\w\$]+)=/)[1];
+            this[LEFT_VALUE_NAME] = nodeValue.match(/var:\s*([\w\$]+)=/)[1];
         }
         catch (e) {
-            throw new Error(`wrong var expression ${this.$$leftValueName}`);
+            throw new Error(`wrong var expression ${this[LEFT_VALUE_NAME]}`);
         }
     }
 
     linkScope() {
-        let exprWatcher = this.tree.getExprWatcher();
+        let exprWatcher = this.getExpressionWatcher();
         exprWatcher.on('change', event => {
-            if (!this.isGoDark && event.expr === this.$$expr) {
-                this.tree.rootScope.set(this.$$leftValueName, exprWatcher.calculate(this.$$expr));
+            if (!this.isDark && event.expr === this[EXPRESSION]) {
+                this.getScope().set(this[LEFT_VALUE_NAME], exprWatcher.calculate(this[EXPRESSION]));
             }
         });
     }
 
     initRender() {
-        let exprWatcher = this.tree.getExprWatcher();
-        this.tree.rootScope.set(this.$$leftValueName, exprWatcher.calculate(this.$$expr));
+        const exprWatcher = this.getExpressionWatcher();
+        this.getScope().set(this[LEFT_VALUE_NAME], exprWatcher.calculate(this[EXPRESSION]));
     }
 
-    /**
-     * 获取开始节点
-     *
-     * @protected
-     * @inheritDoc
-     * @return {Node}
-     */
-    getStartNode() {
-        return this.node;
-    }
-
-    /**
-     * 获取结束节点
-     *
-     * @protected
-     * @inheritDoc
-     * @return {Node}
-     */
-    getEndNode() {
-        return this.node;
-    }
-
-    goDark() {
-        this.isGoDark = true;
-    }
-
-    restoreFromDark() {
-        this.isGoDark = false;
+    destroy() {
+        this[EXPRESSION] = null;
+        this[LEFT_VALUE_NAME] = null;
+        super.destroy();
     }
 
     static isProperNode(node, config) {
-        let nodeValue = node.getNodeValue();
+        const nodeValue = node.getNodeValue();
         return DirectiveParser.isProperNode(node)
             && nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;
     }

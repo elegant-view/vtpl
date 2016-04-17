@@ -18,32 +18,34 @@ import Config from './Config';
 import NodesManager from './nodes/NodesManager';
 import Parser from './parsers/Parser';
 
+const TREE = Symbol('tree');
+
 export default class VTpl {
     constructor(options) {
         options = extend({
             config: new Config()
         }, options);
 
-        this.nodesManager = new NodesManager();
+        const nodesManager = new NodesManager();
         if (options.startNode) {
-            options.startNode = this.nodesManager.getNode(options.startNode);
+            options.startNode = nodesManager.getNode(options.startNode);
         }
         if (options.endNode) {
-            options.endNode = this.nodesManager.getNode(options.endNode);
+            options.endNode = nodesManager.getNode(options.endNode);
         }
         if (options.node) {
-            options.node = this.nodesManager.getNode(options.node);
+            options.node = nodesManager.getNode(options.node);
         }
 
-        this.$options = options;
-
-        let tree = new Tree(this.$options);
+        let tree = new Tree(options);
         tree.setTreeVar('exprCalculater', new ExprCalculater());
         tree.setTreeVar('domUpdater', new DomUpdater());
-        tree.setTreeVar('config', this.$options.config);
-        tree.setTreeVar('nodesManager', this.nodesManager);
+        tree.setTreeVar('nodesManager', nodesManager);
+
         tree.setTreeVar('parserClasses', []);
-        this.$tree = tree;
+        tree.setTreeVar('config', options.config);
+
+        this[TREE] = tree;
 
         // 注册一批解析器
         this.registerParser(ForDirectiveParser);
@@ -54,13 +56,21 @@ export default class VTpl {
         this.registerParser(HTMLExprParser);
     }
 
+    get nodesManager() {
+        return this[TREE].getTreeVar('nodesManager');
+    }
+
+    get tree() {
+        return this[TREE];
+    }
+
     setExprEqualFn(expr, handler) {
-        let exprWatcher = this.$tree.getExprWatcher();
+        let exprWatcher = this[TREE].getExprWatcher();
         exprWatcher.setExprEqualFn(expr, handler);
     }
 
     setExprCloneFn(expr, handler) {
-        let exprWatcher = this.$tree.getExprWatcher();
+        let exprWatcher = this[TREE].getExprWatcher();
         exprWatcher.setExprCloneFn(expr, handler);
     }
 
@@ -81,7 +91,7 @@ export default class VTpl {
             throw new TypeError('wrong parser class');
         }
 
-        let parserClasses = this.$tree.getTreeVar('parserClasses');
+        let parserClasses = this[TREE].getTreeVar('parserClasses');
         let hasInserted = false;
         /* eslint-disable guard-for-in */
         for (let i in parserClasses) {
@@ -99,26 +109,23 @@ export default class VTpl {
     }
 
     render() {
-        this.$tree.compile();
-        this.$tree.link();
-        this.$tree.getTreeVar('domUpdater').start();
-        this.$tree.initRender();
+        this[TREE].compile();
+        this[TREE].link();
+        this[TREE].getTreeVar('domUpdater').start();
+        this[TREE].initRender();
     }
 
     setData(...args) {
-        let scope = this.$tree.rootScope;
+        let scope = this[TREE].rootScope;
         scope.set.apply(scope, args);
     }
 
     destroy() {
-        this.$tree.getTreeVar('exprCalculater').destroy();
-        this.$tree.getTreeVar('domUpdater').destroy();
+        this[TREE].getTreeVar('exprCalculater').destroy();
+        this[TREE].getTreeVar('domUpdater').destroy();
+        this[TREE].getTreeVar('nodesManager').destroy();
 
-        this.$tree.destroy();
-        this.nodesManager.destroy();
-
-        this.nodesManager = null;
-        this.$options = null;
-        this.$tree = null;
+        this[TREE].destroy();
+        this[TREE] = null;
     }
 }

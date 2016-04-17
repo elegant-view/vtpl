@@ -9,6 +9,6 @@ describe('Tree', () => {
         let tpl = new Vtpl({startNode: div, endNode: div});
         tpl.render();
 
-        expect(tpl.$tree.getParsersLength()).toBe(6);
+        expect(tpl.tree.getParsersLength()).toBe(6);
     });
 });

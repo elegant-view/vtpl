@@ -11,9 +11,9 @@ describe('VarDirectiveParser', () => {
         node.innerHTML = '<!-- var: name="yibuyisheng" -->';
 
         let tpl = new Vtpl({startNode: node, endNode: node});
-        expect(tpl.$tree.rootScope.get('name')).toBe(undefined);
+        expect(tpl.tree.rootScope.get('name')).toBe(undefined);
         tpl.render();
 
-        expect(tpl.$tree.rootScope.get('name')).toBe('yibuyisheng');
+        expect(tpl.tree.rootScope.get('name')).toBe('yibuyisheng');
     });
 });

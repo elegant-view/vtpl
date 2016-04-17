@@ -88,13 +88,13 @@ describe('ExprParser', () => {
         setTimeout(() => {
             expect(node.getNodeValue()).toBe('yibuyisheng');
 
-            tpl.$tree.goDark();
+            tpl.tree.goDark();
             setTimeout(() => {
                 tpl.setData('name', 'yibuyisheng2');
 
                 setTimeout(() => {
                     expect(node.getNodeValue()).toBe('');
-                    tpl.$tree.restoreFromDark();
+                    tpl.tree.restoreFromDark();
 
                     setTimeout(() => {
                         expect(node.getNodeValue()).toBe('yibuyisheng2');
