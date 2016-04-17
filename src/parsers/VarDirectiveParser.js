@@ -17,11 +17,10 @@ export default class VarDirectiveParser extends DirectiveParser {
     }
 
     collectExprs() {
-        let nodeValue = this.startNode.getNodeValue();
-
+        const nodeValue = this.startNode.getNodeValue();
         this[EXPRESSION] = `$\{${nodeValue.slice(nodeValue.indexOf('=', 0) + 1)}}`;
 
-        let exprWatcher = this.getExpressionWatcher();
+        const exprWatcher = this.getExpressionWatcher();
         exprWatcher.addExpr(this[EXPRESSION]);
 
         try {
@@ -33,7 +32,7 @@ export default class VarDirectiveParser extends DirectiveParser {
     }
 
     linkScope() {
-        let exprWatcher = this.getExpressionWatcher();
+        const exprWatcher = this.getExpressionWatcher();
         exprWatcher.on('change', event => {
             if (!this.isDark && event.expr === this[EXPRESSION]) {
                 this.getScope().set(this[LEFT_VALUE_NAME], exprWatcher.calculate(this[EXPRESSION]));
