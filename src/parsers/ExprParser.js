@@ -13,8 +13,7 @@ import ScopeModel from '../ScopeModel';
 
 import Parser from './Parser';
 import Node from '../nodes/Node';
-import {line2camel, isPureObject, isExpr} from '../utils';
-import DomUpdater from '../DomUpdater';
+import {line2camel, isExpr} from '../utils';
 // import log from '../log';
 
 const EXPRESION_UPDATE_FUNCTIONS = Symbol('expressionUpdateFunctions');
@@ -42,13 +41,10 @@ export default class ExprParser extends Parser {
     collectExprs() {
         const parserNode = this.startNode;
 
-        const domUpdater = this.tree.getTreeVar('domUpdater');
-        if (!(domUpdater instanceof DomUpdater)) {
-            throw new Error('the tree has no DOM updater');
-        }
+        const domUpdater = this.getDOMUpdater();
 
         const nodeType = parserNode.getNodeType();
-        const exprWatcher = this.tree.getExprWatcher();
+        const exprWatcher = this.getExpressionWatcher();
 
         // 文本节点
         if (nodeType === Node.TEXT_NODE) {
@@ -128,16 +124,16 @@ export default class ExprParser extends Parser {
             return;
         }
 
-        let eventName = attrName.replace('on-', '');
+        const eventName = attrName.replace('on-', '');
         this.startNode.off(eventName);
         this.startNode.on(eventName, event => {
             attrValue = attrValue.replace(/^\${|}$/g, '');
 
-            let exprCalculater = this.tree.getTreeVar('exprCalculater');
+            const exprCalculater = this.getExpressionCalculater();
             exprCalculater.createExprFn(attrValue, true);
 
-            let localScope = new ScopeModel();
-            localScope.setParent(this.tree.rootScope);
+            const localScope = new ScopeModel();
+            localScope.setParent(this.getScope());
             localScope.set('event', event);
             exprCalculater.calculate(attrValue, true, localScope, true);
         });
@@ -160,7 +156,7 @@ export default class ExprParser extends Parser {
     }
 
     /**
-     * 设置文本节点的“nodeValue”，此处对html的情况也做了支持
+     * 设置文本节点的“nodeValue”
      *
      * @private
      * @param {*} value 要设置的值
@@ -175,10 +171,10 @@ export default class ExprParser extends Parser {
      * @public
      */
     linkScope() {
-        let exprWatcher = this.tree.getExprWatcher();
+        let exprWatcher = this.getExpressionWatcher();
         exprWatcher.on('change', event => {
             let updateFns = this[EXPRESION_UPDATE_FUNCTIONS][event.expr];
-            // 此处并不会处理isGoDark为true的情况，因为Node那边处理了。
+            // 此处并不会处理isDark为true的情况，因为Node那边处理了。
             if (updateFns && updateFns.length) {
                 updateFns.forEach(fn => fn(event.newValue));
             }
@@ -186,7 +182,7 @@ export default class ExprParser extends Parser {
     }
 
     initRender() {
-        let exprWatcher = this.tree.getExprWatcher();
+        let exprWatcher = this.getExpressionWatcher();
         for (let expr in this[EXPRESION_UPDATE_FUNCTIONS]) {
             if (!this[EXPRESION_UPDATE_FUNCTIONS].hasOwnProperty(expr)) {
                 continue;
@@ -218,16 +214,17 @@ export default class ExprParser extends Parser {
      * @public
      */
     goDark() {
-        if (this.isGoDark) {
+        if (this.isDark) {
             return;
         }
-        // 前面故意保留一个空格，因为DOM中不可能出现节点的属性key第一个字符为空格的，
-        // 避免了冲突。
-        let taskId = this.getTaskId(' hide');
-        let domUpdater = this.tree.getTreeVar('domUpdater');
-        domUpdater.addTaskFn(taskId, () => this.startNode.hide());
 
-        this.isGoDark = true;
+        super.goDark();
+
+        // hide前面故意保留一个空格，因为DOM中不可能出现节点的属性key第一个字符为空格的，
+        // 避免了冲突。
+        const taskId = this.getTaskId(' hide');
+        const domUpdater = this.getDOMUpdater();
+        domUpdater.addTaskFn(taskId, () => this.startNode.hide());
     }
 
     /**
@@ -236,14 +233,15 @@ export default class ExprParser extends Parser {
      * @public
      */
     restoreFromDark() {
-        if (!this.isGoDark) {
+        if (!this.isDark) {
             return;
         }
-        let taskId = this.getTaskId(' hide');
-        let domUpdater = this.tree.getTreeVar('domUpdater');
-        domUpdater.addTaskFn(taskId, () => this.startNode.show());
 
-        this.isGoDark = false;
+        super.restoreFromDark();
+
+        const taskId = this.getTaskId(' hide');
+        const domUpdater = this.getDOMUpdater();
+        domUpdater.addTaskFn(taskId, () => this.startNode.show());
     }
 
     /**
@@ -254,7 +252,7 @@ export default class ExprParser extends Parser {
      * @return {string}          任务id
      */
     getTaskId(attrName) {
-        const domUpdater = this.tree.getTreeVar('domUpdater');
+        const domUpdater = this.getDOMUpdater();
         return domUpdater.generateNodeAttrUpdateId(this.startNode, attrName);
     }
 
@@ -266,7 +264,7 @@ export default class ExprParser extends Parser {
      * @return {boolean}
      */
     static isProperNode(node) {
-        let nodeType = node.getNodeType();
+        const nodeType = node.getNodeType();
         return nodeType === Node.ELEMENT_NODE || nodeType === Node.TEXT_NODE;
     }
 }

@@ -7,47 +7,6 @@ import Parser from './Parser';
 import Node from '../nodes/Node';
 
 export default class DirectiveParser extends Parser {
-    constructor(options) {
-        super(options);
-    }
-
-    /**
-     * 根据父级数创建子树。
-     *
-     * @protected
-     * @param  {Tree} parentTree 父级树
-     * @param {nodes/Node} startNode 开始节点
-     * @param {nodes/Node} endNode 结束节点
-     * @return {Tree}  创建好的子树
-     */
-    createTree(parentTree, startNode, endNode) {
-        let tree = this.tree.createTree({startNode, endNode});
-        tree.setParent(parentTree);
-        tree.rootScope.setParent(parentTree.rootScope);
-        parentTree.rootScope.addChild(tree.rootScope);
-        return tree;
-    }
-
-    /**
-     * 移除使用 createTree 创建好的树
-     *
-     * @protected
-     * @param {Tree} tree 要移除的树
-     */
-    removeTree(tree) {
-        let treeScope = tree.rootScope;
-        tree.destroy();
-        treeScope.setParent(null);
-        this.tree.rootScope.removeChild(treeScope);
-        tree.setParent(null);
-    }
-
-    destroy() {
-        this.node = null;
-
-        super.destroy();
-    }
-
     static isProperNode(node, config) {
         return node.getNodeType() === Node.COMMENT_NODE;
     }

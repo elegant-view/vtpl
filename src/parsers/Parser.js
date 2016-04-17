@@ -9,6 +9,10 @@ import Base from '../Base';
 import parserState from './parserState';
 import Tree from '../trees/Tree';
 import Node from '../nodes/Node';
+import DomUpdater from '../DomUpdater';
+import ExprWatcher from '../ExprWatcher';
+import ExprCalculater from '../ExprCalculater';
+import NodesManager from '../nodes/NodesManager';
 
 const STATE = Symbol('state');
 const TREE = Symbol('tree');
@@ -25,16 +29,14 @@ export default class Parser extends Base {
         if (!(options.tree instanceof Tree)) {
             throw new Error('you should pass in a `Tree`');
         }
-        this[TREE] = options.tree;
-
-        this[STATE] = parserState.INITIALIZING;
-
         if (!Node.isNode(options.startNode) || !Node.isNode(options.endNode)) {
             throw new Error('you should pass in `startNode` and `endNode`');
         }
+
+        this[TREE] = options.tree;
+        this[STATE] = parserState.INITIALIZING;
         this[START_NODE] = options.startNode;
         this[END_NODE] = options.endNode;
-
         this[IS_DARK] = false;
     }
 
@@ -172,6 +174,91 @@ export default class Parser extends Base {
     }
 
     /**
+     * 获取domUpdater
+     *
+     * @protected
+     * @return {DomUpdater}
+     */
+    getDOMUpdater() {
+        const domUpdater = this[TREE].getTreeVar('domUpdater');
+        if (!(domUpdater instanceof DomUpdater)) {
+            throw new Error('no DOM updater');
+        }
+        return domUpdater;
+    }
+
+    /**
+     * 获取expression watcher
+     *
+     * @protected
+     * @return {ExprWatcher}
+     */
+    getExpressionWatcher() {
+        const exprWatcher = this[TREE].getExprWatcher();
+        if (!(exprWatcher instanceof ExprWatcher)) {
+            throw new Error('no expression watcher');
+        }
+        return exprWatcher;
+    }
+
+    getExpressionCalculater() {
+        const exprCalculater = this[TREE].getTreeVar('exprCalculater');
+        if (!(exprCalculater instanceof ExprCalculater)) {
+            throw new Error('no expression calculater');
+        }
+        return exprCalculater;
+    }
+
+    getNodesManager() {
+        const nodeManager = this[TREE].getTreeVar('nodesManager');
+        if (!(nodeManager instanceof NodesManager)) {
+            throw new Error('no node manager');
+        }
+        return nodeManager;
+    }
+
+    getScope() {
+        const rootScope = this[TREE].rootScope;
+        return rootScope;
+    }
+
+    getConfig() {
+        const config = this.tree.getTreeVar('config');
+        return config;
+    }
+
+    /**
+     * 根据父级数创建子树。
+     *
+     * @protected
+     * @param  {Tree} parentTree 父级树
+     * @param {nodes/Node} startNode 开始节点
+     * @param {nodes/Node} endNode 结束节点
+     * @return {Tree}  创建好的子树
+     */
+    createTree(parentTree, startNode, endNode) {
+        const tree = Tree.createTree({startNode, endNode});
+        tree.setParent(parentTree);
+        tree.rootScope.setParent(parentTree.rootScope);
+        parentTree.rootScope.addChild(tree.rootScope);
+        return tree;
+    }
+
+    /**
+     * 移除使用 createTree 创建好的树
+     *
+     * @protected
+     * @param {Tree} tree 要移除的树
+     */
+    removeTree(tree) {
+        const treeScope = tree.rootScope;
+        tree.destroy();
+        treeScope.setParent(null);
+        this.tree.rootScope.removeChild(treeScope);
+        tree.setParent(null);
+    }
+
+    /**
      * 销毁解析器，将界面恢复成原样
      *
      * @public
@@ -180,5 +267,10 @@ export default class Parser extends Base {
         // parser是附着在tree上面的，所以在销毁parser的时候，
         // 不要调用tree.destroy()，否则会引起无限递归
         this[TREE] = null;
+
+        this[STATE] = parserState.DESTROIED;
+        this[START_NODE] = null;
+        this[END_NODE] = null;
+        this[IS_DARK] = null;
     }
 }

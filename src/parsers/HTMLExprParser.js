@@ -16,10 +16,10 @@ export default class HTMLExprParser extends ExprParser {
      */
     setNodeValue(value) {
         if (isPureObject(value) && value.type === 'html') {
-            let nodesManager = this.tree.getTreeVar('nodesManager');
-            let fragment = nodesManager.createDocumentFragment();
+            const nodesManager = this.getNodesManager();
+            const fragment = nodesManager.createDocumentFragment();
             fragment.setInnerHTML(value.html);
-            let childNodes = fragment.getChildNodes();
+            const childNodes = fragment.getChildNodes();
 
             let baseNode;
             if (this.startNode && this.endNode) {

@@ -311,11 +311,11 @@ export default class Tree extends Base {
     /**
      * 给parser开放的创建树的方法
      *
-     * @public
+     * @static
      * @param {Object} options 参数
      * @return {Tree}
      */
-    createTree(options) {
+    static createTree(options) {
         return new Tree(options);
     }
 }

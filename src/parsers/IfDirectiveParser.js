@@ -8,30 +8,31 @@
 
 import DirectiveParser from './DirectiveParser';
 import Node from '../nodes/Node';
+import Tree from '../trees/Tree';
+
+const EXPRESSIONS = Symbol('expressions');
+const BRANCH_TREES = Symbol('branchTrees');
+const HAS_ELSE_BRANCH = Symbol('hasElseBranch');
 
 export default class IfDirectiveParser extends DirectiveParser {
 
     constructor(options) {
         super(options);
 
-        this.startNode = options.startNode;
-        this.endNode = options.endNode;
-
-        this.exprs = [];
-        this.$branchTrees = [];
-
-        this.isGoDark = false;
+        this[EXPRESSIONS] = [];
+        this[BRANCH_TREES] = [];
+        this[HAS_ELSE_BRANCH] = false;
     }
 
     collectExprs() {
-        let branchNodeStack = [];
+        const branchNodeStack = [];
         // 这个计数器是用来处理if指令嵌套问题的。
         // 当nestCounter为0的时候，遇到的各种if相关指令才属于当前parser的，
         // 否则是嵌套的if指令
         let nestCounter = 0;
-        let config = this.tree.getTreeVar('config');
+        const config = this.getConfig();
         Node.iterate(this.startNode, this.endNode, node => {
-            let ifNodeType = getIfNodeType(node, this.tree.getTreeVar('config'));
+            let ifNodeType = getIfNodeType(node, this.getConfig());
             // if
             if (ifNodeType === IfDirectiveParser.IF_START) {
                 // 已经有了一个if分支，再来一个if分支，说明很可能是if嵌套
@@ -79,14 +80,14 @@ export default class IfDirectiveParser extends DirectiveParser {
             ) {
                 let expr = '${' + node.getNodeValue().replace(config.getAllIfRegExp(), '') + '}';
                 expr = expr.replace(/\n/g, ' ');
-                this.exprs.push(expr);
+                this[EXPRESSIONS].push(expr);
 
-                let exprWatcher = this.tree.getExprWatcher();
+                let exprWatcher = this.getExpressionWatcher();
                 exprWatcher.addExpr(expr);
             }
 
             if (ifNodeType === IfDirectiveParser.ELSE) {
-                this.$$hasElseBranch = true;
+                this[HAS_ELSE_BRANCH] = true;
             }
         });
 
@@ -97,39 +98,39 @@ export default class IfDirectiveParser extends DirectiveParser {
             let curNodeNextSibling = curNode.node.getNextSibling();
             // curNode 和 nextNode 之间没有节点
             if (curNodeNextSibling.equal(nextNode.node)) {
-                this.$branchTrees.push(null);
+                this[BRANCH_TREES].push(null);
             }
             else {
-                let branchTree = this.tree.createTree({
+                const branchTree = Tree.createTree({
                     startNode: curNodeNextSibling,
                     endNode: nextNode.node.getPreviousSibling()
                 });
                 branchTree.setParent(this.tree);
 
-                this.$branchTrees.push(branchTree);
+                this[BRANCH_TREES].push(branchTree);
                 branchTree.compile();
 
-                this.tree.rootScope.addChild(branchTree.rootScope);
-                branchTree.rootScope.setParent(this.tree.rootScope);
+                this.getScope().addChild(branchTree.rootScope);
+                branchTree.rootScope.setParent(this.getScope());
             }
         }
     }
 
     linkScope() {
-        let exprWatcher = this.tree.getExprWatcher();
+        const exprWatcher = this.getExpressionWatcher();
 
-        for (let i = 0, il = this.$branchTrees.length; i < il; ++i) {
-            this.$branchTrees[i].link();
+        for (let i = 0, il = this[BRANCH_TREES].length; i < il; ++i) {
+            this[BRANCH_TREES][i].link();
         }
 
         exprWatcher.on('change', event => {
-            if (this.isGoDark) {
+            if (this.isDark) {
                 return;
             }
 
             let hasExpr = false;
-            for (let i = 0, il = this.exprs.length; i < il; ++i) {
-                if (this.exprs[i] === event.expr) {
+            for (let i = 0, il = this[EXPRESSIONS].length; i < il; ++i) {
+                if (this[EXPRESSIONS][i] === event.expr) {
                     hasExpr = true;
                     break;
                 }
@@ -146,24 +147,24 @@ export default class IfDirectiveParser extends DirectiveParser {
     initRender() {
         this.renderDOM(this);
 
-        for (let i = 0, il = this.$branchTrees.length; i < il; ++i) {
-            this.$branchTrees[i].initRender();
+        for (let i = 0, il = this[BRANCH_TREES].length; i < il; ++i) {
+            this[BRANCH_TREES][i].initRender();
         }
     }
 
     renderDOM() {
-        if (this.isGoDark) {
+        if (this.isDark) {
             return;
         }
 
-        let exprWatcher = this.tree.getExprWatcher();
-        let exprs = this.exprs;
+        let exprWatcher = this.getExpressionWatcher();
+        let exprs = this[EXPRESSIONS];
         let hasShowBranch = false;
         let i = 0;
         for (let il = exprs.length; i < il; ++i) {
             let expr = exprs[i];
             let exprValue = exprWatcher.calculate(expr);
-            let branchTree = this.$branchTrees[i];
+            let branchTree = this[BRANCH_TREES][i];
             if (exprValue) {
                 hasShowBranch = true;
                 branchTree.restoreFromDark();
@@ -173,8 +174,8 @@ export default class IfDirectiveParser extends DirectiveParser {
             }
         }
 
-        if (this.$$hasElseBranch) {
-            this.$branchTrees[i][hasShowBranch ? 'goDark' : 'restoreFromDark']();
+        if (this[HAS_ELSE_BRANCH]) {
+            this[BRANCH_TREES][i][hasShowBranch ? 'goDark' : 'restoreFromDark']();
         }
     }
 
@@ -183,43 +184,33 @@ export default class IfDirectiveParser extends DirectiveParser {
     }
 
     destroy() {
-        for (let i = 0, il = this.$branchTrees.length; i < il; ++i) {
-            let branchTree = this.$branchTrees[i];
+        for (let i = 0, il = this[BRANCH_TREES].length; i < il; ++i) {
+            let branchTree = this[BRANCH_TREES][i];
             branchTree.destroy();
         }
 
-        this.startNode = null;
-        this.endNode = null;
-        this.exprs = null;
-        this.$branchTrees = null;
+        this[EXPRESSIONS] = null;
+        this[BRANCH_TREES] = null;
 
         super.destroy();
     }
 
-    getStartNode() {
-        return this.startNode;
-    }
-
-    getEndNode() {
-        return this.endNode;
-    }
-
     // 转入隐藏状态
     goDark() {
-        if (this.isGoDark) {
+        if (this.isDark) {
             return;
         }
-        this.$branchTrees.forEach(tree => tree.goDark());
-        this.isGoDark = true;
+        super.goDark();
+        this[BRANCH_TREES].forEach(tree => tree.goDark());
     }
 
     // 从隐藏状态恢复
     restoreFromDark() {
-        if (!this.isGoDark) {
+        if (!this.isDark) {
             return;
         }
-        this.$branchTrees.forEach(tree => tree.restoreFromDark());
-        this.isGoDark = false;
+        super.restoreFromDark();
+        this[BRANCH_TREES].forEach(tree => tree.restoreFromDark());
 
         this.renderDOM();
     }
