@@ -185,8 +185,7 @@ export default class IfDirectiveParser extends DirectiveParser {
 
     destroy() {
         for (let i = 0, il = this[BRANCH_TREES].length; i < il; ++i) {
-            let branchTree = this[BRANCH_TREES][i];
-            branchTree.destroy();
+            this[BRANCH_TREES][i].destroy();
         }
 
         this[EXPRESSIONS] = null;

@@ -6,19 +6,22 @@
 import DirectiveParser from './DirectiveParser';
 import Node from '../nodes/Node';
 
+const TEMPLATE_SEGMENT = Symbol('templateSegment');
+const UPDATE_FUNCTION = Symbol('updateFunction');
+const TREES = Symbol('trees');
+const ITEM_VARIABLE_NAME = Symbol('itemVariableName');
+const LIST_EXPRESSION = Symbol('listExpression');
+
 export default class ForDirectiveParser extends DirectiveParser {
 
     constructor(options) {
         super(options);
 
-        this.startNode = options.startNode;
-        this.endNode = options.endNode;
-
-        this.tplSeg = null;
-        this.expr = null;
-        this.updateFn = null;
-        this.trees = [];
-        this.$$itemVariableName = null;
+        this[TEMPLATE_SEGMENT] = null;
+        this[UPDATE_FUNCTION] = null;
+        this[TREES] = [];
+        this[ITEM_VARIABLE_NAME] = null;
+        this[LIST_EXPRESSION] = null;
     }
 
     collectExprs() {
@@ -28,46 +31,46 @@ export default class ForDirectiveParser extends DirectiveParser {
         }
 
         // 将for指令之间的节点抽出来，放在tplSeg里面作为样板缓存，后面会根据这个样板生成具体的DOM结构。
-        let nodesManager = this.tree.getTreeVar('nodesManager');
-        this.tplSeg = nodesManager.createDocumentFragment('div');
+        const nodesManager = this.getNodesManager();
+        this[TEMPLATE_SEGMENT] = nodesManager.createDocumentFragment('div');
         for (let curNode = this.startNode.getNextSibling();
             curNode && !curNode.isAfter(this.endNode.getPreviousSibling());
         ) {
             let nextNode = curNode.getNextSibling();
-            this.tplSeg.appendChild(curNode);
+            this[TEMPLATE_SEGMENT].appendChild(curNode);
             curNode = nextNode;
         }
 
         let expr = this.startNode.getNodeValue().replace('for:', '');
         try {
-            [, this.listExpr, this.$$itemVariableName] = expr.match(/^\s*([$\w.\[\]]+)\s+as\s+([$\w]+)\s*$/);
+            [, this[LIST_EXPRESSION], this[ITEM_VARIABLE_NAME]] = expr.match(/^\s*([$\w.\[\]]+)\s+as\s+([$\w]+)\s*$/);
         }
         catch (error) {
             throw new Error(`wrong for expression ${expr}`);
         }
 
-        let exprWatcher = this.tree.getExprWatcher();
-        this.listExpr = '${' + this.listExpr + '}';
-        exprWatcher.addExpr(this.listExpr);
+        let exprWatcher = this.getExpressionWatcher();
+        this[LIST_EXPRESSION] = `$\{${this[LIST_EXPRESSION]}}`;
+        exprWatcher.addExpr(this[LIST_EXPRESSION]);
 
-        this.updateFn = this.createUpdateFn(
+        this[UPDATE_FUNCTION] = this.createUpdateFn(
             this.startNode.getNextSibling(),
             this.endNode.getPreviousSibling()
         );
     }
 
     linkScope() {
-        let exprWatcher = this.tree.getExprWatcher();
+        let exprWatcher = this.getExpressionWatcher();
         exprWatcher.on('change', event => {
-            if (!this.isGoDark && event.expr === this.listExpr) {
-                this.updateFn(event.newValue);
+            if (!this.isDark && event.expr === this[LIST_EXPRESSION]) {
+                this[UPDATE_FUNCTION](event.newValue);
             }
         });
     }
 
     initRender() {
-        let exprWatcher = this.tree.getExprWatcher();
-        this.updateFn(exprWatcher.calculate(this.listExpr));
+        let exprWatcher = this.getExpressionWatcher();
+        this[UPDATE_FUNCTION](exprWatcher.calculate(this[LIST_EXPRESSION]));
     }
 
     /**
@@ -83,7 +86,7 @@ export default class ForDirectiveParser extends DirectiveParser {
      */
     createUpdateFn(startNode, endNode) {
         let parser = this;
-        let itemVariableName = this.$$itemVariableName;
+        let itemVariableName = this[ITEM_VARIABLE_NAME];
         return listObj => {
             let index = 0;
             /* eslint-disable guard-for-in */
@@ -95,53 +98,51 @@ export default class ForDirectiveParser extends DirectiveParser {
                 };
                 local[itemVariableName] = listObj[k];
 
-                if (!parser.trees[index]) {
-                    parser.trees[index] = parser.createTree();
-                    parser.trees[index].compile();
-                    parser.trees[index].link();
-                    parser.trees[index].initRender();
+                if (!parser[TREES][index]) {
+                    parser[TREES][index] = parser.createTree();
+                    parser[TREES][index].compile();
+                    parser[TREES][index].link();
+                    parser[TREES][index].initRender();
                 }
 
-                parser.trees[index].restoreFromDark();
-                parser.trees[index].rootScope.set(local);
+                parser[TREES][index].restoreFromDark();
+                parser[TREES][index].rootScope.set(local);
 
                 ++index;
             }
 
-            for (let i = index, il = parser.trees.length; i < il; ++i) {
-                parser.trees[i].goDark();
+            for (let i = index, il = parser[TREES].length; i < il; ++i) {
+                parser[TREES][i].goDark();
             }
         };
     }
 
     goDark() {
-        if (this.isGoDark) {
+        if (this.isDark) {
             return;
         }
-        this.trees.forEach(tree => tree.goDark());
-        this.isGoDark = true;
+
+        super.goDark();
+        this[TREES].forEach(tree => tree.goDark());
     }
 
     restoreFromDark() {
-        if (!this.isGoDark) {
+        if (!this.isDark) {
             return;
         }
 
-        let exprWatcher = this.tree.getExprWatcher();
-        this.updateFn(exprWatcher.calculate(this.listExpr));
-
-        this.isGoDark = false;
+        super.restoreFromDark();
+        const exprWatcher = this.getExpressionWatcher();
+        this[UPDATE_FUNCTION](exprWatcher.calculate(this[LIST_EXPRESSION]));
     }
 
     destroy() {
-        this.trees.forEach(tree => tree.destroy());
-
-        this.tplSeg = null;
-        this.expr = null;
-        this.exprFn = null;
-        this.updateFn = null;
-        this.startNode = null;
-        this.endNode = null;
+        this[TREES].forEach(tree => tree.destroy());
+        this[TREES] = null;
+        this[TEMPLATE_SEGMENT] = null;
+        this[UPDATE_FUNCTION] = null;
+        this[ITEM_VARIABLE_NAME] = null;
+        this[LIST_EXPRESSION] = null;
 
         super.destroy();
     }
@@ -154,9 +155,9 @@ export default class ForDirectiveParser extends DirectiveParser {
      */
     createTree() {
         let parser = this;
-        let nodesManager = this.tree.getTreeVar('nodesManager');
+        let nodesManager = this.getNodesManager();
         let copySeg = nodesManager.createDocumentFragment('div');
-        copySeg.setInnerHTML(this.tplSeg.getInnerHTML());
+        copySeg.setInnerHTML(this[TEMPLATE_SEGMENT].getInnerHTML());
 
         let childNodes = copySeg.getChildNodes();
         let startNode = childNodes[0];
