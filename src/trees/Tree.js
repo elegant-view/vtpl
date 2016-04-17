@@ -281,7 +281,7 @@ export default class Tree extends Base {
         this.iterateParsers(parser => {
             parser.destroy();
             parser.state = parserState.DESTROIED;
-        });
+        }, this[PARSERS]);
         this[PARSERS] = null;
 
         this[START_NODE] = null;
