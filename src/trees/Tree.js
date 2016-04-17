@@ -89,7 +89,9 @@ export default class Tree extends Base {
      * @return {number}
      */
     getParsersLength() {
-        return this[PARSERS].length;
+        let counter = 0;
+        this.iterateParsers(() => ++counter, this[PARSERS]);
+        return counter;
     }
 
     /**
@@ -152,6 +154,8 @@ export default class Tree extends Base {
         this[EXPRESSION_WATCHER] = new ExprWatcher(this[ROOT_SCOPE], this.getTreeVar('exprCalculater'));
 
         let delayFns = [];
+        let curParentParserObj;
+        let prevParserObj;
         Node.iterate(this[START_NODE], this[END_NODE], node => {
             const options = {
                 startNode: node,
@@ -168,7 +172,6 @@ export default class Tree extends Base {
                 if (!parser) {
                     continue;
                 }
-                this[PARSERS].push(parser);
                 break;
             }
 
@@ -184,12 +187,30 @@ export default class Tree extends Base {
                 parser.state = parserState.END_COMPILING;
             }
 
+            const parserObj = {
+                parent: curParentParserObj,
+                prev: prevParserObj,
+                parser
+            };
+            if (!curParentParserObj) {
+                this[PARSERS].push(parserObj);
+            }
+            if (prevParserObj) {
+                prevParserObj.next = parserObj;
+            }
+            if (curParentParserObj) {
+                curParentParserObj.children = curParentParserObj.children || [];
+                curParentParserObj.children.push(parserObj);
+            }
+
             return {
                 type: 'options',
                 getNextNode(curNode) {
+                    prevParserObj = parserObj;
                     return parser.getEndNode().getNextSibling();
                 },
                 getChildNodes(curNode) {
+                    curParentParserObj = parserObj;
                     if (parser.getChildNodes instanceof Function) {
                         return parser.getChildNodes();
                     }
@@ -209,13 +230,12 @@ export default class Tree extends Base {
      * @public
      */
     link() {
-        for (let i = 0, il = this[PARSERS].length; i < il; ++i) {
-            let parser = this[PARSERS][i];
+        this.iterateParsers(parser => {
             // 将解析器对象和对应树的scope绑定起来
             parser.state = parserState.BEGIN_LINK;
             parser.linkScope();
             parser.state = parserState.END_LINK;
-        }
+        }, this[PARSERS]);
     }
 
     /**
@@ -224,30 +244,41 @@ export default class Tree extends Base {
      * @public
      */
     initRender() {
-        for (let i = 0, il = this[PARSERS].length; i < il; ++i) {
-            let parser = this[PARSERS][i];
+        this.iterateParsers(parser => {
             // 将解析器对象和对应树的scope绑定起来
             parser.state = parserState.BEGIN_INIT_RENDER;
             parser.initRender();
             parser.state = parserState.READY;
-        }
+        }, this[PARSERS]);
 
         this[EXPRESSION_WATCHER].start();
     }
 
     goDark() {
         // 调用这棵树下面所有解析器的goDark方法
-        this[PARSERS].forEach(parser => parser.goDark());
+        this.iterateParsers(parser => parser.goDark(), this[PARSERS]);
         this[EXPRESSION_WATCHER].stop();
     }
 
     restoreFromDark() {
-        this[PARSERS].forEach(parser => parser.restoreFromDark());
+        this.iterateParsers(parser => parser.restoreFromDark(), this[PARSERS]);
         this[EXPRESSION_WATCHER].resume();
     }
 
+    iterateParsers(iteraterFn, parsers) {
+        if (!parsers) {
+            return;
+        }
+        for (let i = 0, il = parsers.length; i < il; ++i) {
+            const parserObj = parsers[i];
+            iteraterFn(parserObj.parser, parserObj);
+
+            this.iterateParsers(iteraterFn, parserObj.children);
+        }
+    }
+
     destroy() {
-        this[PARSERS].forEach(parser => {
+        this.iterateParsers(parser => {
             parser.destroy();
             parser.state = parserState.DESTROIED;
         });

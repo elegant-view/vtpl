@@ -459,7 +459,7 @@ export default class Node {
                 return true;
             }
             // 对于给定了下一个节点的情况，就不再遍历curNode的子节点了
-            else if (nextNode instanceof Node) {
+            else if (Node.isNode(nextNode)) {
                 if (!nextNode.isAfter(curNode)) {
                     throw new Error('wrong next node');
                 }
@@ -468,7 +468,7 @@ export default class Node {
             }
             // 外部提供获取下一个节点和获取当前节点的子节点方法
             else if (nextNode.type === 'options') {
-                let childNodes = nextNode.getChildNodes instanceof Function
+                let childNodes = isFunction(nextNode.getChildNodes)
                     ? nextNode.getChildNodes(curNode)
                     : (Node.ELEMENT_NODE === curNode.getNodeType() ? curNode.getChildNodes() : []);
 
@@ -476,7 +476,7 @@ export default class Node {
                     return true;
                 }
 
-                curNode = nextNode.getNextNode instanceof Function
+                curNode = isFunction(nextNode.getNextNode)
                     ? nextNode.getNextNode(curNode)
                     : curNode.getNextSibling();
             }
