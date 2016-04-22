@@ -302,10 +302,10 @@ export default class ExprWatcher extends Event {
      */
     [EQUALS](expr, newValue, oldValue) {
         if (newValue instanceof Data) {
-            return newValue[EQUALS](oldValue);
+            return newValue.equals(oldValue);
         }
         if (oldValue instanceof Data) {
-            return oldValue[EQUALS](newValue);
+            return oldValue.equals(newValue);
         }
 
         return deepEqual(newValue, oldValue);
