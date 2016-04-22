@@ -73,13 +73,11 @@ export default class ExprParser extends Parser {
                 const attribute = attributes[i];
                 attrs[line2camel(attribute.name)] = true;
 
-                if (!isExpr(attribute.value)) {
-                    this.setAttr(attribute.name, attribute.value);
-                    continue;
-                }
-
                 if (Node.isEventName(attribute.name) || attribute.name === 'on-outclick') {
                     this.setEvent(attribute.name, attribute.value);
+                }
+                else if (!isExpr(attribute.value)) {
+                    this.setAttr(attribute.name, attribute.value);
                 }
                 else {
                     exprWatcher.addExpr(attribute.value);
