@@ -111,7 +111,7 @@ export default class ExprParser extends Parser {
         }
 
         for (let key in value) {
-            if (!(key in attrs)) {
+            if (!(key in attrs) && key !== 'children') {
                 this.setAttr(key, value[key]);
             }
         }
