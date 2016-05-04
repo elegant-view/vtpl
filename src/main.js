@@ -108,11 +108,11 @@ export default class VTpl {
         }
     }
 
-    render() {
+    render(done) {
         this[TREE].compile();
         this[TREE].link();
         this[TREE].getTreeVar('domUpdater').start();
-        this[TREE].initRender();
+        this[TREE].initRender(done);
     }
 
     setData(name, value, options) {
