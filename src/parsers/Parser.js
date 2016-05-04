@@ -13,6 +13,7 @@ import DomUpdater from '../DomUpdater';
 import ExprWatcher from '../ExprWatcher';
 import ExprCalculater from '../ExprCalculater';
 import NodesManager from '../nodes/NodesManager';
+import {nextTick} from '../utils';
 
 const STATE = Symbol('state');
 const TREE = Symbol('tree');
@@ -84,9 +85,11 @@ export default class Parser extends Base {
      *
      * @public
      * @abstract
+     * @param {function()} done 完成异步操作的回调函数
      */
-    goDark() {
+    goDark(done) {
         this[IS_DARK] = true;
+        nextTick(done);
     }
 
     /**
@@ -94,9 +97,11 @@ export default class Parser extends Base {
      *
      * @public
      * @abstract
+     * @param {function()} done 完成异步操作的回调函数
      */
-    restoreFromDark() {
+    restoreFromDark(done) {
         this[IS_DARK] = false;
+        nextTick(done);
     }
 
     get isDark() {
@@ -146,8 +151,11 @@ export default class Parser extends Base {
      * 初始渲染
      *
      * @public
+     * @abstract
      */
-    initRender() {}
+    initRender() {
+        throw new Error('please implement this method');
+    }
 
     /**
      * 从 DOM 树中移除对应的节点。

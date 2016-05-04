@@ -5,6 +5,7 @@
 
 import DirectiveParser from './DirectiveParser';
 import Node from '../nodes/Node';
+import DoneChecker from '../DoneChecker';
 
 const TEMPLATE_SEGMENT = Symbol('templateSegment');
 const UPDATE_FUNCTION = Symbol('updateFunction');
@@ -36,7 +37,7 @@ export default class ForDirectiveParser extends DirectiveParser {
         for (let curNode = this.startNode.getNextSibling();
             curNode && !curNode.isAfter(this.endNode.getPreviousSibling());
         ) {
-            let nextNode = curNode.getNextSibling();
+            const nextNode = curNode.getNextSibling();
             this[TEMPLATE_SEGMENT].appendChild(curNode);
             curNode = nextNode;
         }
@@ -61,16 +62,20 @@ export default class ForDirectiveParser extends DirectiveParser {
 
     linkScope() {
         let exprWatcher = this.getExpressionWatcher();
-        exprWatcher.on('change', event => {
+        exprWatcher.on('change', (event, done) => {
+            const doneChecker = new DoneChecker();
             if (!this.isDark && event.expr === this[LIST_EXPRESSION]) {
-                this[UPDATE_FUNCTION](event.newValue);
+                doneChecker.add(done => {
+                    this[UPDATE_FUNCTION](event.newValue, done);
+                });
             }
+            doneChecker.complete();
         });
     }
 
-    initRender() {
+    initRender(done) {
         let exprWatcher = this.getExpressionWatcher();
-        this[UPDATE_FUNCTION](exprWatcher.calculate(this[LIST_EXPRESSION]));
+        this[UPDATE_FUNCTION](exprWatcher.calculate(this[LIST_EXPRESSION]), done);
     }
 
     /**
@@ -87,12 +92,13 @@ export default class ForDirectiveParser extends DirectiveParser {
     createUpdateFn(startNode, endNode) {
         let parser = this;
         let itemVariableName = this[ITEM_VARIABLE_NAME];
-        return listObj => {
+        return (listObj, done) => {
+            const doneChecker = new DoneChecker(done);
             let index = 0;
             /* eslint-disable guard-for-in */
             for (let k in listObj) {
             /* eslint-enable guard-for-in */
-                let local = {
+                const local = {
                     key: k,
                     index: index
                 };
@@ -102,38 +108,68 @@ export default class ForDirectiveParser extends DirectiveParser {
                     parser[TREES][index] = parser.createTree();
                     parser[TREES][index].compile();
                     parser[TREES][index].link();
-                    parser[TREES][index].initRender();
+                    /* eslint-disable no-loop-func */
+                    doneChecker.add(done => {
+                        parser[TREES][index].initRender(done);
+                    });
+                    /* eslint-enable no-loop-func */
                 }
 
-                parser[TREES][index].restoreFromDark();
-                parser[TREES][index].rootScope.set(local);
+                /* eslint-disable no-loop-func */
+                doneChecker.add(done => {
+                    parser[TREES][index].restoreFromDark(done);
+                });
+                doneChecker.add(done => {
+                    parser[TREES][index].rootScope.set(local, false, done);
+                });
+                /* eslint-enable no-loop-func */
 
                 ++index;
             }
 
             for (let i = index, il = parser[TREES].length; i < il; ++i) {
-                parser[TREES][i].goDark();
+                /* eslint-disable no-loop-func */
+                doneChecker.add(done => {
+                    parser[TREES][i].goDark(done);
+                });
+                /* eslint-enable no-loop-func */
             }
+
+            doneChecker.complete();
         };
     }
 
-    goDark() {
+    goDark(done) {
+        const doneChecker = new DoneChecker(done);
         if (this.isDark) {
+            doneChecker.complete();
             return;
         }
 
-        super.goDark();
-        this[TREES].forEach(tree => tree.goDark());
+        doneChecker.add(done => {
+            super.goDark(done);
+        });
+        this[TREES].forEach(tree => {
+            doneChecker.add(done => {
+                tree.goDark(done);
+            });
+        });
+        doneChecker.complete();
     }
 
     restoreFromDark() {
+        const doneChecker = new DoneChecker();
         if (!this.isDark) {
+            doneChecker.complete();
             return;
         }
 
-        super.restoreFromDark();
+        doneChecker.add(done => {
+            super.restoreFromDark(done);
+        });
         const exprWatcher = this.getExpressionWatcher();
         this[UPDATE_FUNCTION](exprWatcher.calculate(this[LIST_EXPRESSION]));
+        doneChecker.complete();
     }
 
     destroy() {

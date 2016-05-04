@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {isFunction} from './utils';
+import {isFunction, nextTick} from './utils';
 import Event from './Event';
 import clone from './clone';
 import deepEqual from './deepEqual';
@@ -159,15 +159,30 @@ export default class ExprWatcher extends Event {
      * 唤醒
      *
      * @public
+     * @param {function()} done 异步操作完成时的回调函数
      */
-    resume() {
+    resume(done) {
         this.start();
 
+        let total = 0;
+        let counter = 0;
         // 强制刷新一下数据
         /* eslint-disable guard-for-in */
         for (let expr in this[EXPRS]) {
         /* eslint-enable guard-for-in */
-            this[COMPUTE](expr);
+            this[COMPUTE](expr, checkDone);
+            ++total;
+        }
+
+        if (total === 0) {
+            nextTick(done);
+        }
+
+        function checkDone() {
+            ++counter;
+            if (counter === total && isFunction(done)) {
+                done();
+            }
         }
     }
 

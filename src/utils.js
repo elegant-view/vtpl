@@ -140,3 +140,7 @@ export function empty() {}
 export function isExpr(expr) {
     return /\$\{(.+?)}/.test(expr);
 }
+
+export function nextTick(fn) {
+    setTimeout(fn);
+}

@@ -4,6 +4,7 @@
  */
 
 import DirectiveParser from './DirectiveParser';
+import DoneChecker from '../DoneChecker';
 
 const EXPRESSION = Symbol('expression');
 const LEFT_VALUE_NAME = Symbol('leftValueName');
@@ -33,16 +34,20 @@ export default class VarDirectiveParser extends DirectiveParser {
 
     linkScope() {
         const exprWatcher = this.getExpressionWatcher();
-        exprWatcher.on('change', event => {
+        exprWatcher.on('change', (event, done) => {
+            const doneChecker = new DoneChecker(done);
             if (!this.isDark && event.expr === this[EXPRESSION]) {
-                this.getScope().set(this[LEFT_VALUE_NAME], exprWatcher.calculate(this[EXPRESSION]));
+                doneChecker.add(done => {
+                    this.getScope().set(this[LEFT_VALUE_NAME], exprWatcher.calculate(this[EXPRESSION]), done);
+                });
             }
+            doneChecker.complete();
         });
     }
 
-    initRender() {
+    initRender(done) {
         const exprWatcher = this.getExpressionWatcher();
-        this.getScope().set(this[LEFT_VALUE_NAME], exprWatcher.calculate(this[EXPRESSION]));
+        this.getScope().set(this[LEFT_VALUE_NAME], exprWatcher.calculate(this[EXPRESSION]), false, done);
     }
 
     destroy() {

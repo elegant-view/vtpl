@@ -9,6 +9,7 @@ import Base from '../Base';
 import Node from '../nodes/Node';
 import ExprWatcher from '../ExprWatcher';
 import parserState from '../parsers/parserState';
+import DoneChecker from '../DoneChecker';
 
 const TREE_VARS = Symbol('treeVars');
 const NODE_ID_PARSER_MAP = Symbol('nodeIdParserMap');
@@ -242,27 +243,49 @@ export default class Tree extends Base {
      * 初始第一次渲染
      *
      * @public
+     * @param {function()} done 异步操作完成后的回调函数
      */
-    initRender() {
+    initRender(done) {
+        const doneChecker = new DoneChecker(done);
         this.iterateParsers(parser => {
             // 将解析器对象和对应树的scope绑定起来
             parser.state = parserState.BEGIN_INIT_RENDER;
-            parser.initRender();
+            doneChecker.add(done => {
+                parser.initRender(done);
+            });
             parser.state = parserState.READY;
         }, this[PARSERS]);
 
         this[EXPRESSION_WATCHER].start();
+
+        doneChecker.complete();
     }
 
-    goDark() {
+    goDark(done) {
+        const doneChecker = new DoneChecker(done);
+
         // 调用这棵树下面所有解析器的goDark方法
-        this.iterateParsers(parser => parser.goDark(), this[PARSERS]);
+        this.iterateParsers(parser => {
+            doneChecker.add(done => {
+                parser.goDark(done);
+            });
+        }, this[PARSERS]);
         this[EXPRESSION_WATCHER].stop();
+
+        doneChecker.complete();
     }
 
-    restoreFromDark() {
-        this.iterateParsers(parser => parser.restoreFromDark(), this[PARSERS]);
-        this[EXPRESSION_WATCHER].resume();
+    restoreFromDark(done) {
+        const doneChecker = new DoneChecker(done);
+        this.iterateParsers(parser => {
+            doneChecker.add(done => {
+                parser.restoreFromDark(done);
+            });
+        }, this[PARSERS]);
+        doneChecker.add(done => {
+            this[EXPRESSION_WATCHER].resume(done);
+        });
+        doneChecker.complete();
     }
 
     iterateParsers(iteraterFn, parsers) {

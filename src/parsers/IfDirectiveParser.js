@@ -9,6 +9,8 @@
 import DirectiveParser from './DirectiveParser';
 import Node from '../nodes/Node';
 import Tree from '../trees/Tree';
+import {isFunction} from '../utils';
+import DoneChecker from '../DoneChecker';
 
 const EXPRESSIONS = Symbol('expressions');
 const BRANCH_TREES = Symbol('branchTrees');
@@ -123,8 +125,10 @@ export default class IfDirectiveParser extends DirectiveParser {
             this[BRANCH_TREES][i].link();
         }
 
-        exprWatcher.on('change', event => {
+        exprWatcher.on('change', (event, done) => {
+            const doneChecker = new DoneChecker(done);
             if (this.isDark) {
+                doneChecker.complete();
                 return;
             }
 
@@ -137,23 +141,38 @@ export default class IfDirectiveParser extends DirectiveParser {
             }
 
             if (!hasExpr) {
+                doneChecker.complete();
                 return;
             }
 
-            this.renderDOM(this);
+            doneChecker.add(done => {
+                this.renderDOM(done);
+            });
+            doneChecker.complete();
         });
     }
 
-    initRender() {
-        this.renderDOM(this);
+    initRender(done) {
+        const doneChecker = new DoneChecker(done);
+        doneChecker.add(done => {
+            this.renderDOM(done);
+        });
 
         for (let i = 0, il = this[BRANCH_TREES].length; i < il; ++i) {
-            this[BRANCH_TREES][i].initRender();
+            /* eslint-disable no-loop-func */
+            doneChecker.add(done => {
+                this[BRANCH_TREES][i].initRender(done);
+            });
+            /* eslint-enable no-loop-func */
         }
+
+        doneChecker.complete();
     }
 
-    renderDOM() {
+    renderDOM(done) {
+        const doneChecker = new DoneChecker(done);
         if (this.isDark) {
+            doneChecker.complete();
             return;
         }
 
@@ -167,16 +186,24 @@ export default class IfDirectiveParser extends DirectiveParser {
             let branchTree = this[BRANCH_TREES][i];
             if (exprValue) {
                 hasShowBranch = true;
-                branchTree.restoreFromDark();
+                doneChecker.add(done => {
+                    branchTree.restoreFromDark(done);
+                });
             }
             else {
-                branchTree.goDark();
+                doneChecker.add(done => {
+                    branchTree.goDark(done);
+                });
             }
         }
 
         if (this[HAS_ELSE_BRANCH]) {
-            this[BRANCH_TREES][i][hasShowBranch ? 'goDark' : 'restoreFromDark']();
+            doneChecker.add(done => {
+                this[BRANCH_TREES][i][hasShowBranch ? 'goDark' : 'restoreFromDark'](done);
+            });
         }
+
+        doneChecker.complete();
     }
 
     getChildNodes() {
@@ -195,23 +222,43 @@ export default class IfDirectiveParser extends DirectiveParser {
     }
 
     // 转入隐藏状态
-    goDark() {
+    goDark(done) {
+        const doneChecker = new DoneChecker(done);
         if (this.isDark) {
+            doneChecker.complete();
             return;
         }
-        super.goDark();
-        this[BRANCH_TREES].forEach(tree => tree.goDark());
+        doneChecker.add(done => {
+            super.goDark(done);
+        });
+        this[BRANCH_TREES].forEach(tree => {
+            doneChecker.add(done => {
+                tree.goDark(done);
+            });
+        });
+        doneChecker.complete();
     }
 
     // 从隐藏状态恢复
-    restoreFromDark() {
+    restoreFromDark(done) {
+        const doneChecker = new DoneChecker(done);
         if (!this.isDark) {
+            doneChecker.complete();
             return;
         }
-        super.restoreFromDark();
-        this[BRANCH_TREES].forEach(tree => tree.restoreFromDark());
+        doneChecker.add(done => {
+            super.restoreFromDark(done);
+        });
+        this[BRANCH_TREES].forEach(tree => {
+            doneChecker.add(done => {
+                tree.restoreFromDark(done);
+            });
+        });
 
-        this.renderDOM();
+        doneChecker.add(done => {
+            this.renderDOM(done);
+        });
+        doneChecker.complete();
     }
 
     static isProperNode(node, config) {

@@ -13,7 +13,8 @@ import ScopeModel from '../ScopeModel';
 
 import Parser from './Parser';
 import Node from '../nodes/Node';
-import {line2camel, isExpr, isFunction} from '../utils';
+import {line2camel, isExpr} from '../utils';
+import DoneChecker from '../DoneChecker';
 // import log from '../log';
 
 const EXPRESION_UPDATE_FUNCTIONS = Symbol('expressionUpdateFunctions');
@@ -171,21 +172,17 @@ export default class ExprParser extends Parser {
     linkScope() {
         const exprWatcher = this.getExpressionWatcher();
         exprWatcher.on('change', (event, done) => {
+            const doneChecker = new DoneChecker(done);
             const updateFns = this[EXPRESION_UPDATE_FUNCTIONS][event.expr];
             // 此处并不会处理isDark为true的情况，因为Node那边处理了。
             if (updateFns && updateFns.length) {
-                let counter = 0;
                 updateFns.forEach(fn => {
-                    fn(event.newValue, () => {
-                        ++counter;
-
-                        // 在所有DOM更新都实际完成之后，给一个反馈。
-                        if (counter === updateFns.length && isFunction(done)) {
-                            done();
-                        }
+                    doneChecker.add(done => {
+                        fn(event.newValue, done);
                     });
                 });
             }
+            doneChecker.complete();
         });
     }
 
@@ -195,27 +192,25 @@ export default class ExprParser extends Parser {
      * @param {function()} done 初始化DOM完毕的回调函数
      */
     initRender(done) {
+        const doneChecker = new DoneChecker(done);
+
         const exprWatcher = this.getExpressionWatcher();
-        let total = 0;
-        let counter = 0;
         for (let expr in this[EXPRESION_UPDATE_FUNCTIONS]) {
             if (!this[EXPRESION_UPDATE_FUNCTIONS].hasOwnProperty(expr)) {
                 continue;
             }
 
             const fns = this[EXPRESION_UPDATE_FUNCTIONS][expr];
-            total += fns.length;
 
             fns.forEach(execute.bind(null, expr));
         }
+        doneChecker.complete();
 
         function execute(expr, fn) {
-            fn(exprWatcher.calculate(expr), () => {
-                ++counter;
-                if (total === counter && isFunction(done)) {
-                    done();
-                }
+            doneChecker.add(done => {
+                fn(exprWatcher.calculate(expr), done);
             });
+
         }
     }
 
@@ -234,36 +229,62 @@ export default class ExprParser extends Parser {
      * 节点“隐藏”起来
      *
      * @public
+     * @param {function()} done 完成异步操作的回调函数
      */
-    goDark() {
+    goDark(done) {
+        const doneChecker = new DoneChecker(done);
         if (this.isDark) {
+            // 保证一下异步
+            doneChecker.complete();
             return;
         }
 
-        super.goDark();
+        doneChecker.add(done => {
+            super.goDark(done);
+        });
 
         // hide前面故意保留一个空格，因为DOM中不可能出现节点的属性key第一个字符为空格的，
         // 避免了冲突。
         const taskId = this.getTaskId(' hide');
         const domUpdater = this.getDOMUpdater();
-        domUpdater.addTaskFn(taskId, () => this.startNode.hide());
+        doneChecker.add(done => {
+            domUpdater.addTaskFn(taskId, () => {
+                this.startNode.hide();
+                done();
+            });
+        });
+
+        doneChecker.complete();
     }
 
     /**
      * 节点“显示”出来
      *
      * @public
+     * @param {function()} done 完成异步操作的回调函数
      */
-    restoreFromDark() {
+    restoreFromDark(done) {
+        const doneChecker = new DoneChecker(done);
+
         if (!this.isDark) {
+            doneChecker.complete();
             return;
         }
 
-        super.restoreFromDark();
+        doneChecker.add(done => {
+            super.restoreFromDark(done);
+        });
 
         const taskId = this.getTaskId(' hide');
         const domUpdater = this.getDOMUpdater();
-        domUpdater.addTaskFn(taskId, () => this.startNode.show());
+        doneChecker.add(done => {
+            domUpdater.addTaskFn(taskId, () => {
+                this.startNode.show();
+                done();
+            });
+        });
+
+        doneChecker.complete();
     }
 
     /**
