@@ -5,8 +5,13 @@
 
 import Parser from './Parser';
 import Node from '../nodes/Node';
+import {nextTick} from '../utils';
 
 export default class DirectiveParser extends Parser {
+    initRender(done) {
+        nextTick(done);
+    }
+
     static isProperNode(node, config) {
         return node.getNodeType() === Node.COMMENT_NODE;
     }
