@@ -13,7 +13,7 @@ import ScopeModel from '../ScopeModel';
 
 import Parser from './Parser';
 import Node from '../nodes/Node';
-import {line2camel, isExpr} from '../utils';
+import {line2camel, isExpr, isFunction} from '../utils';
 // import log from '../log';
 
 const EXPRESION_UPDATE_FUNCTIONS = Symbol('expressionUpdateFunctions');
@@ -169,29 +169,53 @@ export default class ExprParser extends Parser {
      * @public
      */
     linkScope() {
-        let exprWatcher = this.getExpressionWatcher();
-        exprWatcher.on('change', event => {
-            let updateFns = this[EXPRESION_UPDATE_FUNCTIONS][event.expr];
+        const exprWatcher = this.getExpressionWatcher();
+        exprWatcher.on('change', (event, done) => {
+            const updateFns = this[EXPRESION_UPDATE_FUNCTIONS][event.expr];
             // 此处并不会处理isDark为true的情况，因为Node那边处理了。
             if (updateFns && updateFns.length) {
-                updateFns.forEach(fn => fn(event.newValue));
+                let counter = 0;
+                updateFns.forEach(fn => {
+                    fn(event.newValue, () => {
+                        ++counter;
+
+                        // 在所有DOM更新都实际完成之后，给一个反馈。
+                        if (counter === updateFns.length && isFunction(done)) {
+                            done();
+                        }
+                    });
+                });
             }
         });
     }
 
-    initRender() {
-        let exprWatcher = this.getExpressionWatcher();
+    /**
+     * 初始化渲染
+     *
+     * @param {function()} done 初始化DOM完毕的回调函数
+     */
+    initRender(done) {
+        const exprWatcher = this.getExpressionWatcher();
+        let total = 0;
+        let counter = 0;
         for (let expr in this[EXPRESION_UPDATE_FUNCTIONS]) {
             if (!this[EXPRESION_UPDATE_FUNCTIONS].hasOwnProperty(expr)) {
                 continue;
             }
 
             const fns = this[EXPRESION_UPDATE_FUNCTIONS][expr];
+            total += fns.length;
+
             fns.forEach(execute.bind(null, expr));
         }
 
         function execute(expr, fn) {
-            fn(exprWatcher.calculate(expr));
+            fn(exprWatcher.calculate(expr), () => {
+                ++counter;
+                if (total === counter && isFunction(done)) {
+                    done();
+                }
+            });
         }
     }
 

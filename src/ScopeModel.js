@@ -36,13 +36,13 @@ export default class ScopeModel extends Event {
         this.children = children;
     }
 
-    set(name, value, isSilent) {
+    set(name, value, isSilent, done) {
         let changeObj;
 
         if (isClass(name, 'String')) {
             changeObj = setProperty(this, name, value);
             if (changeObj && !isSilent) {
-                change(this, [changeObj]);
+                change(this, [changeObj], done);
             }
         }
         else if (type(name) === 'object') {
@@ -57,8 +57,10 @@ export default class ScopeModel extends Event {
                     changes.push(changeObj);
                 }
             }
+
             isSilent = value;
-            !isSilent && change(this, changes);
+            done = isSilent;
+            !isSilent && change(this, changes, done);
         }
     }
 
@@ -122,9 +124,10 @@ function setProperty(model, name, value) {
  *
  * @param {ScopeModel} rootModel model对象
  * @param {Array.<Object>} changes 值改变记录
+ * @param {function()} done 完成DOM更新操作后的回调
  */
-function change(rootModel, changes) {
-    let delayFns = getDelayFns(rootModel, 'change');
+function change(rootModel, changes, done) {
+    const delayFns = getDelayFns(rootModel, 'change');
     delayFns.forEach(fn => fn());
 
     function getDelayFns(model, eventName) {
@@ -134,14 +137,15 @@ function change(rootModel, changes) {
         let handlers = model.getEventHandlers(eventName);
         if (handlers && handlers.length) {
             handlers.forEach(handler => {
-                delayFns.push(() => {
+                delayFns.push(done => {
                     model.invokeEventHandler(
                         handler,
                         {
                             type: eventName,
                             model: rootModel,
                             changes: changes
-                        }
+                        },
+                        checkDone
                     );
                 });
             });
@@ -153,5 +157,13 @@ function change(rootModel, changes) {
         }
 
         return delayFns;
+    }
+
+    let counter = 0;
+    function checkDone() {
+        ++counter;
+        if (counter === delayFns.length && isFunction(done)) {
+            done();
+        }
     }
 }

@@ -116,7 +116,7 @@ export default class VTpl {
     }
 
     setData(...args) {
-        let scope = this[TREE].rootScope;
+        const scope = this[TREE].rootScope;
         scope.set.apply(scope, args);
     }
 

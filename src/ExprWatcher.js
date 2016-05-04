@@ -198,8 +198,9 @@ export default class ExprWatcher extends Event {
      *
      * @private
      * @param {Event} event 附带的一些参数
+     * @param {function()} done 完成检查更新的回调函数
      */
-    [CHECK](event) {
+    [CHECK](event, done) {
         const delayFns = [];
 
         for (let change of event.changes) {
@@ -219,13 +220,24 @@ export default class ExprWatcher extends Event {
             }
         }
 
+        let counter = 0;
         for (let fn of delayFns) {
-            fn();
+            fn(checkDone);
+        }
+
+        if (delayFns.length === 0 && isFunction(done)) {
+            done();
+        }
+
+        function checkDone() {
+            ++counter;
+            if (counter === delayFns.length && isFunction(done)) {
+                done();
+            }
         }
     }
 
-    // private
-    [COMPUTE](expr) {
+    [COMPUTE](expr, done) {
         let exprValue = this[EXPRS][expr]();
         let oldValue = this[EXPR_OLD_VALUES][expr];
 
@@ -233,7 +245,7 @@ export default class ExprWatcher extends Event {
         let clone = isFunction(this[EXPR_CLONE_FN][expr]) ? this[EXPR_CLONE_FN][expr] : this[DUMP].bind(this);
 
         if (!equals(expr, exprValue, oldValue)) {
-            this.trigger('change', {expr, newValue: exprValue, oldValue: oldValue});
+            this.trigger('change', {expr, newValue: exprValue, oldValue: oldValue}, done);
             this[EXPR_OLD_VALUES][expr] = clone(exprValue);
         }
     }
