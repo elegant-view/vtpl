@@ -5,6 +5,7 @@
 
 import {isClass, extend, type, isFunction} from './utils';
 import Event from './Event';
+import DoneChecker from './DoneChecker';
 
 export default class ScopeModel extends Event {
     constructor(...args) {
@@ -58,8 +59,8 @@ export default class ScopeModel extends Event {
                 }
             }
 
-            isSilent = value;
             done = isSilent;
+            isSilent = value;
             !isSilent && change(this, changes, done);
         }
     }
@@ -127,8 +128,14 @@ function setProperty(model, name, value) {
  * @param {function()} done 完成DOM更新操作后的回调
  */
 function change(rootModel, changes, done) {
+    const doneChecker = new DoneChecker(done);
     const delayFns = getDelayFns(rootModel, 'change');
-    delayFns.forEach(fn => fn());
+    delayFns.forEach(fn => {
+        doneChecker.add(done => {
+            fn(done);
+        });
+    });
+    doneChecker.complete();
 
     function getDelayFns(model, eventName) {
         let delayFns = [];
@@ -145,7 +152,7 @@ function change(rootModel, changes, done) {
                             model: rootModel,
                             changes: changes
                         },
-                        checkDone
+                        done
                     );
                 });
             });
@@ -157,13 +164,5 @@ function change(rootModel, changes, done) {
         }
 
         return delayFns;
-    }
-
-    let counter = 0;
-    function checkDone() {
-        ++counter;
-        if (counter === delayFns.length && isFunction(done)) {
-            done();
-        }
     }
 }

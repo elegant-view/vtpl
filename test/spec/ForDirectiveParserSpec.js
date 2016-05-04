@@ -20,21 +20,22 @@ describe('ForDirectiveParser', () => {
             {
                 name: 'yibuyisheng2'
             }
-        ]});
+        ]}, {
+            done() {
+                expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng1yibuyisheng2');
 
-        setTimeout(() => {
-            expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng1yibuyisheng2');
-
-            tpl.setData({students: [
-                {
-                    name: 'yibuyisheng3'
-                }
-            ]});
-            setTimeout(() => {
-                expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng3');
-                done();
-            }, 70);
-        }, 70);
+                tpl.setData({students: [
+                    {
+                        name: 'yibuyisheng3'
+                    }
+                ]}, {
+                    done() {
+                        expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng3');
+                        done();
+                    }
+                });
+            }
+        });
     });
 
     it('simple object', done => {
@@ -49,12 +50,13 @@ describe('ForDirectiveParser', () => {
                 age: 30,
                 company: 'Baidu'
             }
+        }, {
+            done() {
+                // TODO: 顺序可能不是这样的。。。。暂时写成这样
+                expect(node.textContent.replace(/\s*/g, '')).toBe('name-yibuyisheng,age-30,company-Baidu,');
+                done();
+            }
         });
-        setTimeout(() => {
-            // TODO: 顺序可能不是这样的。。。。暂时写成这样
-            expect(node.textContent.replace(/\s*/g, '')).toBe('name-yibuyisheng,age-30,company-Baidu,');
-            done();
-        }, 70);
     });
 
     it('nest', done => {
@@ -76,12 +78,13 @@ describe('ForDirectiveParser', () => {
                 age: 30,
                 company: 'Baidu'
             }]
+        }, {
+            done() {
+                // TODO: Object打印顺序问题
+                expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyishengname-yibuyishengage-30company-Baidu');
+                done();
+            }
         });
-        setTimeout(() => {
-            // TODO: Object打印顺序问题
-            expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyishengname-yibuyishengage-30company-Baidu');
-            done();
-        }, 70);
     });
 
     it('`for` and `if` nest', done => {
@@ -129,24 +132,26 @@ describe('ForDirectiveParser', () => {
                     age: 2
                 }
             ]
-        });
-        setTimeout(() => {
-            expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldyibuyisheng10yearsoldnotyibuyishengnotyibuyisheng2yearsold');
+        }, {
+            done() {
+                expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldyibuyisheng10yearsoldnotyibuyishengnotyibuyisheng2yearsold');
 
-            tpl.setData('students', [
-                {
-                    name: 'yibuyisheng',
-                    age: 18
-                },
-                {
-                    name: 'yibuyisheng1',
-                    age: 2
-                }
-            ]);
-            setTimeout(() => {
-                expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldnotyibuyisheng2yearsold');
-                done();
-            }, 70);
-        }, 70);
+                tpl.setData('students', [
+                    {
+                        name: 'yibuyisheng',
+                        age: 18
+                    },
+                    {
+                        name: 'yibuyisheng1',
+                        age: 2
+                    }
+                ], {
+                    done() {
+                        expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldnotyibuyisheng2yearsold');
+                        done();
+                    }
+                });
+            }
+        });
     });
 });

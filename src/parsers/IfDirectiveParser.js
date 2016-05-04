@@ -9,7 +9,6 @@
 import DirectiveParser from './DirectiveParser';
 import Node from '../nodes/Node';
 import Tree from '../trees/Tree';
-import {isFunction} from '../utils';
 import DoneChecker from '../DoneChecker';
 
 const EXPRESSIONS = Symbol('expressions');

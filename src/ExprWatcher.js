@@ -8,6 +8,7 @@ import Event from './Event';
 import clone from './clone';
 import deepEqual from './deepEqual';
 import Data from './Data';
+import DoneChecker from './DoneChecker';
 
 const SCOPE_MODEL = Symbol('scopeModel');
 const EXPR_CALCULATER = Symbol('exprCalculater');
@@ -162,28 +163,23 @@ export default class ExprWatcher extends Event {
      * @param {function()} done 异步操作完成时的回调函数
      */
     resume(done) {
+        const doneChecker = new DoneChecker(done);
+
         this.start();
 
-        let total = 0;
-        let counter = 0;
         // 强制刷新一下数据
         /* eslint-disable guard-for-in */
         for (let expr in this[EXPRS]) {
         /* eslint-enable guard-for-in */
-            this[COMPUTE](expr, checkDone);
-            ++total;
+
+            /* eslint-disable no-loop-func */
+            doneChecker.add(done => {
+                this[COMPUTE](expr, done);
+            });
+            /* eslint-enable no-loop-func */
         }
 
-        if (total === 0) {
-            nextTick(done);
-        }
-
-        function checkDone() {
-            ++counter;
-            if (counter === total && isFunction(done)) {
-                done();
-            }
-        }
+        doneChecker.complete();
     }
 
     /**
@@ -216,6 +212,7 @@ export default class ExprWatcher extends Event {
      * @param {function()} done 完成检查更新的回调函数
      */
     [CHECK](event, done) {
+        const doneChecker = new DoneChecker(done);
         const delayFns = [];
 
         for (let change of event.changes) {
@@ -235,21 +232,13 @@ export default class ExprWatcher extends Event {
             }
         }
 
-        let counter = 0;
         for (let fn of delayFns) {
-            fn(checkDone);
+            doneChecker.add(done => {
+                fn(done);
+            });
         }
 
-        if (delayFns.length === 0 && isFunction(done)) {
-            done();
-        }
-
-        function checkDone() {
-            ++counter;
-            if (counter === delayFns.length && isFunction(done)) {
-                done();
-            }
-        }
+        doneChecker.complete();
     }
 
     [COMPUTE](expr, done) {
@@ -262,6 +251,9 @@ export default class ExprWatcher extends Event {
         if (!equals(expr, exprValue, oldValue)) {
             this.trigger('change', {expr, newValue: exprValue, oldValue: oldValue}, done);
             this[EXPR_OLD_VALUES][expr] = clone(exprValue);
+        }
+        else {
+            nextTick(done);
         }
     }
 

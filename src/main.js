@@ -13,7 +13,7 @@ import HTMLExprParser from './parsers/HTMLExprParser';
 import Tree from './trees/Tree';
 import ExprCalculater from './ExprCalculater';
 import DomUpdater from './DomUpdater';
-import {extend, isSubClassOf} from './utils';
+import {extend, isSubClassOf, isClass} from './utils';
 import Config from './Config';
 import NodesManager from './nodes/NodesManager';
 import Parser from './parsers/Parser';
@@ -115,9 +115,16 @@ export default class VTpl {
         this[TREE].initRender();
     }
 
-    setData(...args) {
+    setData(name, value, options) {
         const scope = this[TREE].rootScope;
-        scope.set.apply(scope, args);
+        if (isClass(name, 'String')) {
+            options = options || {};
+            scope.set(name, value, options.isSilent, options.done);
+        }
+        else {
+            options = value || {};
+            scope.set(name, options.isSilent, options.done);
+        }
     }
 
     destroy() {

@@ -140,27 +140,48 @@ describe('IfDirectiveParser', () => {
         tpl.setData({
             type: 2,
             items: ['a', 'b']
-        });
-
-        setTimeout(() => {
-            expect(node.textContent).toBe('2ab');
-
-            tpl.setData({
-                items: ['a', 'b', 'c']
-            });
-            setTimeout(() => {
-                expect(node.textContent).toBe('2abc');
+        }, {
+            done() {
+                expect(node.textContent).toBe('2ab');
 
                 tpl.setData({
-                    type: 1
-                });
+                    items: ['a', 'b', 'c']
+                }, {
+                    done() {
+                        expect(node.textContent).toBe('2abc');
 
-                setTimeout(() => {
-                    expect(node.textContent).toBe('1abc');
-                    done();
-                }, 70);
-            }, 70);
-        }, 70);
+                        tpl.setData({
+                            type: 1
+                        }, {
+                            done() {
+                                expect(node.textContent).toBe('1abc');
+                                done();
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        // setTimeout(() => {
+        //     expect(node.textContent).toBe('2ab');
+        //
+        //     tpl.setData({
+        //         items: ['a', 'b', 'c']
+        //     });
+        //     setTimeout(() => {
+        //         expect(node.textContent).toBe('2abc');
+        //
+        //         tpl.setData({
+        //             type: 1
+        //         });
+        //
+        //         setTimeout(() => {
+        //             expect(node.textContent).toBe('1abc');
+        //             done();
+        //         }, 70);
+        //     }, 70);
+        // }, 70);
     });
 
     it('`if` end node', done => {

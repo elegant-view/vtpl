@@ -57,11 +57,12 @@ describe('ExprParser', () => {
         let tpl = new Vtpl({startNode: node, endNode: node});
         tpl.render();
 
-        tpl.setData('name', 'yibuyisheng');
-        setTimeout(() => {
-            expect(node.getAttribute('name')).toBe('yibuyisheng');
-            done();
-        }, 70);
+        tpl.setData('name', 'yibuyisheng', {
+            done() {
+                expect(node.getAttribute('name')).toBe('yibuyisheng');
+                done();
+            }
+        });
     });
 
     it('text node', done => {
@@ -70,11 +71,12 @@ describe('ExprParser', () => {
         let tpl = new Vtpl({startNode: node, endNode: node});
         tpl.render();
 
-        tpl.setData('name', 'yibuyisheng');
-        setTimeout(() => {
-            expect(node.nodeValue).toBe('yibuyisheng');
-            done();
-        }, 70);
+        tpl.setData('name', 'yibuyisheng', {
+            done() {
+                expect(node.nodeValue).toBe('yibuyisheng');
+                done();
+            }
+        });
     });
 
     it('#goDark()', done => {
@@ -83,31 +85,31 @@ describe('ExprParser', () => {
         let tpl = new Vtpl({startNode: node, endNode: node});
         tpl.render();
 
-        tpl.setData('name', 'yibuyisheng');
         node = tpl.nodesManager.getNode(node);
-        setTimeout(() => {
-            expect(node.getNodeValue()).toBe('yibuyisheng');
+        tpl.setData('name', 'yibuyisheng', {
+            done() {
+                expect(node.getNodeValue()).toBe('yibuyisheng');
 
-            tpl.tree.goDark();
-            setTimeout(() => {
-                tpl.setData('name', 'yibuyisheng2');
+                tpl.tree.goDark(() => {
+                    tpl.setData('name', 'yibuyisheng2', {
+                        done() {
+                            expect(node.getNodeValue()).toBe('');
 
-                setTimeout(() => {
-                    expect(node.getNodeValue()).toBe('');
-                    tpl.tree.restoreFromDark();
+                            tpl.tree.restoreFromDark(() => {
+                                expect(node.getNodeValue()).toBe('yibuyisheng2');
 
-                    setTimeout(() => {
-                        expect(node.getNodeValue()).toBe('yibuyisheng2');
-
-                        tpl.setData('name', 'yibuyisheng3');
-                        setTimeout(() => {
-                            expect(node.getNodeValue()).toBe('yibuyisheng3');
-                            done();
-                        }, 70);
-                    }, 70);
-                }, 70);
-            });
-        }, 70);
+                                tpl.setData('name', 'yibuyisheng3', {
+                                    done() {
+                                        expect(node.getNodeValue()).toBe('yibuyisheng3');
+                                        done();
+                                    }
+                                });
+                            });
+                        }
+                    });
+                });
+            }
+        });
     });
 
     it('refresh date', done => {
