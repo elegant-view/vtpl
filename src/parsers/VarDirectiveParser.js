@@ -18,14 +18,16 @@ export default class VarDirectiveParser extends DirectiveParser {
     }
 
     collectExprs() {
-        const nodeValue = this.startNode.getNodeValue();
+        let nodeValue = this.startNode.getNodeValue() || '';
+        // 去掉换行
+        nodeValue = nodeValue.replace(/\n/g, '');
         this[EXPRESSION] = `$\{${nodeValue.slice(nodeValue.indexOf('=', 0) + 1)}}`;
 
         const exprWatcher = this.getExpressionWatcher();
         exprWatcher.addExpr(this[EXPRESSION]);
 
         try {
-            this[LEFT_VALUE_NAME] = nodeValue.match(/var:\s*([\w\$]+)=/)[1];
+            this[LEFT_VALUE_NAME] = nodeValue.match(/var:\s*([\w\$]+)\s*=/)[1];
         }
         catch (e) {
             throw new Error(`wrong var expression ${this[LEFT_VALUE_NAME]}`);

@@ -81,7 +81,7 @@ export default class ExprWatcher extends Event {
      * @param {string} expr 表达式字符串，带有`${}`的
      */
     addExpr(expr) {
-        let {paramNameDependency, fn} = this[GENERATE_EXPRESSION_FUNCTION](expr);
+        const {paramNameDependency, fn} = this[GENERATE_EXPRESSION_FUNCTION](expr);
         this[ADD_PARAM_NAME_TO_EXPR_MAP](paramNameDependency, expr);
         this[EXPRS][expr] = () => fn(this[SCOPE_MODEL]);
     }
