@@ -128,15 +128,15 @@ export default class ExprCalculater {
             expr = 'klass';
         }
 
-        let fnObj = this[FNS][expr][avoidReturn];
+        const fnObj = this[FNS][expr][avoidReturn];
         if (!fnObj) {
             throw new Error('no such expression function created!');
         }
 
-        let fnArgs = [];
+        const fnArgs = [];
         for (let i = 0, il = fnObj.paramNames.length; i < il; i++) {
-            let param = fnObj.paramNames[i];
-            let value = scopeModel.get(param);
+            const param = fnObj.paramNames[i];
+            const value = scopeModel.get(param);
             fnArgs.push(value === undefined ? '' : value);
         }
 
@@ -149,8 +149,6 @@ export default class ExprCalculater {
                 result = fnObj.fn.apply(null, fnArgs);
             }
             catch (e) {
-                // 将表达式的错误打印出来，方便调试
-                log.info(e.stack, '\n', expr, scopeModel);
                 result = '';
             }
         }

@@ -161,6 +161,10 @@ export default class ExprParser extends Parser {
      * @param {*} value 要设置的值
      */
     setNodeValue(value) {
+        // 把假值全部转换成空字符串
+        if (!value) {
+            value = '';
+        }
         this.startNode.setNodeValue(value);
     }
 
