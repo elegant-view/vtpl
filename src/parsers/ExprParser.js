@@ -157,7 +157,7 @@ export default class ExprParser extends Parser {
     /**
      * 设置文本节点的“nodeValue”
      *
-     * @private
+     * @protected
      * @param {*} value 要设置的值
      */
     setNodeValue(value) {
@@ -193,6 +193,7 @@ export default class ExprParser extends Parser {
     /**
      * 初始化渲染
      *
+     * @public
      * @param {function()} done 初始化DOM完毕的回调函数
      */
     initRender(done) {
@@ -214,7 +215,6 @@ export default class ExprParser extends Parser {
             doneChecker.add(done => {
                 fn(exprWatcher.calculate(expr), done);
             });
-
         }
     }
 
