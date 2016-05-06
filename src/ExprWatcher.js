@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {isFunction, nextTick} from './utils';
+import {isFunction} from './utils';
 import Event from './Event';
 import clone from './clone';
 import deepEqual from './deepEqual';
@@ -253,7 +253,7 @@ export default class ExprWatcher extends Event {
             this[EXPR_OLD_VALUES][expr] = clone(exprValue);
         }
         else {
-            nextTick(done);
+            isFunction(done) && done();
         }
     }
 

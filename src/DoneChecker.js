@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {isFunction, nextTick, empty} from './utils';
+import {isFunction, empty} from './utils';
 
 const ASYN_FUNCTIONS = Symbol('asynFunctions');
 const TOTAL = Symbol('total');
@@ -14,6 +14,8 @@ const STATE = Symbol('state');
 const STATE_READY = Symbol('stateReady');
 const STATE_DONE = Symbol('stateDone');
 const STATE_COMPLETE = Symbol('stateComplete');
+
+const CHECK = Symbol('check');
 
 export default class DoneChecker {
     constructor(onDone) {
@@ -35,12 +37,18 @@ export default class DoneChecker {
         ++this[TOTAL];
         asynFn(() => {
             ++this[COUNTER];
-            if (this[COUNTER] === this[TOTAL]) {
-                // 一般情况下是因为没有调用complete方法
-                if (this[STATE] !== STATE_COMPLETE) {
-                    throw new Error('wrong state');
-                }
 
+            if (this[STATE] === STATE_DONE) {
+                throw new Error('wrong state');
+            }
+
+            // 如果还没调用complete方法，那么就不要检查了。
+            // 只有回调是同步的情况，才会进入到这个分支
+            if (this[STATE] === STATE_READY) {
+                return;
+            }
+
+            if (this[COUNTER] === this[TOTAL]) {
                 this[STATE] = STATE_DONE;
                 this[ON_DONE]();
             }
@@ -54,11 +62,9 @@ export default class DoneChecker {
         }
 
         this[STATE] = STATE_COMPLETE;
-        if (this[TOTAL] === 0) {
-            nextTick(() => {
-                this[STATE] = this[STATE_DONE];
-                this[ON_DONE]();
-            });
+        if (this[TOTAL] === 0 || this[TOTAL] === this[COUNTER]) {
+            this[STATE] = this[STATE_DONE];
+            this[ON_DONE]();
         }
     }
 }
