@@ -11,6 +11,9 @@ const STORE = Symbol('store');
 const PARENT = Symbol('parent');
 const CHILDREN = Symbol('children');
 
+const SET_PROPERTY = Symbol('setProperty');
+const CHANGE = Symbol('change');
+
 export default class ScopeModel extends Event {
     constructor(...args) {
         super(...args);
@@ -20,44 +23,36 @@ export default class ScopeModel extends Event {
         this[CHILDREN] = [];
     }
 
-    setParent(parent) {
-        if (parent && !(parent instanceof ScopeModel)) {
-            throw new TypeError('wrong scope parent');
-        }
-        this[PARENT] = parent;
-    }
-
-    addChild(child) {
-        this[CHILDREN].push(child);
-    }
-
-    removeChild(child) {
-        const children = [];
-        for (let i = 0, il = this[CHILDREN].length; i < il; ++i) {
-            if (this[CHILDREN][i] !== child) {
-                children.push(this[CHILDREN][i]);
-            }
-        }
-        this[CHILDREN] = children;
+    /**
+     * 创建子scope
+     *
+     * @public
+     * @return {ScopeModel}
+     */
+    createChild() {
+        const scopeModel = new ScopeModel();
+        scopeModel[PARENT] = this;
+        this[CHILDREN].push(scopeModel);
+        return scopeModel;
     }
 
     set(name, value, isSilent, done) {
         let changeObj;
 
         if (isClass(name, 'String')) {
-            changeObj = setProperty(this, name, value);
+            changeObj = this[SET_PROPERTY](name, value);
             if (changeObj && !isSilent) {
-                change(this, [changeObj], done);
+                this[CHANGE](this, [changeObj], done);
             }
         }
         else if (type(name) === 'object') {
-            let changes = [];
+            const changes = [];
             for (let key in name) {
                 if (!name.hasOwnProperty(key)) {
                     continue;
                 }
 
-                changeObj = setProperty(this, key, name[key]);
+                changeObj = this[SET_PROPERTY](key, name[key]);
                 if (changeObj) {
                     changes.push(changeObj);
                 }
@@ -65,7 +60,7 @@ export default class ScopeModel extends Event {
 
             done = isSilent;
             isSilent = value;
-            !isSilent && change(this, changes, done);
+            !isSilent && this[CHANGE](this, changes, done);
         }
     }
 
@@ -84,6 +79,13 @@ export default class ScopeModel extends Event {
         }
     }
 
+    /**
+     * 迭代存储的数据
+     *
+     * @public
+     * @param  {Function} fn      迭代回调函数
+     * @param  {*}   context 回调函数上下文
+     */
     iterate(fn, context) {
         if (!isFunction(fn)) {
             return;
@@ -96,77 +98,70 @@ export default class ScopeModel extends Event {
         /* eslint-enable guard-for-in */
     }
 
+    /**
+     * 销毁
+     *
+     * @public
+     */
     destroy() {
         super.destroy();
+
+        for (let child of this[CHILDREN]) {
+            child.destroy();
+        }
+
+        if (this[PARENT]) {
+            // 将自己从parent里面移除
+            const parentScope = this[PARENT];
+            const children = [];
+            for (let child of parentScope[CHILDREN]) {
+                if (this !== child) {
+                    children.push(child);
+                }
+            }
+            parentScope[CHILDREN] = children;
+            this[PARENT] = null;
+        }
     }
-}
 
-/**
- * 设置单个属性值
- *
- * @param {ScopeModel} model 作为容器的Model对象
- * @param {string} name 属性名
- * @param {Mixed} value 对应的值
- * @return {meta.ChangeRecord} 一个变化记录项
- * @ignore
- */
-function setProperty(model, name, value) {
-    let type = model[STORE].hasOwnProperty(name) ? 'change' : 'add';
-    let oldValue = model[STORE][name];
-    model[STORE][name] = value;
+    /**
+     * 设置单个属性值
+     *
+     * @private
+     * @param {string} name 属性名
+     * @param {Mixed} value 对应的值
+     * @return {meta.ChangeRecord} 一个变化记录项
+     */
+    [SET_PROPERTY](name, value) {
+        const type = this[STORE].hasOwnProperty(name) ? 'change' : 'add';
+        const oldValue = this[STORE][name];
+        this[STORE][name] = value;
 
-    // 只是粗略记录一下set了啥
-    return {
-        type: type,
-        name: name,
-        oldValue: oldValue,
-        newValue: value
-    };
-}
+        // 只是粗略记录一下set了啥
+        return {
+            type,
+            name,
+            oldValue: oldValue,
+            newValue: value
+        };
+    }
 
-/**
- * 自己触发的change事件，就要负责到底，即通知所有的子孙scope。
- *
- * @param {ScopeModel} rootModel model对象
- * @param {Array.<Object>} changes 值改变记录
- * @param {function()} done 完成DOM更新操作后的回调
- */
-function change(rootModel, changes, done) {
-    const doneChecker = new DoneChecker(done);
-    const delayFns = getDelayFns(rootModel, 'change');
-    delayFns.forEach(fn => {
-        doneChecker.add(done => {
-            fn(done);
-        });
-    });
-    doneChecker.complete();
-
-    function getDelayFns(model, eventName) {
-        let delayFns = [];
-
-        // 直接锁定model的所有事件回调函数，防止前面的事件回调函数污染回调函数队列。
-        let handlers = model.getEventHandlers(eventName);
-        if (handlers && handlers.length) {
-            handlers.forEach(handler => {
-                delayFns.push(done => {
-                    model.invokeEventHandler(
-                        handler,
-                        {
-                            type: eventName,
-                            model: rootModel,
-                            changes: changes
-                        },
-                        done
-                    );
-                });
-            });
+    /**
+     * 自己触发的change事件，就要负责到底，即通知所有的子孙scope。
+     *
+     * @param {Array.<Object>} changes 值改变记录
+     * @param {function()} done 完成DOM更新操作后的回调
+     */
+    [CHANGE](changes, done) {
+        const doneChecker = new DoneChecker(done);
+        doneChecker.add(trigger.bind(null, 'change', this, changes));
+        for (let child of this[CHILDREN]) {
+            doneChecker.add(trigger.bind(null, 'parentchange', child, changes));
         }
+        doneChecker.complete();
 
-        // 遍历子孙model
-        for (let i = 0, il = model[CHILDREN].length; i < il; ++i) {
-            delayFns.push.apply(delayFns, getDelayFns(model[CHILDREN][i], 'parentchange'));
+        function trigger(eventName, model, changes, done) {
+            model.trigger(eventName, {eventName, model, changes}, done);
         }
-
-        return delayFns;
     }
 }
