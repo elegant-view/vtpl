@@ -7,34 +7,38 @@ import {isClass, extend, type, isFunction} from './utils';
 import Event from './Event';
 import DoneChecker from './DoneChecker';
 
+const STORE = Symbol('store');
+const PARENT = Symbol('parent');
+const CHILDREN = Symbol('children');
+
 export default class ScopeModel extends Event {
     constructor(...args) {
         super(...args);
 
-        this.store = {};
-        this.parent = null;
-        this.children = [];
+        this[STORE] = {};
+        this[PARENT] = null;
+        this[CHILDREN] = [];
     }
 
     setParent(parent) {
         if (parent && !(parent instanceof ScopeModel)) {
             throw new TypeError('wrong scope parent');
         }
-        this.parent = parent;
+        this[PARENT] = parent;
     }
 
     addChild(child) {
-        this.children.push(child);
+        this[CHILDREN].push(child);
     }
 
     removeChild(child) {
-        let children = [];
-        for (let i = 0, il = this.children.length; i < il; ++i) {
-            if (this.children[i] !== child) {
-                children.push(this.children[i]);
+        const children = [];
+        for (let i = 0, il = this[CHILDREN].length; i < il; ++i) {
+            if (this[CHILDREN][i] !== child) {
+                children.push(this[CHILDREN][i]);
             }
         }
-        this.children = children;
+        this[CHILDREN] = children;
     }
 
     set(name, value, isSilent, done) {
@@ -68,15 +72,15 @@ export default class ScopeModel extends Event {
     get(...args) {
         let [name] = args;
         if (args.length > 1 || name === undefined) {
-            return extend({}, this.store);
+            return extend({}, this[STORE]);
         }
 
-        if (name in this.store) {
-            return this.store[name];
+        if (name in this[STORE]) {
+            return this[STORE][name];
         }
 
-        if (this.parent) {
-            return this.parent.get(name);
+        if (this[PARENT]) {
+            return this[PARENT].get(name);
         }
     }
 
@@ -86,8 +90,8 @@ export default class ScopeModel extends Event {
         }
 
         /* eslint-disable guard-for-in */
-        for (let key in this.store) {
-            fn.call(context, this.store[key], key);
+        for (let key in this[STORE]) {
+            fn.call(context, this[STORE][key], key);
         }
         /* eslint-enable guard-for-in */
     }
@@ -107,9 +111,9 @@ export default class ScopeModel extends Event {
  * @ignore
  */
 function setProperty(model, name, value) {
-    let type = model.store.hasOwnProperty(name) ? 'change' : 'add';
-    let oldValue = model.store[name];
-    model.store[name] = value;
+    let type = model[STORE].hasOwnProperty(name) ? 'change' : 'add';
+    let oldValue = model[STORE][name];
+    model[STORE][name] = value;
 
     // 只是粗略记录一下set了啥
     return {
@@ -159,8 +163,8 @@ function change(rootModel, changes, done) {
         }
 
         // 遍历子孙model
-        for (let i = 0, il = model.children.length; i < il; ++i) {
-            delayFns.push.apply(delayFns, getDelayFns(model.children[i], 'parentchange'));
+        for (let i = 0, il = model[CHILDREN].length; i < il; ++i) {
+            delayFns.push.apply(delayFns, getDelayFns(model[CHILDREN][i], 'parentchange'));
         }
 
         return delayFns;
