@@ -61,9 +61,9 @@ export default class ForDirectiveParser extends DirectiveParser {
     }
 
     linkScope() {
-        let exprWatcher = this.getExpressionWatcher();
+        const exprWatcher = this.getExpressionWatcher();
         exprWatcher.on('change', (event, done) => {
-            const doneChecker = new DoneChecker();
+            const doneChecker = new DoneChecker(done);
             if (!this.isDark && event.expr === this[LIST_EXPRESSION]) {
                 doneChecker.add(done => {
                     this[UPDATE_FUNCTION](event.newValue, done);
@@ -74,7 +74,7 @@ export default class ForDirectiveParser extends DirectiveParser {
     }
 
     initRender(done) {
-        let exprWatcher = this.getExpressionWatcher();
+        const exprWatcher = this.getExpressionWatcher();
         this[UPDATE_FUNCTION](exprWatcher.calculate(this[LIST_EXPRESSION]), done);
     }
 
@@ -157,8 +157,8 @@ export default class ForDirectiveParser extends DirectiveParser {
         doneChecker.complete();
     }
 
-    restoreFromDark() {
-        const doneChecker = new DoneChecker();
+    restoreFromDark(done) {
+        const doneChecker = new DoneChecker(done);
         if (!this.isDark) {
             doneChecker.complete();
             return;

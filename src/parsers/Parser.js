@@ -247,7 +247,6 @@ export default class Parser extends Base {
     createTree(parentTree, startNode, endNode) {
         const tree = Tree.createTree({startNode, endNode});
         tree.setParent(parentTree);
-        tree.rootScope.setParent(parentTree.rootScope);
         parentTree.rootScope.addChild(tree.rootScope);
         return tree;
     }
@@ -261,7 +260,6 @@ export default class Parser extends Base {
     removeTree(tree) {
         const treeScope = tree.rootScope;
         tree.destroy();
-        treeScope.setParent(null);
         this.tree.rootScope.removeChild(treeScope);
         tree.setParent(null);
     }

@@ -4,8 +4,11 @@
  */
 
 import {isClass, isFunction} from './utils';
+import DoneChecker from './DoneChecker';
 
 const EVENTS = Symbol('events');
+
+function empty() {}
 
 export default class Event {
     constructor() {
@@ -23,17 +26,35 @@ export default class Event {
     }
 
     trigger(eventName, ...args) {
+        let doneFn = args[args.length - 1];
+        doneFn = isFunction(doneFn) ? doneFn : empty;
+
+        const doneChecker = new DoneChecker(doneFn);
         // 已经被销毁掉了，不再触发事件
         if (!this[EVENTS]) {
+            doneChecker.complete();
             return;
         }
 
         let fnObjs = this[EVENTS][eventName];
         if (fnObjs && fnObjs.length) {
+            let handlerArgs;
+            if (doneFn === empty) {
+                handlerArgs = args;
+            }
+            else {
+                handlerArgs = args.slice(0, -1);
+            }
             // 这个地方现在不处理事件回调队列污染的问题了，
             // 因为对于本库来说，收效甚微，同时可以在另外的地方解决掉由此带来的bug
-            fnObjs.forEach(fnObj => this.invokeEventHandler(fnObj, ...args));
+            fnObjs.forEach(fnObj => {
+                doneChecker.add(done => {
+                    this.invokeEventHandler(fnObj, ...handlerArgs.concat(done));
+                });
+            });
         }
+
+        doneChecker.complete();
     }
 
     invokeEventHandler(handler, ...args) {

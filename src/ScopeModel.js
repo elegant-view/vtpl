@@ -14,6 +14,8 @@ const CHILDREN = Symbol('children');
 const SET_PROPERTY = Symbol('setProperty');
 const CHANGE = Symbol('change');
 
+const BROADCAST = Symbol('broadcast');
+
 export default class ScopeModel extends Event {
     constructor(...args) {
         super(...args);
@@ -31,9 +33,24 @@ export default class ScopeModel extends Event {
      */
     createChild() {
         const scopeModel = new ScopeModel();
-        scopeModel[PARENT] = this;
-        this[CHILDREN].push(scopeModel);
+        this.addChild(scopeModel);
         return scopeModel;
+    }
+
+    addChild(childModel) {
+        childModel[PARENT] = this;
+        this[CHILDREN].push(childModel);
+    }
+
+    removeChild(childModel) {
+        childModel[PARENT] = null;
+        const newChildren = [];
+        for (let i = 0, il = this[CHILDREN].length; i < il; ++i) {
+            if (this[CHILDREN][i] !== childModel) {
+                newChildren.push(this[CHILDREN][i]);
+            }
+        }
+        this[CHILDREN] = newChildren;
     }
 
     set(name, value, isSilent, done) {
@@ -42,7 +59,7 @@ export default class ScopeModel extends Event {
         if (isClass(name, 'String')) {
             changeObj = this[SET_PROPERTY](name, value);
             if (changeObj && !isSilent) {
-                this[CHANGE](this, [changeObj], done);
+                this[CHANGE]([changeObj], done);
             }
         }
         else if (type(name) === 'object') {
@@ -60,7 +77,7 @@ export default class ScopeModel extends Event {
 
             done = isSilent;
             isSilent = value;
-            !isSilent && this[CHANGE](this, changes, done);
+            !isSilent && this[CHANGE](changes, done);
         }
     }
 
@@ -154,14 +171,19 @@ export default class ScopeModel extends Event {
      */
     [CHANGE](changes, done) {
         const doneChecker = new DoneChecker(done);
-        doneChecker.add(trigger.bind(null, 'change', this, changes));
-        for (let child of this[CHILDREN]) {
-            doneChecker.add(trigger.bind(null, 'parentchange', child, changes));
+        doneChecker.add(this.trigger.bind(this, 'change', {type: 'change', model: this, changes}));
+        doneChecker.add(this[BROADCAST].bind(this, this, {type: 'parentchange', model: this, changes}));
+        doneChecker.complete();
+    }
+
+    [BROADCAST](parentModel, event, done) {
+        const doneChecker = new DoneChecker(done);
+        for (let i = 0, il = parentModel[CHILDREN].length; i < il; ++i) {
+            const childModel = parentModel[CHILDREN][i];
+            doneChecker.add(childModel.trigger.bind(childModel, 'parentchange', event));
+
+            doneChecker.add(this[BROADCAST].bind(this, childModel, event));
         }
         doneChecker.complete();
-
-        function trigger(eventName, model, changes, done) {
-            model.trigger(eventName, {eventName, model, changes}, done);
-        }
     }
 }

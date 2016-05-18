@@ -1,22 +1,20 @@
+/**
+ * @file ScopeModelSpec
+ * @author yibuyisheng(yibuyisheng@163.com)
+ */
+
 import ScopeModel from 'vtpl/src/ScopeModel';
 
 describe('ScopeModel', () => {
     it('change event broadcast', () => {
-        let l1 = new ScopeModel();
+        const l1 = new ScopeModel();
         l1.___ = 'l1';
-        let l2 = new ScopeModel();
+        const l2 = l1.createChild();
         l2.___ = 'l2';
-        let l3 = new ScopeModel();
+        const l3 = l2.createChild();
         l3.___ = 'l3';
-        let l4 = new ScopeModel();
+        const l4 = l3.createChild();
         l4.___ = 'l4';
-
-        l1.addChild(l2);
-        l2.addChild(l3);
-        l3.addChild(l4);
-        l4.setParent(l3);
-        l3.setParent(l2);
-        l2.setParent(l1);
 
         let triggerCounter = 0;
         l1.on('change', event => {

@@ -233,9 +233,7 @@ export default class ExprWatcher extends Event {
         }
 
         for (let fn of delayFns) {
-            doneChecker.add(done => {
-                fn(done);
-            });
+            doneChecker.add(fn);
         }
 
         doneChecker.complete();

@@ -57,10 +57,8 @@ export default class ExprParser extends Parser {
                 updateFns.push((exprValue, callback) => {
                     domUpdater.addTaskFn(
                         this.getTaskId('nodeValue'),
-                        () => {
-                            this.setAttr('nodeValue', exprValue);
-                            callback && callback();
-                        }
+                        () => this.setAttr('nodeValue', exprValue),
+                        callback
                     );
                 });
                 this[EXPRESION_UPDATE_FUNCTIONS][nodeValue] = updateFns;
@@ -99,10 +97,11 @@ export default class ExprParser extends Parser {
         }
 
         function updateAttr(taskId, attrName, exprValue, callback) {
-            domUpdater.addTaskFn(taskId, () => {
-                this.setAttr(attrName, exprValue);
-                callback && callback();
-            });
+            domUpdater.addTaskFn(
+                taskId,
+                () => this.setAttr(attrName, exprValue),
+                callback
+            );
         }
     }
 
@@ -252,10 +251,11 @@ export default class ExprParser extends Parser {
         const taskId = this.getTaskId(' hide');
         const domUpdater = this.getDOMUpdater();
         doneChecker.add(done => {
-            domUpdater.addTaskFn(taskId, () => {
-                this.startNode.hide();
-                done();
-            });
+            domUpdater.addTaskFn(
+                taskId,
+                () => this.startNode.hide(),
+                done
+            );
         });
 
         doneChecker.complete();
@@ -282,10 +282,11 @@ export default class ExprParser extends Parser {
         const taskId = this.getTaskId(' hide');
         const domUpdater = this.getDOMUpdater();
         doneChecker.add(done => {
-            domUpdater.addTaskFn(taskId, () => {
-                this.startNode.show();
-                done();
-            });
+            domUpdater.addTaskFn(
+                taskId,
+                ::this.startNode.show,
+                done
+            );
         });
 
         doneChecker.complete();

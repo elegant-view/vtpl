@@ -112,7 +112,6 @@ export default class IfDirectiveParser extends DirectiveParser {
                 branchTree.compile();
 
                 this.getScope().addChild(branchTree.rootScope);
-                branchTree.rootScope.setParent(this.getScope());
             }
         }
     }
@@ -175,8 +174,8 @@ export default class IfDirectiveParser extends DirectiveParser {
             return;
         }
 
-        let exprWatcher = this.getExpressionWatcher();
-        let exprs = this[EXPRESSIONS];
+        const exprWatcher = this.getExpressionWatcher();
+        const exprs = this[EXPRESSIONS];
         let hasShowBranch = false;
         let i = 0;
         for (let il = exprs.length; i < il; ++i) {

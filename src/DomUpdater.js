@@ -10,6 +10,7 @@ const COUNTER = Symbol('counter');
 const NODE_ATTR_NAME_TASK_ID_MAP = Symbol('nodeAttrNameTaskIdMap');
 const IS_EXECUTING = Symbol('isExecuting');
 const REQUEST_ANIMATION_FRAME = Symbol('requestAnimationFrame');
+const EXECUTE = Symbol('execute');
 
 export default class DomUpdater {
     constructor() {
@@ -68,10 +69,17 @@ export default class DomUpdater {
      * @param {function(Error, *)=} callback 执行结果的回调函数
      */
     addTaskFn(taskId, taskFn, callback) {
+        const preTask = this[TASKS][taskId];
+        const notifyFn = () => {
+            preTask && preTask.notifyFn();
+            (callback || empty)();
+        };
         this[TASKS][taskId] = {
             fn: taskFn,
-            notifyFn: callback || empty
+            notifyFn
         };
+
+        this[EXECUTE]();
     }
 
     /**
@@ -105,34 +113,31 @@ export default class DomUpdater {
         }
 
         this[IS_EXECUTING] = true;
-        execute.call(this);
+        this[EXECUTE]();
+    }
 
-        function execute() {
-            this[REQUEST_ANIMATION_FRAME](() => {
-                if (!this[IS_EXECUTING]) {
-                    return;
-                }
+    [EXECUTE]() {
+        if (!this[IS_EXECUTING]) {
+            return;
+        }
 
-                /* eslint-disable guard-for-in */
-                for (let taskId in this[TASKS]) {
-                /* eslint-enable guard-for-in */
-                    let task = this[TASKS][taskId];
-                    if (!task) {
-                        continue;
-                    }
+        /* eslint-disable guard-for-in */
+        for (let taskId in this[TASKS]) {
+        /* eslint-enable guard-for-in */
+            let task = this[TASKS][taskId];
+            if (!task) {
+                continue;
+            }
 
-                    try {
-                        task.notifyFn(null, task.fn());
-                    }
-                    catch (error) {
-                        task.notifyFn(error);
-                    }
-                    if (this[TASKS]) {
-                        this[TASKS][taskId] = null;
-                    }
-                }
-                execute.call(this);
-            });
+            try {
+                task.notifyFn(null, task.fn());
+            }
+            catch (error) {
+                task.notifyFn(error);
+            }
+            if (this[TASKS]) {
+                this[TASKS][taskId] = null;
+            }
         }
     }
 }

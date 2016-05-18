@@ -54,4 +54,32 @@ describe('ExprWather', () => {
         array.push(1);
         scopeModel.set('array', array);
     });
+
+    it('callback success', complete => {
+        watcher.addExpr('${name}');
+
+        watcher.on('change', (event, done) => {
+            done();
+        });
+
+        scopeModel.set('name', 'yibuyisheng', false, () => {
+            expect(true).toBe(true);
+            complete();
+        });
+    });
+
+    it('callback fail', complete => {
+        watcher.addExpr('${name}');
+
+        watcher.on('change', (event, done) => {
+            // done();
+        });
+
+        scopeModel.set('name', 'yibuyisheng', false, () => {
+            complete(new Error('error'));
+        });
+
+        expect(true).toBe(true);
+        complete();
+    });
 });

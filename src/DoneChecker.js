@@ -15,8 +15,6 @@ const STATE_READY = Symbol('stateReady');
 const STATE_DONE = Symbol('stateDone');
 const STATE_COMPLETE = Symbol('stateComplete');
 
-const CHECK = Symbol('check');
-
 export default class DoneChecker {
     constructor(onDone) {
         this[ASYN_FUNCTIONS] = [];
@@ -35,6 +33,7 @@ export default class DoneChecker {
             return;
         }
         ++this[TOTAL];
+        this[ASYN_FUNCTIONS].push(asynFn);
         asynFn(() => {
             ++this[COUNTER];
 
@@ -63,7 +62,7 @@ export default class DoneChecker {
 
         this[STATE] = STATE_COMPLETE;
         if (this[TOTAL] === 0 || this[TOTAL] === this[COUNTER]) {
-            this[STATE] = this[STATE_DONE];
+            this[STATE] = STATE_DONE;
             this[ON_DONE]();
         }
     }
