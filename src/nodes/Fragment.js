@@ -12,22 +12,52 @@ export default class Fragment {
         this.$$fragment = this.$$manager.createElement('div');
     }
 
+    /**
+     * 追加子节点
+     *
+     * @public
+     * @param  {WrapNode} node 要追加的节点
+     */
     appendChild(node) {
         this.$$fragment.appendChild(node);
     }
 
+    /**
+     * 获取所有子节点
+     *
+     * @public
+     * @return {Array.<WrapNode>}
+     */
     getChildNodes() {
         return this.$$fragment.getChildNodes();
     }
 
+    /**
+     * 获取第一个子节点
+     *
+     * @public
+     * @return {WrapNode}
+     */
     getFirstChild() {
         return this.$$fragment.getFirstChild();
     }
 
+    /**
+     * 获取最后一个子节点
+     *
+     * @public
+     * @return {WrapNode}
+     */
     getLastChild() {
         return this.$$fragment.getLastChild();
     }
 
+    /**
+     * 设置内部html。此处会使用浏览器自带的xml解析器去解析html字符串，所以传入的html字符串必须要符合xml语法。
+     *
+     * @public
+     * @param {string} html html字符串
+     */
     setInnerHTML(html) {
         let xmlDoc;
         if (window.DOMParser) {
@@ -91,6 +121,12 @@ export default class Fragment {
         }
     }
 
+    /**
+     * 获取innerHTML
+     *
+     * @public
+     * @return {string}
+     */
     getInnerHTML() {
         return this.$$fragment.getInnerHTML();
     }
