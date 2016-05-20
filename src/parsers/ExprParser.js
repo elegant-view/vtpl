@@ -130,10 +130,10 @@ export default class ExprParser extends Parser {
             const exprCalculater = this.getExpressionCalculater();
             exprCalculater.createExprFn(attrValue, true);
 
-            const localScope = new ScopeModel();
-            localScope.setParent(this.getScope());
+            const localScope = this.getScope().createChild();
             localScope.set('event', event);
             exprCalculater.calculate(attrValue, true, localScope, true);
+            localScope.destroy();
         });
     }
 

@@ -137,7 +137,7 @@ export default class ExprCalculater {
         for (let i = 0, il = fnObj.paramNames.length; i < il; i++) {
             const param = fnObj.paramNames[i];
             const value = scopeModel.get(param);
-            fnArgs.push(value === undefined ? '' : value);
+            fnArgs.push(value);
         }
 
         let result;
@@ -149,7 +149,7 @@ export default class ExprCalculater {
                 result = fnObj.fn.apply(null, fnArgs);
             }
             catch (e) {
-                result = '';
+                result = undefined;
             }
         }
 

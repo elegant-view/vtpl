@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {isClass, extend, type, isFunction} from './utils';
+import {isClass, extend, isFunction} from './utils';
 import Event from './Event';
 import DoneChecker from './DoneChecker';
 
@@ -17,8 +17,8 @@ const CHANGE = Symbol('change');
 const BROADCAST = Symbol('broadcast');
 
 export default class ScopeModel extends Event {
-    constructor(...args) {
-        super(...args);
+    constructor() {
+        super();
 
         this[STORE] = {};
         this[PARENT] = null;
@@ -62,7 +62,7 @@ export default class ScopeModel extends Event {
                 this[CHANGE]([changeObj], done);
             }
         }
-        else if (type(name) === 'object') {
+        else if (typeof name === 'object') {
             const changes = [];
             for (let key in name) {
                 if (!name.hasOwnProperty(key)) {

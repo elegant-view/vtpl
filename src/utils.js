@@ -4,12 +4,12 @@
  */
 
 /**
- * 超级简单的 extend ，因为本库对 extend 没那高的要求，
+ * 超级简单的extend，因为本库对extend没那高的要求，
  * 等到有要求的时候再完善。
  *
- * @param  {Object} target 目标对象
- * @param  {...<Object>} srcs 源对象数组
- * @return {Object}        最终合并后的对象
+ * @param  {object} target 目标对象
+ * @param  {...<object>} srcs 源对象数组
+ * @return {object}        最终合并后的对象
  */
 export function extend(target, ...srcs) {
     for (let i = 0, il = srcs.length; i < il; i++) {
@@ -129,10 +129,6 @@ export function distinctArr(arr, hashFn) {
 
 export function regExpEncode(str) {
     return '\\' + str.split('').join('\\');
-}
-
-export function type(obj) {
-    return typeof obj;
 }
 
 export function empty() {}

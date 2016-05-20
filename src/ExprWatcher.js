@@ -281,14 +281,14 @@ export default class ExprWatcher extends Event {
      * @return {*} 预处理结果
      */
     [CONVERT_EXPRESSION_RESULT](result) {
-        if (result === undefined
-            || result === null
-            /* eslint-disable no-self-compare */
-            || result !== result // 是NaN
-            /* eslint-enable no-self-compare */
-        ) {
-            return '';
-        }
+        // if (result === undefined
+        //     || result === null
+        //     /* eslint-disable no-self-compare */
+        //     || result !== result // 是NaN
+        //     /* eslint-enable no-self-compare */
+        // ) {
+        //     return '';
+        // }
 
         return result;
     }
