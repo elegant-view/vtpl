@@ -1,7 +1,7 @@
 /**
  * @file 实现一套本库需要的节点类，将所有直接操作DOM的代码都封装在这里。
- *       如无特别说明，以`$`符号开头的成员变量是受保护的，以`$$`符号开头的成员变量是私有的。
  * @author yibuyisheng(yibuyisheng@163.com)
+ * @flow
  */
 import {
     isFunction,
@@ -13,135 +13,270 @@ import {
 } from '../utils';
 import Event from '../Event';
 
-export default class Node {
+const NODE = Symbol('node');
+const MANAGER = Symbol('manager');
+const EVENT = Symbol('event');
+const NODE_EVENT_FUNCTIONS = Symbol('nodeEventFunctions');
+const IS_DARK = Symbol('isDark');
+const COMMENT_NODE = Symbol('commentNode');
+const NODE_VALUE = Symbol('nodeValue');
 
+export default class WrapNode {
     constructor(node, manager) {
-        this.$node = node;
-        this.$manager = manager;
+        this[NODE] = node;
+        this[MANAGER] = manager;
 
-        this.$event = new Event();
-        this.$nodeEventFns = {};
+        this[EVENT] = new Event();
+        this[NODE_EVENT_FUNCTIONS] = {};
 
-        this.$$isGoDark = false;
+        this[IS_DARK] = false;
+        this[COMMENT_NODE] = null;
+        this[NODE_VALUE] = null;
     }
 
+    /**
+     * 获取节点类型
+     *
+     * @public
+     * @return {number} 指代节点类型的数值
+     */
     getNodeType() {
-        return this.$node.nodeType;
+        return this[NODE].nodeType;
     }
 
+    /**
+     * 获取所有子节点的一个快照
+     *
+     * @public
+     * @return {Array.<WrapNode>}
+     */
     getChildNodes() {
-        let nodes = [];
-        let childNodes = this.$node.childNodes;
+        const nodes = [];
+        const childNodes = this[NODE].childNodes;
         for (let i = 0, il = childNodes.length; i < il; ++i) {
-            nodes.push(this.$manager.getNode(childNodes[i]));
+            nodes.push(this[MANAGER].getNode(childNodes[i]));
         }
         return nodes;
     }
 
+    /**
+     * 获取第一个子节点
+     *
+     * @public
+     * @return {WrapNode}
+     */
     getFirstChild() {
-        return this.$manager.getNode(this.$node.firstChild);
+        return this[MANAGER].getNode(this[NODE].firstChild);
     }
 
+    /**
+     * 获取最后一个子节点
+     *
+     * @public
+     * @return {WrapNode}
+     */
     getLastChild() {
-        return this.$manager.getNode(this.$node.lastChild);
+        return this[MANAGER].getNode(this[NODE].lastChild);
     }
 
+    /**
+     * 检查两个节点是否对应同一个DOM节点
+     *
+     * @public
+     * @param  {WrapNode} node 要比较的节点
+     * @return {boolean}
+     */
     equal(node) {
-        return Node.isNode(node) && this.$node === node.$node;
+        return WrapNode.isNode(node) && this[NODE] === node[NODE];
     }
 
+    /**
+     * 获取父节点
+     *
+     * @public
+     * @return {WrapNode}
+     */
     getParentNode() {
-        let parentNode = this.$node.parentNode
-            || (this.$commentNode && this.$commentNode.parentNode);
+        const parentNode = this[NODE].parentNode
+            || (this[COMMENT_NODE] && this[COMMENT_NODE].parentNode);
         if (!parentNode) {
             return null;
         }
 
-        return this.$manager.getNode(parentNode);
+        return this[MANAGER].getNode(parentNode);
     }
 
+    /**
+     * 获取下一个兄弟节点
+     *
+     * @public
+     * @return {WrapNode}
+     */
     getNextSibling() {
-        let nextSibling = this.$node.nextSibling
-            || (this.$commentNode && this.$commentNode.nextSibling);
+        const nextSibling = this[NODE].nextSibling
+            || (this[COMMENT_NODE] && this[COMMENT_NODE].nextSibling);
         if (!nextSibling) {
             return null;
         }
 
-        return this.$manager.getNode(nextSibling);
+        return this[MANAGER].getNode(nextSibling);
     }
 
+    /**
+     * 获取上一个兄弟节点
+     *
+     * @public
+     * @return {WrapNode}
+     */
     getPreviousSibling() {
-        let previousSibling = this.$node.previousSibling
-            || (this.$commentNode && this.$commentNode.previousSibling);
+        const previousSibling = this[NODE].previousSibling
+            || (this[COMMENT_NODE] && this[COMMENT_NODE].previousSibling);
         if (!previousSibling) {
             return null;
         }
 
-        return this.$manager.getNode(previousSibling);
+        return this[MANAGER].getNode(previousSibling);
     }
 
+    /**
+     * 获取指定的属性值
+     *
+     * @public
+     * @param  {string} name 属性名
+     * @return {string}
+     */
     getAttribute(name) {
-        return this.$node.getAttribute(name);
+        return this[NODE].getAttribute(name);
     }
 
+    /**
+     * 设置属性值
+     *
+     * @public
+     * @param {string} name  属性名
+     * @param {string} value 属性值
+     */
     setAttribute(name, value) {
-        this.$node.setAttribute(name, value);
+        this[NODE].setAttribute(name, value);
     }
 
+    /**
+     * 获取所有属性
+     *
+     * @public
+     * @return {NamedNodeMap}
+     */
     getAttributes() {
-        return this.$node.attributes;
+        return this[NODE].attributes;
     }
 
+    /**
+     * 获取节点值
+     *
+     * @public
+     * @return {string}
+     */
     getNodeValue() {
-        return this.$node.nodeValue;
+        return this[NODE].nodeValue;
     }
 
+    /**
+     * 设置节点值
+     *
+     * @public
+     * @param {string} value 节点值
+     */
     setNodeValue(value) {
-        if (this.$$isGoDark) {
-            this.$$nodeValue = value;
+        if (this[IS_DARK]) {
+            this[NODE_VALUE] = value;
         }
         else {
-            this.$node.nodeValue = value;
+            this[NODE].nodeValue = value;
         }
     }
 
+    /**
+     * 在尾部添加一个子节点
+     *
+     * @public
+     * @param  {WrapNode} node 待添加的节点
+     */
     appendChild(node) {
-        this.$node.appendChild(node.$node);
+        this[NODE].appendChild(node[NODE]);
     }
 
-    cloneNode(...args) {
-        return this.$manager.getNode(
-            this.$node.cloneNode(...args)
+    /**
+     * 克隆一下节点
+     *
+     * @public
+     * @param  {boolean=} deep 是否连子树一起克隆
+     * @return {WrapNode}
+     */
+    cloneNode(deep) {
+        return this[MANAGER].getNode(
+            this[NODE].cloneNode(deep)
         );
     }
 
+    /**
+     * 在指定节点之前插入节点
+     *
+     * @public
+     * @param  {WrapNode} newNode       待插入的节点
+     * @param  {WrapNode} referenceNode 相对节点
+     * @return {WrapNode}               返回插入的节点
+     */
     insertBefore(newNode, referenceNode) {
-        return this.$manager.getNode(
-            this.$node.insertBefore(newNode.$node, referenceNode.$node)
+        return this[MANAGER].getNode(
+            this[NODE].insertBefore(newNode[NODE], referenceNode[NODE])
         );
     }
 
+    /**
+     * 获取内部html字符串
+     *
+     * @public
+     * @return {string}
+     */
     getInnerHTML() {
-        return this.$node.innerHTML;
+        return this[NODE].innerHTML;
     }
 
+    /**
+     * 设置内部html
+     *
+     * @public
+     * @param {string} html html字符串
+     */
     setInnerHTML(html) {
-        this.$node.innerHTML = html;
+        this[NODE].innerHTML = html;
     }
 
+    /**
+     * 获取当前节点的标签名字
+     *
+     * @public
+     * @return {string}
+     */
     getTagName() {
-        return this.$node.tagName.toLowerCase();
+        return this[NODE].tagName.toLowerCase();
     }
 
+    /**
+     * 获取输入型控件的值
+     *
+     * @public
+     * @return {string}
+     */
     getValue() {
-        return this.$node.value;
+        return this[NODE].value;
     }
 
     /**
      * 判断当前节点是否和node是兄弟关系，并且在node之后。
      *
      * @public
-     * @param  {Node}  node 要对比的节点
+     * @param  {WrapNode}  node 要对比的节点
      * @return {boolean}
      */
     isAfter(node) {
@@ -151,8 +286,8 @@ export default class Node {
             return false;
         }
 
-        for (let curNode = node.$node; curNode; curNode = curNode.nextSibling) {
-            if (curNode === this.$node) {
+        for (let curNode = node[NODE]; curNode; curNode = curNode.nextSibling) {
+            if (curNode === this[NODE]) {
                 return true;
             }
         }
@@ -160,6 +295,13 @@ export default class Node {
         return false;
     }
 
+    /**
+     * 判断当前节点是否是指定节点的兄弟节点
+     *
+     * @public
+     * @param  {WrapNode}  node 指定节点
+     * @return {boolean}
+     */
     isBrotherWith(node) {
         return this.getParentNode().equal(node.getParentNode());
     }
@@ -171,12 +313,13 @@ export default class Node {
      *
      * TODO: 完善
      *
+     * @public
      * @param {string} name  节点属性名
      * @param {*=} value 节点属性值
      * @return {*}
      */
     attr(name, value) {
-        if (this.getNodeType() === Node.TEXT_NODE && name === 'nodeValue') {
+        if (this.getNodeType() === WrapNode.TEXT_NODE && name === 'nodeValue') {
             if (arguments.length === 1) {
                 return this.getNodeValue();
             }
@@ -184,7 +327,7 @@ export default class Node {
             return this.setNodeValue(value);
         }
 
-        if (this.getNodeType() !== Node.ELEMENT_NODE) {
+        if (this.getNodeType() !== WrapNode.ELEMENT_NODE) {
             return;
         }
 
@@ -193,7 +336,7 @@ export default class Node {
             return this.getAttribute(name);
         }
 
-        if (this.getNodeType() === Node.ELEMENT_NODE) {
+        if (this.getNodeType() === WrapNode.ELEMENT_NODE) {
             if (name === 'style' && isPureObject(value)) {
                 return this.setStyle(value);
             }
@@ -202,7 +345,7 @@ export default class Node {
                 return this.setClass(value);
             }
 
-            if (Node.isEventName(name)) {
+            if (WrapNode.isEventName(name)) {
                 return this.on(name.replace('on', ''), value);
             }
 
@@ -215,123 +358,188 @@ export default class Node {
         this.setAttribute(name, value);
     }
 
+    /**
+     * 设置css类
+     *
+     * @public
+     * @param {string|Object} klass 一串css类字符串或者一个Object
+     */
     setClass(klass) {
         if (!klass) {
             return;
         }
 
-        this.$node.className = Node.getClassList(klass).join(' ');
+        this[NODE].className = WrapNode.getClassList(klass).join(' ');
     }
 
+    /**
+     * 设置inline style
+     *
+     * @public
+     * @param {Object} styleObj style对应的js对象
+     */
     setStyle(styleObj) {
         for (let k in styleObj) {
             if (styleObj.hasOwnProperty(k)) {
-                this.$node.style[k] = styleObj[k];
+                this[NODE].style[k] = styleObj[k];
             }
         }
     }
 
+    /**
+     * 从父节点中移除当前节点
+     *
+     * @public
+     */
     remove() {
-        if (!this.$node.parentNode) {
+        if (!this[NODE].parentNode) {
             return;
         }
-        this.$node.parentNode.removeChild(this.$node);
+        this[NODE].parentNode.removeChild(this[NODE]);
     }
 
+    /**
+     * 绑定节点事件
+     *
+     * @public
+     * @param  {string}   eventName 事件名
+     * @param  {function(Event)} callback  回调函数
+     */
     on(eventName, callback) {
-        this.$event.on(eventName, callback);
+        this[EVENT].on(eventName, callback);
 
-        let me = this;
-        if (!isFunction(this.$nodeEventFns[eventName])) {
+        const me = this;
+        if (!isFunction(this[NODE_EVENT_FUNCTIONS][eventName])) {
             if (eventName === 'outclick') {
-                this.$nodeEventFns[eventName] = function (event) {
+                this[NODE_EVENT_FUNCTIONS][eventName] = function (event) {
                     event = event || window.event;
-                    if (me.$node !== event.target
-                        && !me.$node.contains(event.target)
+                    if (me[NODE] !== event.target
+                        && !me[NODE].contains(event.target)
                     ) {
-                        me.$event.trigger(eventName, event);
+                        me[EVENT].trigger(eventName, event);
                     }
                 };
-                window.addEventListener('click', this.$nodeEventFns[eventName]);
+                window.addEventListener('click', this[NODE_EVENT_FUNCTIONS][eventName]);
             }
             else {
-                this.$nodeEventFns[eventName] = function (event) {
+                this[NODE_EVENT_FUNCTIONS][eventName] = function (event) {
                     event = event || window.event;
-                    me.$event.trigger(eventName, event);
+                    me[EVENT].trigger(eventName, event);
                 };
-                this.$node.addEventListener(eventName, this.$nodeEventFns[eventName]);
+                this[NODE].addEventListener(eventName, this[NODE_EVENT_FUNCTIONS][eventName]);
             }
         }
     }
 
+    /**
+     * 解绑事件
+     *
+     * @public
+     * @param  {string}   eventName 事件名
+     * @param  {Function=} callback  回调函数
+     */
     off(eventName, callback) {
-        this.$event.off(eventName, callback);
+        this[EVENT].off(eventName, callback);
 
-        if (this.$event.isAllRemoved(eventName, callback)) {
+        if (this[EVENT].isAllRemoved(eventName, callback)) {
             let eventFn;
-            eventFn = this.$nodeEventFns[eventName];
+            eventFn = this[NODE_EVENT_FUNCTIONS][eventName];
             if (eventName === 'outclick') {
                 window.removeEventListener('click', eventFn);
             }
             else {
-                this.$node.removeEventListener(eventName, this.$nodeEventFns[eventName]);
+                this[NODE].removeEventListener(eventName, this[NODE_EVENT_FUNCTIONS][eventName]);
             }
-            this.$nodeEventFns[eventName] = null;
+            this[NODE_EVENT_FUNCTIONS][eventName] = null;
         }
     }
 
+    /**
+     * 获取当前节点在库内部分配到的id
+     *
+     * @public
+     * @return {string}
+     */
     getNodeId() {
-        return this.$node[this.$manager.$$domNodeIdKey];
+        return this[NODE][this[MANAGER].domNodeIdKey];
     }
 
+    /**
+     * 将节点展现出来
+     *
+     * @public
+     */
     show() {
-        if (!this.$$isGoDark) {
+        if (!this[IS_DARK]) {
             return;
         }
 
-        if (this.$node.nodeType === Node.ELEMENT_NODE) {
-            this.$node.style.display = null;
+        if (this[NODE].nodeType === WrapNode.ELEMENT_NODE) {
+            this[NODE].style.display = null;
         }
-        else if (this.$node.nodeType === Node.TEXT_NODE) {
-            if (this.$$nodeValue !== undefined) {
-                this.$node.nodeValue = this.$$nodeValue;
-                this.$$nodeValue = undefined;
+        else if (this[NODE].nodeType === WrapNode.TEXT_NODE) {
+            if (this[NODE_VALUE] !== undefined) {
+                this[NODE].nodeValue = this[NODE_VALUE];
+                this[NODE_VALUE] = undefined;
             }
         }
 
-        this.$$isGoDark = false;
+        this[IS_DARK] = false;
     }
 
+    /**
+     * 将节点隐藏起来
+     *
+     * @public
+     */
     hide() {
-        if (this.$$isGoDark) {
+        if (this[IS_DARK]) {
             return;
         }
 
-        if (this.$node.nodeType === Node.ELEMENT_NODE) {
-            this.$node.style.display = 'none';
+        if (this[NODE].nodeType === WrapNode.ELEMENT_NODE) {
+            this[NODE].style.display = 'none';
         }
-        else if (this.$node.nodeType === Node.TEXT_NODE) {
-            this.$$nodeValue = this.$node.nodeValue;
-            this.$node.nodeValue = '';
+        else if (this[NODE].nodeType === WrapNode.TEXT_NODE) {
+            this[NODE_VALUE] = this[NODE].nodeValue;
+            this[NODE].nodeValue = '';
         }
 
-        this.$$isGoDark = true;
+        this[IS_DARK] = true;
     }
 
+    /**
+     * 获取outerHTML
+     *
+     * @public
+     * @return {string}
+     */
     getOuterHTML() {
         let div = document.createElement('div');
-        div.appendChild(this.$node.cloneNode(true));
+        div.appendChild(this[NODE].cloneNode(true));
         let html = div.innerHTML;
         div = null;
         return html;
     }
 
+    /**
+     * 判断节点是否在DOM树种
+     *
+     * @public
+     * @return {boolean}
+     */
     isInDom() {
-        return !!this.$node.parentNode;
+        return !!this[NODE].parentNode;
     }
 
+    /**
+     * 获取对应的DOM节点
+     *
+     * @public
+     * @return {Node}
+     */
     getDOMNode() {
-        return this.$node;
+        return this[NODE];
     }
 
     /**
@@ -342,23 +550,30 @@ export default class Node {
      * @public
      */
     destroy() {
-        this.$event.off();
+        this[EVENT].off();
 
         /* eslint-disable guard-for-in */
-        for (let eventName in this.$nodeEventFns) {
+        for (let eventName in this[NODE_EVENT_FUNCTIONS]) {
         /* eslint-enable guard-for-in */
-            let eventFn = this.$nodeEventFns[eventName];
+            let eventFn = this[NODE_EVENT_FUNCTIONS][eventName];
             if (eventName === 'outclick') {
                 window.removeEventListener('click', eventFn);
             }
             else {
-                this.$node.removeEventListener(eventName, eventFn);
+                this[NODE].removeEventListener(eventName, eventFn);
             }
         }
 
-        this.$node = null;
+        this[NODE] = null;
     }
 
+    /**
+     * 解析klass，生成一个css类字符串的数组
+     *
+     * @static
+     * @param  {string|Object} klass klass
+     * @return {Array.<string>}
+     */
     static getClassList(klass) {
         let klasses = [];
         if (isClass(klass, 'String')) {
@@ -378,6 +593,13 @@ export default class Node {
         return distinctArr(klasses);
     }
 
+    /**
+     * 判断str是不是DOM事件名
+     *
+     * @static
+     * @param  {string}  str 事件名
+     * @return {boolean}
+     */
     static isEventName(str) {
         let eventList = this.eventList;
 
@@ -398,8 +620,8 @@ export default class Node {
      * 将NodeList转换成真正的数组
      *
      * @static
-     * @param {(NodeList|Array.<Node>)} nodeList DOM节点列表
-     * @return {Array.<Node>}
+     * @param {(NodeList|Array.<WrapNode>)} nodeList DOM节点列表
+     * @return {Array.<WrapNode>}
      */
     static toArray(nodeList) {
         if (isArray(nodeList)) {
@@ -433,9 +655,9 @@ export default class Node {
      * 所以在实际操作中建议延迟处理（即遍历完之后）这种破坏结构的DOM操作。
      *
      * @static
-     * @param {Node} startNode 起始节点
-     * @param {Node} endNode 终止节点
-     * @param {function(Node):(Node|undefined|boolean)} iterateFn 迭代函数。
+     * @param {WrapNode} startNode 起始节点
+     * @param {WrapNode} endNode 终止节点
+     * @param {function(WrapNode):(WrapNode|undefined|boolean)} iterateFn 迭代函数。
      *                             如果这个函数返回了一个Node对象，则把这个Node对象当成下一个要遍历的节点。
      * @return {boolean} 如果是true，说明在遍历子节点的时候中途中断了，不需要继续遍历了。
      */
@@ -459,7 +681,7 @@ export default class Node {
                 return true;
             }
             // 对于给定了下一个节点的情况，就不再遍历curNode的子节点了
-            else if (Node.isNode(nextNode)) {
+            else if (WrapNode.isNode(nextNode)) {
                 if (!nextNode.isAfter(curNode)) {
                     throw new Error('wrong next node');
                 }
@@ -470,7 +692,7 @@ export default class Node {
             else if (nextNode.type === 'options') {
                 let childNodes = isFunction(nextNode.getChildNodes)
                     ? nextNode.getChildNodes(curNode)
-                    : (Node.ELEMENT_NODE === curNode.getNodeType() ? curNode.getChildNodes() : []);
+                    : (WrapNode.ELEMENT_NODE === curNode.getNodeType() ? curNode.getChildNodes() : []);
 
                 if (iterateChildren(childNodes)) {
                     return true;
@@ -489,7 +711,7 @@ export default class Node {
 
         function iterateChildren(childNodes) {
             if (childNodes.length) {
-                let isBreak = Node.iterate(
+                let isBreak = WrapNode.iterate(
                     childNodes[0],
                     childNodes[childNodes.length - 1],
                     iterateFn
@@ -503,11 +725,11 @@ export default class Node {
     }
 
     static isNode(obj) {
-        return obj instanceof Node;
+        return obj instanceof WrapNode;
     }
 }
 
-extend(Node, {
+extend(WrapNode, {
     ELEMENT_NODE: 1,
     ATTRIBUTE_NODE: 2,
     TEXT_NODE: 3,

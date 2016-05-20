@@ -6,28 +6,61 @@
 import Node from './Node';
 import log from '../log';
 
+const MANAGER = Symbol('manager');
+const FRAGMENT = Symbol('fragment');
+
 export default class Fragment {
     constructor(manager) {
-        this.$$manager = manager;
-        this.$$fragment = this.$$manager.createElement('div');
+        this[MANAGER] = manager;
+        this[FRAGMENT] = this[MANAGER].createElement('div');
     }
 
+    /**
+     * 追加子节点
+     *
+     * @public
+     * @param  {WrapNode} node 要追加的节点
+     */
     appendChild(node) {
-        this.$$fragment.appendChild(node);
+        this[FRAGMENT].appendChild(node);
     }
 
+    /**
+     * 获取所有子节点
+     *
+     * @public
+     * @return {Array.<WrapNode>}
+     */
     getChildNodes() {
-        return this.$$fragment.getChildNodes();
+        return this[FRAGMENT].getChildNodes();
     }
 
+    /**
+     * 获取第一个子节点
+     *
+     * @public
+     * @return {WrapNode}
+     */
     getFirstChild() {
-        return this.$$fragment.getFirstChild();
+        return this[FRAGMENT].getFirstChild();
     }
 
+    /**
+     * 获取最后一个子节点
+     *
+     * @public
+     * @return {WrapNode}
+     */
     getLastChild() {
-        return this.$$fragment.getLastChild();
+        return this[FRAGMENT].getLastChild();
     }
 
+    /**
+     * 设置内部html。此处会使用浏览器自带的xml解析器去解析html字符串，所以传入的html字符串必须要符合xml语法。
+     *
+     * @public
+     * @param {string} html html字符串
+     */
     setInnerHTML(html) {
         let xmlDoc;
         if (window.DOMParser) {
@@ -53,8 +86,8 @@ export default class Fragment {
             }
         }
 
-        this.$$fragment.setInnerHTML('');
-        walk.call(this, xmlDoc.childNodes[0], this.$$fragment);
+        this[FRAGMENT].setInnerHTML('');
+        walk.call(this, xmlDoc.childNodes[0], this[FRAGMENT]);
 
         function createDOMNode(parserNode) {
             let nodeType = parserNode.nodeType;
@@ -65,17 +98,17 @@ export default class Fragment {
                     let attr = attributes[i];
                     node.setAttribute(attr.name, attr.value);
                 }
-                return this.$$manager.getNode(node);
+                return this[MANAGER].getNode(node);
             }
 
             if (nodeType === Node.TEXT_NODE) {
                 let node = document.createTextNode(parserNode.nodeValue);
-                return this.$$manager.getNode(node);
+                return this[MANAGER].getNode(node);
             }
 
             if (nodeType === Node.COMMENT_NODE) {
                 let node = document.createComment(parserNode.nodeValue);
-                return this.$$manager.getNode(node);
+                return this[MANAGER].getNode(node);
             }
 
             throw new Error(`unknown node type: ${nodeType}`);
@@ -91,7 +124,13 @@ export default class Fragment {
         }
     }
 
+    /**
+     * 获取innerHTML
+     *
+     * @public
+     * @return {string}
+     */
     getInnerHTML() {
-        return this.$$fragment.getInnerHTML();
+        return this[FRAGMENT].getInnerHTML();
     }
 }

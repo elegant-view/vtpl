@@ -7,6 +7,10 @@ import Base from '../Base';
 import Node from './Node';
 import Fragment from './Fragment';
 
+const ID_COUNTER = Symbol('idCounter');
+const NODES_MAP = Symbol('nodesMap');
+const DOM_NODE_ID_KEY = Symbol('domNodeIdKey');
+
 let managerIdCounter = 0;
 
 export default class NodesManager extends Base {
@@ -14,9 +18,19 @@ export default class NodesManager extends Base {
     constructor() {
         super();
 
-        this.$idCounter = 0;
-        this.$nodesMap = {};
-        this.$$domNodeIdKey = 'nodeId-' + ++managerIdCounter;
+        this[ID_COUNTER] = 0;
+        this[NODES_MAP] = {};
+        this[DOM_NODE_ID_KEY] = 'nodeId-' + ++managerIdCounter;
+    }
+
+    /**
+     * 获取domNodeIdKey
+     *
+     * @public
+     * @return {string}
+     */
+    get domNodeIdKey() {
+        return this[DOM_NODE_ID_KEY];
     }
 
     /**
@@ -31,17 +45,17 @@ export default class NodesManager extends Base {
             return null;
         }
 
-        let nodeId = domNode[this.$$domNodeIdKey];
+        let nodeId = domNode[this[DOM_NODE_ID_KEY]];
 
         if (!nodeId) {
-            nodeId = domNode[this.$$domNodeIdKey] = ++this.$idCounter;
+            nodeId = domNode[this[DOM_NODE_ID_KEY]] = ++this[ID_COUNTER];
         }
 
-        if (!this.$nodesMap[nodeId]) {
-            this.$nodesMap[nodeId] = new Node(domNode, this);
+        if (!this[NODES_MAP][nodeId]) {
+            this[NODES_MAP][nodeId] = new Node(domNode, this);
         }
 
-        return this.$nodesMap[nodeId];
+        return this[NODES_MAP][nodeId];
     }
 
     /**
@@ -51,20 +65,40 @@ export default class NodesManager extends Base {
      */
     destroy() {
         /* eslint-disable guard-for-in */
-        for (let id in this.$nodesMap) {
-            this.$nodesMap[id].destroy();
+        for (let id in this[NODES_MAP]) {
+            this[NODES_MAP][id].destroy();
         }
         /* eslint-enable guard-for-in */
     }
 
-    createElement(...args) {
-        return this.getNode(document.createElement(...args));
+    /**
+     * 创建元素，参数同document.createElement
+     *
+     * @public
+     * @param  {string} tagName 标签名字
+     * @return {WrapNode}
+     */
+    createElement(tagName) {
+        return this.getNode(document.createElement(tagName));
     }
 
-    createComment(...args) {
-        return this.getNode(document.createComment(...args));
+    /**
+     * 创建注释节点
+     *
+     * @public
+     * @param  {string} data 要添加到注释界面里面去的字符串
+     * @return {WrapNode}
+     */
+    createComment(data) {
+        return this.getNode(document.createComment(data));
     }
 
+    /**
+     * 创建fragment
+     *
+     * @public
+     * @return {Fragment}
+     */
     createDocumentFragment() {
         return new Fragment(this);
     }
