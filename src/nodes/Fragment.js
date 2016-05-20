@@ -6,10 +6,13 @@
 import Node from './Node';
 import log from '../log';
 
+const MANAGER = Symbol('manager');
+const FRAGMENT = Symbol('fragment');
+
 export default class Fragment {
     constructor(manager) {
-        this.$$manager = manager;
-        this.$$fragment = this.$$manager.createElement('div');
+        this[MANAGER] = manager;
+        this[FRAGMENT] = this[MANAGER].createElement('div');
     }
 
     /**
@@ -19,7 +22,7 @@ export default class Fragment {
      * @param  {WrapNode} node 要追加的节点
      */
     appendChild(node) {
-        this.$$fragment.appendChild(node);
+        this[FRAGMENT].appendChild(node);
     }
 
     /**
@@ -29,7 +32,7 @@ export default class Fragment {
      * @return {Array.<WrapNode>}
      */
     getChildNodes() {
-        return this.$$fragment.getChildNodes();
+        return this[FRAGMENT].getChildNodes();
     }
 
     /**
@@ -39,7 +42,7 @@ export default class Fragment {
      * @return {WrapNode}
      */
     getFirstChild() {
-        return this.$$fragment.getFirstChild();
+        return this[FRAGMENT].getFirstChild();
     }
 
     /**
@@ -49,7 +52,7 @@ export default class Fragment {
      * @return {WrapNode}
      */
     getLastChild() {
-        return this.$$fragment.getLastChild();
+        return this[FRAGMENT].getLastChild();
     }
 
     /**
@@ -83,8 +86,8 @@ export default class Fragment {
             }
         }
 
-        this.$$fragment.setInnerHTML('');
-        walk.call(this, xmlDoc.childNodes[0], this.$$fragment);
+        this[FRAGMENT].setInnerHTML('');
+        walk.call(this, xmlDoc.childNodes[0], this[FRAGMENT]);
 
         function createDOMNode(parserNode) {
             let nodeType = parserNode.nodeType;
@@ -95,17 +98,17 @@ export default class Fragment {
                     let attr = attributes[i];
                     node.setAttribute(attr.name, attr.value);
                 }
-                return this.$$manager.getNode(node);
+                return this[MANAGER].getNode(node);
             }
 
             if (nodeType === Node.TEXT_NODE) {
                 let node = document.createTextNode(parserNode.nodeValue);
-                return this.$$manager.getNode(node);
+                return this[MANAGER].getNode(node);
             }
 
             if (nodeType === Node.COMMENT_NODE) {
                 let node = document.createComment(parserNode.nodeValue);
-                return this.$$manager.getNode(node);
+                return this[MANAGER].getNode(node);
             }
 
             throw new Error(`unknown node type: ${nodeType}`);
@@ -128,6 +131,6 @@ export default class Fragment {
      * @return {string}
      */
     getInnerHTML() {
-        return this.$$fragment.getInnerHTML();
+        return this[FRAGMENT].getInnerHTML();
     }
 }
