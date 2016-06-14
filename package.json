@@ -34,7 +34,6 @@
     "requirejs": "^2.2.0"
   },
   "dependencies": {
-    "vcomponent": "elegant-view/vcomponent",
     "vtpl": "elegant-view/vtpl"
   }
 }

@@ -20,6 +20,8 @@ const NODE_EVENT_FUNCTIONS = Symbol('nodeEventFunctions');
 const IS_DARK = Symbol('isDark');
 const COMMENT_NODE = Symbol('commentNode');
 const NODE_VALUE = Symbol('nodeValue');
+const GET_IN_DOM_NODE = Symbol('getInDOMNode');
+const IN_DARK_ERROR = Symbol('inDarkError');
 
 export default class WrapNode {
     constructor(node, manager) {
@@ -30,7 +32,7 @@ export default class WrapNode {
         this[NODE_EVENT_FUNCTIONS] = {};
 
         this[IS_DARK] = false;
-        this[COMMENT_NODE] = null;
+        this[COMMENT_NODE] = document.createComment('placeholder');
         this[NODE_VALUE] = null;
     }
 
@@ -51,6 +53,8 @@ export default class WrapNode {
      * @return {Array.<WrapNode>}
      */
     getChildNodes() {
+        this[IN_DARK_ERROR]();
+
         const nodes = [];
         const childNodes = this[NODE].childNodes;
         for (let i = 0, il = childNodes.length; i < il; ++i) {
@@ -66,6 +70,7 @@ export default class WrapNode {
      * @return {WrapNode}
      */
     getFirstChild() {
+        this[IN_DARK_ERROR]();
         return this[MANAGER].getNode(this[NODE].firstChild);
     }
 
@@ -76,6 +81,7 @@ export default class WrapNode {
      * @return {WrapNode}
      */
     getLastChild() {
+        this[IN_DARK_ERROR]();
         return this[MANAGER].getNode(this[NODE].lastChild);
     }
 
@@ -97,13 +103,12 @@ export default class WrapNode {
      * @return {WrapNode}
      */
     getParentNode() {
-        const parentNode = this[NODE].parentNode
-            || (this[COMMENT_NODE] && this[COMMENT_NODE].parentNode);
-        if (!parentNode) {
-            return null;
-        }
+        const inDOMNode = this[GET_IN_DOM_NODE]();
 
-        return this[MANAGER].getNode(parentNode);
+        if (inDOMNode) {
+            const parentNode = inDOMNode.parentNode;
+            return this[MANAGER].getNode(parentNode);
+        }
     }
 
     /**
@@ -113,13 +118,8 @@ export default class WrapNode {
      * @return {WrapNode}
      */
     getNextSibling() {
-        const nextSibling = this[NODE].nextSibling
-            || (this[COMMENT_NODE] && this[COMMENT_NODE].nextSibling);
-        if (!nextSibling) {
-            return null;
-        }
-
-        return this[MANAGER].getNode(nextSibling);
+        const inDOMNode = this[GET_IN_DOM_NODE]();
+        return this[MANAGER].getNode(inDOMNode.nextSibling);
     }
 
     /**
@@ -129,13 +129,8 @@ export default class WrapNode {
      * @return {WrapNode}
      */
     getPreviousSibling() {
-        const previousSibling = this[NODE].previousSibling
-            || (this[COMMENT_NODE] && this[COMMENT_NODE].previousSibling);
-        if (!previousSibling) {
-            return null;
-        }
-
-        return this[MANAGER].getNode(previousSibling);
+        const inDOMNode = this[GET_IN_DOM_NODE]();
+        return this[MANAGER].getNode(inDOMNode.previousSibling);
     }
 
     /**
@@ -187,12 +182,7 @@ export default class WrapNode {
      * @param {string} value 节点值
      */
     setNodeValue(value) {
-        if (this[IS_DARK]) {
-            this[NODE_VALUE] = value;
-        }
-        else {
-            this[NODE].nodeValue = value;
-        }
+        this[NODE].nodeValue = value;
     }
 
     /**
@@ -227,6 +217,7 @@ export default class WrapNode {
      * @return {WrapNode}               返回插入的节点
      */
     insertBefore(newNode, referenceNode) {
+        this[IN_DARK_ERROR]();
         return this[MANAGER].getNode(
             this[NODE].insertBefore(newNode[NODE], referenceNode[NODE])
         );
@@ -286,8 +277,11 @@ export default class WrapNode {
             return false;
         }
 
-        for (let curNode = node[NODE]; curNode; curNode = curNode.nextSibling) {
-            if (curNode === this[NODE]) {
+        const thisInDOMNode = this[GET_IN_DOM_NODE]();
+        const thatInDOMNode = node[GET_IN_DOM_NODE]();
+
+        for (let curNode = thatInDOMNode; curNode; curNode = curNode.nextSibling) {
+            if (curNode === thisInDOMNode) {
                 return true;
             }
         }
@@ -353,6 +347,10 @@ export default class WrapNode {
             if (name === 'onoutclick') {
                 return this.on('outclick', value);
             }
+
+            if (name === 'value') {
+                return this[NODE].value = value;
+            }
         }
 
         this.setAttribute(name, value);
@@ -392,10 +390,12 @@ export default class WrapNode {
      * @public
      */
     remove() {
-        if (!this[NODE].parentNode) {
-            return;
+        if (this[COMMENT_NODE].parentNode) {
+            this[COMMENT_NODE].parentNode.removeChild(this[COMMENT_NODE]);
         }
-        this[NODE].parentNode.removeChild(this[NODE]);
+        if (this[NODE].parentNode) {
+            this[NODE].parentNode.removeChild(this[NODE]);
+        }
     }
 
     /**
@@ -470,19 +470,12 @@ export default class WrapNode {
      * @public
      */
     show() {
-        if (!this[IS_DARK]) {
+        if (!this[IS_DARK] || !this[COMMENT_NODE].parentNode) {
             return;
         }
 
-        if (this[NODE].nodeType === WrapNode.ELEMENT_NODE) {
-            this[NODE].style.display = null;
-        }
-        else if (this[NODE].nodeType === WrapNode.TEXT_NODE) {
-            if (this[NODE_VALUE] !== undefined) {
-                this[NODE].nodeValue = this[NODE_VALUE];
-                this[NODE_VALUE] = undefined;
-            }
-        }
+        this[COMMENT_NODE].parentNode.insertBefore(this[NODE], this[COMMENT_NODE]);
+        this[COMMENT_NODE].parentNode.removeChild(this[COMMENT_NODE]);
 
         this[IS_DARK] = false;
     }
@@ -493,19 +486,24 @@ export default class WrapNode {
      * @public
      */
     hide() {
-        if (this[IS_DARK]) {
+        if (this[IS_DARK] || !this[NODE].parentNode) {
             return;
         }
 
-        if (this[NODE].nodeType === WrapNode.ELEMENT_NODE) {
-            this[NODE].style.display = 'none';
-        }
-        else if (this[NODE].nodeType === WrapNode.TEXT_NODE) {
-            this[NODE_VALUE] = this[NODE].nodeValue;
-            this[NODE].nodeValue = '';
-        }
+        this[NODE].parentNode.insertBefore(this[COMMENT_NODE], this[NODE]);
+        this[NODE].parentNode.removeChild(this[NODE]);
 
         this[IS_DARK] = true;
+    }
+
+    [IN_DARK_ERROR]() {
+        if (this[IS_DARK]) {
+            throw new Error('current node is in dark.');
+        }
+    }
+
+    [GET_IN_DOM_NODE]() {
+        return this[IS_DARK] ? this[COMMENT_NODE] : this[NODE];
     }
 
     /**
@@ -517,7 +515,7 @@ export default class WrapNode {
     getOuterHTML() {
         let div = document.createElement('div');
         div.appendChild(this[NODE].cloneNode(true));
-        let html = div.innerHTML;
+        const html = div.innerHTML;
         div = null;
         return html;
     }
