@@ -9,8 +9,29 @@ const TASKS = Symbol('tasks');
 const COUNTER = Symbol('counter');
 const NODE_ATTR_NAME_TASK_ID_MAP = Symbol('nodeAttrNameTaskIdMap');
 const IS_EXECUTING = Symbol('isExecuting');
-const REQUEST_ANIMATION_FRAME = Symbol('requestAnimationFrame');
 const EXECUTE = Symbol('execute');
+
+const requestAnimationFrame = getRequestAnimationFrameFn();
+
+function getRequestAnimationFrameFn() {
+    let requestAnimationFrame;
+    if (window.requestAnimationFrame) {
+        requestAnimationFrame = window.requestAnimationFrame;
+    }
+    else if (window.webkitRequestAnimationFrame) {
+        requestAnimationFrame = window.webkitRequestAnimationFrame;
+    }
+
+    if (requestAnimationFrame) {
+        return function (fn) {
+            requestAnimationFrame(fn);
+        };
+    }
+
+    return function (fn) {
+        setTimeout(fn, 17);
+    };
+}
 
 export default class DomUpdater {
     constructor() {
@@ -18,12 +39,6 @@ export default class DomUpdater {
         this[COUNTER] = 0;
         this[NODE_ATTR_NAME_TASK_ID_MAP] = {};
         this[IS_EXECUTING] = false;
-
-        this[REQUEST_ANIMATION_FRAME] = function (fn) {
-            window.requestAnimationFrame(fn);
-        } || function (fn) {
-            setTimeout(fn, 17);
-        };
     }
 
     /**
@@ -121,23 +136,25 @@ export default class DomUpdater {
             return;
         }
 
-        /* eslint-disable guard-for-in */
-        for (let taskId in this[TASKS]) {
-        /* eslint-enable guard-for-in */
-            let task = this[TASKS][taskId];
-            if (!task) {
-                continue;
-            }
+        requestAnimationFrame(() => {
+            /* eslint-disable guard-for-in */
+            for (let taskId in this[TASKS]) {
+            /* eslint-enable guard-for-in */
+                const task = this[TASKS][taskId];
+                if (!task) {
+                    continue;
+                }
 
-            try {
-                task.notifyFn(null, task.fn());
+                try {
+                    task.notifyFn(null, task.fn());
+                }
+                catch (error) {
+                    task.notifyFn(error);
+                }
+                if (this[TASKS]) {
+                    this[TASKS][taskId] = null;
+                }
             }
-            catch (error) {
-                task.notifyFn(error);
-            }
-            if (this[TASKS]) {
-                this[TASKS][taskId] = null;
-            }
-        }
+        });
     }
 }
