@@ -40,7 +40,8 @@ export default class VarDirectiveParser extends DirectiveParser {
             const doneChecker = new DoneChecker(done);
             if (!this.isDark && event.expr === this[EXPRESSION]) {
                 doneChecker.add(done => {
-                    this.getScope().set(this[LEFT_VALUE_NAME], exprWatcher.calculate(this[EXPRESSION]), done);
+                    const exprVal = exprWatcher.calculate(this[EXPRESSION]);
+                    this.getScope().set(this[LEFT_VALUE_NAME], exprVal, false, done);
                 });
             }
             doneChecker.complete();

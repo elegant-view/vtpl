@@ -1,7 +1,6 @@
 /**
  * @file 实现一套本库需要的节点类，将所有直接操作DOM的代码都封装在这里。
  * @author yibuyisheng(yibuyisheng@163.com)
- * @flow
  */
 import {
     isFunction,
@@ -261,6 +260,16 @@ export default class WrapNode {
      */
     getValue() {
         return this[NODE].value;
+    }
+
+    /**
+     * 设置输入型控件的值
+     *
+     * @public
+     * @param {string|number} value 值
+     */
+    setValue(value) {
+        this[NODE].value = value;
     }
 
     /**
