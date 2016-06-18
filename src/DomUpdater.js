@@ -3,16 +3,13 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {extend} from './utils';
+import ProtectObject from './ProtectObject';
 
 const TASKS = Symbol('tasks');
-const TASKS_CACHE = Symbol('tasksCache');
 const COUNTER = Symbol('counter');
 const NODE_ATTR_NAME_TASK_ID_MAP = Symbol('nodeAttrNameTaskIdMap');
 const IS_EXECUTING = Symbol('isExecuting');
 const EXECUTE = Symbol('execute');
-const LOCKED = Symbol('locked');
-const UNLOCKED = Symbol('unlocked');
 
 const requestAnimationFrame = getRequestAnimationFrameFn().bind(window);
 
@@ -38,22 +35,19 @@ function getRequestAnimationFrameFn() {
 
 export default class DomUpdater {
     constructor() {
-        this[TASKS] = {};
-        this[COUNTER] = 0;
-        this[NODE_ATTR_NAME_TASK_ID_MAP] = {};
-
-        // 标识当前添加的任务是否会自动执行掉
-        this[IS_EXECUTING] = false;
-
-        // 为啥这里要搞一个taskCache呢？
+        // 为啥这里要用ProtectObject呢？
         // 因为在taskFn或者notifyFn里面有可能间接修改tasks，这就容易引起错误了，思考如下场景：
         // 假设现在有taskId为2的任务添加进来了，然后在任务执行过程中，又添加taskId为2的任务，此时如果直接操作tasks，
         // 那么后面的this[TASKS][taskId]=null就会沉默掉后面这个任务，所以这个时候，应该把这个task缓存一下，等待当前
         // requestAnimationFrame执行完之后再添加进去。
         //
         // 综上考虑，在requestAnimationFrame执行过程中，this[TASKS]应该处于被锁的状态，不能对其进行操作。
-        this[TASKS_CACHE] = {};
-        this[LOCKED] = false;
+        this[TASKS] = new ProtectObject();
+        this[COUNTER] = 0;
+        this[NODE_ATTR_NAME_TASK_ID_MAP] = {};
+
+        // 标识当前添加的任务是否会自动执行掉
+        this[IS_EXECUTING] = false;
     }
 
     /**
@@ -106,15 +100,14 @@ export default class DomUpdater {
      * @param {function(Error, *)=} notifyFn 执行结果的回调函数
      */
     addTaskFn(taskId, taskFn, notifyFn) {
-        const tasks = this[LOCKED] ? this[TASKS_CACHE] : this[TASKS];
-        const task = tasks[taskId] || {};
+        const task = this[TASKS].get(taskId) || {};
 
         task.taskFn = taskFn;
 
         task.notifyFns = task.notifyFns || [];
         notifyFn && task.notifyFns.push(notifyFn);
 
-        tasks[taskId] = task;
+        this[TASKS].set(taskId, task);
 
         this[EXECUTE]();
     }
@@ -126,6 +119,8 @@ export default class DomUpdater {
      */
     destroy() {
         this.stop();
+        this[TASKS].destroy();
+
         this[TASKS] = null;
         this[NODE_ATTR_NAME_TASK_ID_MAP] = null;
     }
@@ -153,36 +148,20 @@ export default class DomUpdater {
         this[EXECUTE]();
     }
 
-    /**
-     * 解锁了tasks，处理下缓存
-     *
-     * @private
-     */
-    [UNLOCKED]() {
-        extend(this[TASKS], this[TASKS_CACHE]);
-        this[TASKS_CACHE] = {};
-        this[EXECUTE]();
-    }
-
     [EXECUTE]() {
         if (!this[IS_EXECUTING]) {
             return;
         }
 
         requestAnimationFrame(() => {
-            this[LOCKED] = true;
-
             // 避免在调用 [EXECUTE]() 之后，马上调用 stop() 所造成的错误
             if (!this[IS_EXECUTING]) {
                 return;
             }
 
-            /* eslint-disable guard-for-in */
-            for (let taskId in this[TASKS]) {
-            /* eslint-enable guard-for-in */
-                const task = this[TASKS][taskId];
+            this[TASKS].iterate((task, taskId) => {
                 if (!task) {
-                    continue;
+                    return;
                 }
 
                 let error;
@@ -199,17 +178,16 @@ export default class DomUpdater {
 
                 // 这里判断一下主要是为了避免在notifyFns或者taskFn里面调用了stop()
                 if (this[TASKS]) {
-                    this[TASKS][taskId] = null;
+                    return {
+                        value: null
+                    };
                 }
 
                 // 太尴尬了，有可能在 task.fn 里面 stop 了
                 if (!this[IS_EXECUTING]) {
                     return;
                 }
-            }
-
-            this[LOCKED] = false;
-            this[UNLOCKED]();
+            });
         });
     }
 }
