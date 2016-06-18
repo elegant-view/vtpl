@@ -9,8 +9,6 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import ScopeModel from '../ScopeModel';
-
 import Parser from './Parser';
 import Node from '../nodes/Node';
 import {line2camel, isExpr} from '../utils';
@@ -235,30 +233,24 @@ export default class ExprParser extends Parser {
      * @param {function()} done 完成异步操作的回调函数
      */
     goDark(done) {
-        const doneChecker = new DoneChecker(done);
-        if (this.isDark) {
-            // 保证一下异步
+        super.goDark(result => {
+            const doneChecker = new DoneChecker(() => done(result));
+            if (result) {
+                // hide前面故意保留一个空格，因为DOM中不可能出现节点的属性key第一个字符为空格的，
+                // 避免了冲突。
+                const taskId = this.getTaskId(' hide');
+                const domUpdater = this.getDOMUpdater();
+                doneChecker.add(done => {
+                    domUpdater.addTaskFn(
+                        taskId,
+                        ::this.startNode.hide,
+                        done
+                    );
+                });
+            }
             doneChecker.complete();
-            return;
-        }
-
-        doneChecker.add(done => {
-            super.goDark(done);
         });
 
-        // hide前面故意保留一个空格，因为DOM中不可能出现节点的属性key第一个字符为空格的，
-        // 避免了冲突。
-        const taskId = this.getTaskId(' hide');
-        const domUpdater = this.getDOMUpdater();
-        doneChecker.add(done => {
-            domUpdater.addTaskFn(
-                taskId,
-                () => this.startNode.hide(),
-                done
-            );
-        });
-
-        doneChecker.complete();
     }
 
     /**
@@ -268,28 +260,24 @@ export default class ExprParser extends Parser {
      * @param {function()} done 完成异步操作的回调函数
      */
     restoreFromDark(done) {
-        const doneChecker = new DoneChecker(done);
-
-        if (!this.isDark) {
+        super.restoreFromDark(result => {
+            const doneChecker = new DoneChecker(() => done(result));
+            if (result) {
+                const taskId = this.getTaskId(' hide');
+                const domUpdater = this.getDOMUpdater();
+                doneChecker.add(done => {
+                    domUpdater.addTaskFn(
+                        taskId,
+                        ::this.startNode.show,
+                        () => {
+                            done();
+                        }
+                    );
+                });
+            }
             doneChecker.complete();
-            return;
-        }
-
-        doneChecker.add(done => {
-            super.restoreFromDark(done);
         });
 
-        const taskId = this.getTaskId(' hide');
-        const domUpdater = this.getDOMUpdater();
-        doneChecker.add(done => {
-            domUpdater.addTaskFn(
-                taskId,
-                ::this.startNode.show,
-                done
-            );
-        });
-
-        doneChecker.complete();
     }
 
     /**

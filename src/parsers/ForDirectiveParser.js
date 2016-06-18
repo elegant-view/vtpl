@@ -140,36 +140,24 @@ export default class ForDirectiveParser extends DirectiveParser {
     }
 
     goDark(done) {
-        const doneChecker = new DoneChecker(done);
-        if (this.isDark) {
+        super.goDark(result => {
+            const doneChecker = new DoneChecker(() => done(result));
+            if (result) {
+                this[TREES].forEach(tree => doneChecker.add(::tree.goDark));
+            }
             doneChecker.complete();
-            return;
-        }
-
-        doneChecker.add(done => {
-            super.goDark(done);
         });
-        this[TREES].forEach(tree => {
-            doneChecker.add(done => {
-                tree.goDark(done);
-            });
-        });
-        doneChecker.complete();
     }
 
     restoreFromDark(done) {
-        const doneChecker = new DoneChecker(done);
-        if (!this.isDark) {
+        super.restoreFromDark(result => {
+            const doneChecker = new DoneChecker(() => done(result));
+            if (result) {
+                const exprWatcher = this.getExpressionWatcher();
+                doneChecker.add(done => this[UPDATE_FUNCTION](exprWatcher.calculate(this[LIST_EXPRESSION]), done));
+            }
             doneChecker.complete();
-            return;
-        }
-
-        doneChecker.add(done => {
-            super.restoreFromDark(done);
         });
-        const exprWatcher = this.getExpressionWatcher();
-        this[UPDATE_FUNCTION](exprWatcher.calculate(this[LIST_EXPRESSION]));
-        doneChecker.complete();
     }
 
     destroy() {

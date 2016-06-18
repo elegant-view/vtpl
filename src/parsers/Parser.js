@@ -5,7 +5,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import Base from '../Base';
+import DarkEntity from '../DarkEntity';
 import parserState from './parserState';
 import Tree from '../trees/Tree';
 import Node from '../nodes/Node';
@@ -13,7 +13,6 @@ import DomUpdater from '../DomUpdater';
 import ExprWatcher from '../ExprWatcher';
 import ExprCalculater from '../ExprCalculater';
 import NodesManager from '../nodes/NodesManager';
-import {nextTick} from '../utils';
 
 const STATE = Symbol('state');
 const TREE = Symbol('tree');
@@ -21,9 +20,7 @@ const TREE = Symbol('tree');
 const START_NODE = Symbol('startNode');
 const END_NODE = Symbol('endNode');
 
-const IS_DARK = Symbol('isDark');
-
-export default class Parser extends Base {
+export default class Parser extends DarkEntity {
     constructor(options) {
         super(options);
 
@@ -38,7 +35,6 @@ export default class Parser extends Base {
         this[STATE] = parserState.INITIALIZING;
         this[START_NODE] = options.startNode;
         this[END_NODE] = options.endNode;
-        this[IS_DARK] = false;
     }
 
     get startNode() {
@@ -78,34 +74,6 @@ export default class Parser extends Base {
         }
 
         this[STATE] = state;
-    }
-
-    /**
-     * 隐藏当前parser实例相关的节点。具体子类实现
-     *
-     * @public
-     * @abstract
-     * @param {function()} done 完成异步操作的回调函数
-     */
-    goDark(done) {
-        this[IS_DARK] = true;
-        nextTick(done);
-    }
-
-    /**
-     * 显示相关元素
-     *
-     * @public
-     * @abstract
-     * @param {function()} done 完成异步操作的回调函数
-     */
-    restoreFromDark(done) {
-        this[IS_DARK] = false;
-        nextTick(done);
-    }
-
-    get isDark() {
-        return this[IS_DARK];
     }
 
     /**
@@ -277,6 +245,5 @@ export default class Parser extends Base {
         this[STATE] = parserState.DESTROIED;
         this[START_NODE] = null;
         this[END_NODE] = null;
-        this[IS_DARK] = null;
     }
 }

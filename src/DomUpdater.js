@@ -3,15 +3,18 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {empty} from './utils';
+import {extend} from './utils';
 
 const TASKS = Symbol('tasks');
+const TASKS_CACHE = Symbol('tasksCache');
 const COUNTER = Symbol('counter');
 const NODE_ATTR_NAME_TASK_ID_MAP = Symbol('nodeAttrNameTaskIdMap');
 const IS_EXECUTING = Symbol('isExecuting');
 const EXECUTE = Symbol('execute');
+const LOCKED = Symbol('locked');
+const UNLOCKED = Symbol('unlocked');
 
-const requestAnimationFrame = getRequestAnimationFrameFn();
+const requestAnimationFrame = getRequestAnimationFrameFn().bind(window);
 
 function getRequestAnimationFrameFn() {
     let requestAnimationFrame;
@@ -38,7 +41,19 @@ export default class DomUpdater {
         this[TASKS] = {};
         this[COUNTER] = 0;
         this[NODE_ATTR_NAME_TASK_ID_MAP] = {};
+
+        // 标识当前添加的任务是否会自动执行掉
         this[IS_EXECUTING] = false;
+
+        // 为啥这里要搞一个taskCache呢？
+        // 因为在taskFn或者notifyFn里面有可能间接修改tasks，这就容易引起错误了，思考如下场景：
+        // 假设现在有taskId为2的任务添加进来了，然后在任务执行过程中，又添加taskId为2的任务，此时如果直接操作tasks，
+        // 那么后面的this[TASKS][taskId]=null就会沉默掉后面这个任务，所以这个时候，应该把这个task缓存一下，等待当前
+        // requestAnimationFrame执行完之后再添加进去。
+        //
+        // 综上考虑，在requestAnimationFrame执行过程中，this[TASKS]应该处于被锁的状态，不能对其进行操作。
+        this[TASKS_CACHE] = {};
+        this[LOCKED] = false;
     }
 
     /**
@@ -76,23 +91,30 @@ export default class DomUpdater {
 
     /**
      * 将任务添加至队列，等待执行。理论上来说，任务函数里面不能存在异步操作。
-     * 注意：此处callback并不一定会调用到，因为当前设置的任务可能被后续任务覆盖掉而得不到执行的机会。
+     * 此处会传入两种函数：
+     * 1、任务函数，用于执行具体的任务，比如DOM操作；
+     * 2、任务执行完成之后的回调函数。
+     *
+     * 对于任务函数，可能会存在被覆盖的情况，比如后面的DOM操作和前面的DOM操作处理同样的属性。
+     * 而对于回调函数，我们不期望其被覆盖，因为要保证通知到调用者：该任务已经结束了（无论是因为执行掉了还是被覆盖掉了，都认为是结束了）。
+     *
+     * 这样一来，回调函数应该存成一个数组。
      *
      * @public
      * @param {number} taskId 任务ID
      * @param {function()} taskFn 任务函数
-     * @param {function(Error, *)=} callback 执行结果的回调函数
+     * @param {function(Error, *)=} notifyFn 执行结果的回调函数
      */
-    addTaskFn(taskId, taskFn, callback) {
-        const preTask = this[TASKS][taskId];
-        const notifyFn = () => {
-            preTask && preTask.notifyFn();
-            (callback || empty)();
-        };
-        this[TASKS][taskId] = {
-            fn: taskFn,
-            notifyFn
-        };
+    addTaskFn(taskId, taskFn, notifyFn) {
+        const tasks = this[LOCKED] ? this[TASKS_CACHE] : this[TASKS];
+        const task = tasks[taskId] || {};
+
+        task.taskFn = taskFn;
+
+        task.notifyFns = task.notifyFns || [];
+        notifyFn && task.notifyFns.push(notifyFn);
+
+        tasks[taskId] = task;
 
         this[EXECUTE]();
     }
@@ -131,12 +153,30 @@ export default class DomUpdater {
         this[EXECUTE]();
     }
 
+    /**
+     * 解锁了tasks，处理下缓存
+     *
+     * @private
+     */
+    [UNLOCKED]() {
+        extend(this[TASKS], this[TASKS_CACHE]);
+        this[TASKS_CACHE] = {};
+        this[EXECUTE]();
+    }
+
     [EXECUTE]() {
         if (!this[IS_EXECUTING]) {
             return;
         }
 
         requestAnimationFrame(() => {
+            this[LOCKED] = true;
+
+            // 避免在调用 [EXECUTE]() 之后，马上调用 stop() 所造成的错误
+            if (!this[IS_EXECUTING]) {
+                return;
+            }
+
             /* eslint-disable guard-for-in */
             for (let taskId in this[TASKS]) {
             /* eslint-enable guard-for-in */
@@ -145,16 +185,31 @@ export default class DomUpdater {
                     continue;
                 }
 
+                let error;
+                let result;
                 try {
-                    task.notifyFn(null, task.fn());
+                    result = task.taskFn();
                 }
-                catch (error) {
-                    task.notifyFn(error);
+                catch (err) {
+                    error = err;
                 }
+                for (let i = 0, il = task.notifyFns.length; i < il; ++i) {
+                    task.notifyFns[i](error, result);
+                }
+
+                // 这里判断一下主要是为了避免在notifyFns或者taskFn里面调用了stop()
                 if (this[TASKS]) {
                     this[TASKS][taskId] = null;
                 }
+
+                // 太尴尬了，有可能在 task.fn 里面 stop 了
+                if (!this[IS_EXECUTING]) {
+                    return;
+                }
             }
+
+            this[LOCKED] = false;
+            this[UNLOCKED]();
         });
     }
 }

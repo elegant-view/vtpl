@@ -8,3 +8,4 @@ import './spec/ForDirectiveParserSpec';
 import './spec/VarDirectiveParserSpec';
 import './spec/ExprWatcherSpec';
 import './spec/FragmentSpec';
+import './spec/DomUpdaterSpec';
