@@ -174,7 +174,10 @@ export default class ExprWatcher extends Event {
 
             /* eslint-disable no-loop-func */
             doneChecker.add(done => {
-                this[COMPUTE](expr, done);
+                const exprValue = this[EXPRS][expr]();
+                const oldValue = this[EXPR_OLD_VALUES][expr];
+
+                this.trigger('change', {type: 'resume', expr, newValue: exprValue, oldValue: oldValue}, done);
             });
             /* eslint-enable no-loop-func */
         }
@@ -240,11 +243,11 @@ export default class ExprWatcher extends Event {
     }
 
     [COMPUTE](expr, done) {
-        let exprValue = this[EXPRS][expr]();
-        let oldValue = this[EXPR_OLD_VALUES][expr];
+        const exprValue = this[EXPRS][expr]();
+        const oldValue = this[EXPR_OLD_VALUES][expr];
 
-        let equals = isFunction(this[EXPR_EQUAL_FN][expr]) ? this[EXPR_EQUAL_FN][expr] : this[EQUALS].bind(this);
-        let clone = isFunction(this[EXPR_CLONE_FN][expr]) ? this[EXPR_CLONE_FN][expr] : this[DUMP].bind(this);
+        const equals = isFunction(this[EXPR_EQUAL_FN][expr]) ? this[EXPR_EQUAL_FN][expr] : this[EQUALS].bind(this);
+        const clone = isFunction(this[EXPR_CLONE_FN][expr]) ? this[EXPR_CLONE_FN][expr] : this[DUMP].bind(this);
 
         if (!equals(expr, exprValue, oldValue)) {
             this.trigger('change', {expr, newValue: exprValue, oldValue: oldValue}, done);

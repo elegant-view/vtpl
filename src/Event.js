@@ -5,6 +5,7 @@
 
 import {isClass, isFunction} from './utils';
 import DoneChecker from './DoneChecker';
+import ProtectObject from './ProtectObject';
 
 const EVENTS = Symbol('events');
 
@@ -12,7 +13,7 @@ function empty() {}
 
 export default class Event {
     constructor() {
-        this[EVENTS] = {};
+        this[EVENTS] = new ProtectObject();
     }
 
     on(eventName, fn, context) {
@@ -20,9 +21,9 @@ export default class Event {
             return;
         }
 
-        this[EVENTS][eventName] = this[EVENTS][eventName] || [];
-
-        this[EVENTS][eventName].push({fn, context});
+        const eventHandlers = this[EVENTS].get(eventName) || [];
+        eventHandlers.push({fn, context});
+        this[EVENTS].set(eventName, eventHandlers);
     }
 
     trigger(eventName, ...args) {
@@ -36,8 +37,8 @@ export default class Event {
             return;
         }
 
-        let fnObjs = this[EVENTS][eventName];
-        if (fnObjs && fnObjs.length) {
+        const eventHandlers = this[EVENTS].get(eventName);
+        if (eventHandlers && eventHandlers.length) {
             let handlerArgs;
             if (doneFn === empty) {
                 handlerArgs = args;
@@ -45,12 +46,14 @@ export default class Event {
             else {
                 handlerArgs = args.slice(0, -1);
             }
-            // 这个地方现在不处理事件回调队列污染的问题了，
-            // 因为对于本库来说，收效甚微，同时可以在另外的地方解决掉由此带来的bug
-            fnObjs.forEach(fnObj => {
-                doneChecker.add(done => {
-                    this.invokeEventHandler(fnObj, ...handlerArgs.concat(done));
+
+            this[EVENTS].safeExecute(() => {
+                eventHandlers.forEach(handler => {
+                    doneChecker.add(done => {
+                        this.invokeEventHandler(handler, ...handlerArgs.concat(done));
+                    });
                 });
+                this[EVENTS].set(eventName, eventHandlers);
             });
         }
 
@@ -62,7 +65,7 @@ export default class Event {
     }
 
     getEventHandlers(eventName) {
-        return this[EVENTS][eventName];
+        return this[EVENTS].get(eventName);
     }
 
     off(...args) {
@@ -72,24 +75,24 @@ export default class Event {
 
         let [eventName, fn, context] = args;
         if (args.length === 0) {
-            this[EVENTS] = {};
+            this[EVENTS] = new ProtectObject();
         }
 
-        let iterator = checkFn => {
-            let fnObjs = this[EVENTS][eventName];
-            if (fnObjs && fnObjs.length) {
-                this[EVENTS][eventName] = fnObjs.filter(fnObj => checkFn(fnObj));
+        const iterator = checkFn => {
+            let eventHandlers = this[EVENTS].get(eventName);
+            if (eventHandlers && eventHandlers.length) {
+                this[EVENTS][eventName] = eventHandlers.filter(handler => checkFn(handler));
             }
         };
 
         if (args.length === 1) {
-            this[EVENTS][eventName] = null;
+            this[EVENTS].set(eventName, null);
         }
         else if (args.length === 2) {
-            iterator(fnObj => fn !== fnObj.fn);
+            iterator(handler => fn !== handler.fn);
         }
         else if (args.length === 3) {
-            iterator(fnObj => fn !== fnObj.fn || context !== fnObj.context);
+            iterator(handler => fn !== handler.fn || context !== handler.context);
         }
     }
 
@@ -107,12 +110,12 @@ export default class Event {
             fn = args[1];
         }
 
-        let fnObjs = this[EVENTS][eventName];
-        if (fnObjs && fnObjs.length) {
+        const eventHandlers = this[EVENTS].get(eventName);
+        if (eventHandlers && eventHandlers.length) {
             if (fn) {
-                for (let i = 0, il = fnObjs.length; i < il; ++i) {
-                    let fnObj = fnObjs[i];
-                    if (fnObj.fn === fn) {
+                for (let i = 0, il = eventHandlers.length; i < il; ++i) {
+                    const handler = eventHandlers[i];
+                    if (handler.fn === fn) {
                         return false;
                     }
                 }

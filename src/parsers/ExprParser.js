@@ -174,14 +174,15 @@ export default class ExprParser extends Parser {
         const exprWatcher = this.getExpressionWatcher();
         exprWatcher.on('change', (event, done) => {
             const doneChecker = new DoneChecker(done);
-            const updateFns = this[EXPRESION_UPDATE_FUNCTIONS][event.expr];
-            // 此处并不会处理isDark为true的情况，因为Node那边处理了。
-            if (updateFns && updateFns.length) {
-                updateFns.forEach(fn => {
-                    doneChecker.add(done => {
-                        fn(event.newValue, done);
+            if (!this.isDark) {
+                const updateFns = this[EXPRESION_UPDATE_FUNCTIONS][event.expr];
+                if (updateFns && updateFns.length) {
+                    updateFns.forEach(fn => {
+                        doneChecker.add(done => {
+                            fn(event.newValue, done);
+                        });
                     });
-                });
+                }
             }
             doneChecker.complete();
         });
@@ -269,9 +270,7 @@ export default class ExprParser extends Parser {
                     domUpdater.addTaskFn(
                         taskId,
                         ::this.startNode.show,
-                        () => {
-                            done();
-                        }
+                        done
                     );
                 });
             }

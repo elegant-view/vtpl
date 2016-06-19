@@ -88,6 +88,16 @@ export default class ProtectObject {
         this[OBJECT_CACHE] = {};
     }
 
+    safeExecute(fn, context) {
+        if (!fn) {
+            return;
+        }
+
+        this[LOCK]();
+        fn.call(context);
+        this[UNLOCK]();
+    }
+
     /**
      * 销毁
      *

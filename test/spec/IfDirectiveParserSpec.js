@@ -11,18 +11,17 @@ describe('IfDirectiveParser', () => {
         node.innerHTML = '<!-- if: name === "yibuyisheng" -->yes<!-- /if -->';
 
         let tpl = new Vtpl({startNode: node, endNode: node});
-        tpl.render();
-
-        setTimeout(() => {
+        tpl.render(() => {
             expect(node.textContent).toBe('');
 
-            tpl.setData('name', 'yibuyisheng');
-            setTimeout(() => {
-                expect(node.textContent).toBe('yes');
-                tpl.destroy();
-                done();
-            }, 70);
-        }, 70);
+            tpl.setData('name', 'yibuyisheng', {
+                done() {
+                    expect(node.textContent).toBe('yes');
+                    tpl.destroy();
+                    done();
+                }
+            });
+        });
     });
 
     it('`else` branch', done => {
@@ -31,17 +30,19 @@ describe('IfDirectiveParser', () => {
         let tpl = new Vtpl({startNode: node, endNode: node});
         tpl.render();
 
-        tpl.setData('name', 'yibuyisheng');
-        setTimeout(() => {
-            expect(node.textContent).toBe('yes');
+        tpl.setData('name', 'yibuyisheng', {
+            done() {
+                expect(node.textContent).toBe('yes');
 
-            tpl.setData('name', null);
-            setTimeout(() => {
-                expect(node.textContent).toBe('no');
-                tpl.destroy();
-                done();
-            }, 70);
-        }, 70);
+                tpl.setData('name', null, {
+                    done() {
+                        expect(node.textContent).toBe('no');
+                        tpl.destroy();
+                        done();
+                    }
+                });
+            }
+        });
     });
 
     it('`elif` branch', done => {
@@ -60,28 +61,33 @@ describe('IfDirectiveParser', () => {
         let tpl = new Vtpl({startNode: node, endNode: node});
         tpl.render();
 
-        tpl.setData('name', 'yibuyisheng');
-        setTimeout(() => {
-            expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng');
+        tpl.setData('name', 'yibuyisheng', {
+            done() {
+                expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng');
 
-            tpl.setData('name', 'yibuyisheng1');
-            setTimeout(() => {
-                expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng1');
+                tpl.setData('name', 'yibuyisheng1', {
+                    done() {
+                        expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng1');
 
-                tpl.setData('name', 'yibuyisheng2');
-                setTimeout(() => {
-                    expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng2');
+                        tpl.setData('name', 'yibuyisheng2', {
+                            done() {
+                                expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng2');
 
-                    tpl.setData('name', 'yibuyisheng3');
-                    setTimeout(() => {
-                        expect(node.textContent.replace(/\s*/g, '')).toBe('unknown');
+                                tpl.setData('name', 'yibuyisheng3', {
+                                    done() {
+                                        expect(node.textContent.replace(/\s*/g, '')).toBe('unknown');
 
-                        tpl.destroy();
-                        done();
-                    }, 70);
-                }, 70);
-            }, 70);
-        }, 70);
+                                        tpl.destroy();
+                                        done();
+                                    }
+                                });
+
+                            }
+                        });
+                    }
+                });
+            }
+        });
     });
 
     it('nest', done => {
@@ -101,22 +107,25 @@ describe('IfDirectiveParser', () => {
         let tpl = new Vtpl({startNode: node, endNode: node});
         tpl.render();
 
-        tpl.setData({name: 'yibuyisheng1'});
-        setTimeout(() => {
-            expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng1');
+        tpl.setData({name: 'yibuyisheng1'}, {
+            done() {
+                expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng1');
 
-            tpl.setData({name: 'yibuyisheng2'});
-            setTimeout(() => {
-                expect(node.textContent.replace(/\s*/g, '')).toBe('notyibuyisheng1yibuyisheng2');
+                tpl.setData({name: 'yibuyisheng2'}, {
+                    done() {
+                        expect(node.textContent.replace(/\s*/g, '')).toBe('notyibuyisheng1yibuyisheng2');
 
-                tpl.setData({name: 'yibuyisheng3'});
-                setTimeout(() => {
-                    expect(node.textContent.replace(/\s*/g, '')).toBe('notyibuyisheng1notyibuyisheng2');
-                    tpl.destroy();
-                    done();
-                }, 70);
-            }, 70);
-        }, 70);
+                        tpl.setData({name: 'yibuyisheng3'}, {
+                            done() {
+                                expect(node.textContent.replace(/\s*/g, '')).toBe('notyibuyisheng1notyibuyisheng2');
+                                tpl.destroy();
+                                done();
+                            }
+                        });
+                    }
+                });
+            }
+        });
     });
 
     it('`if` `for` nest', done => {
@@ -162,26 +171,6 @@ describe('IfDirectiveParser', () => {
                 });
             }
         });
-
-        // setTimeout(() => {
-        //     expect(node.textContent).toBe('2ab');
-        //
-        //     tpl.setData({
-        //         items: ['a', 'b', 'c']
-        //     });
-        //     setTimeout(() => {
-        //         expect(node.textContent).toBe('2abc');
-        //
-        //         tpl.setData({
-        //             type: 1
-        //         });
-        //
-        //         setTimeout(() => {
-        //             expect(node.textContent).toBe('1abc');
-        //             done();
-        //         }, 70);
-        //     }, 70);
-        // }, 70);
     });
 
     it('`if` end node', done => {
@@ -199,12 +188,12 @@ describe('IfDirectiveParser', () => {
 
         tpl.setData({
             type: 1
+        }, {
+            done() {
+                expect(node.textContent.replace(/\s/g, ''), '').toBe('1outside');
+                done();
+            }
         });
-
-        setTimeout(() => {
-            expect(node.textContent.replace(/\s/g, ''), '').toBe('1outside');
-            done();
-        }, 70);
     });
 
 });
