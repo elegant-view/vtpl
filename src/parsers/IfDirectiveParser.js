@@ -221,42 +221,29 @@ export default class IfDirectiveParser extends DirectiveParser {
 
     // 转入隐藏状态
     goDark(done) {
-        const doneChecker = new DoneChecker(done);
-        if (this.isDark) {
+        super.goDark(result => {
+            const doneChecker = new DoneChecker(done);
+            if (result) {
+                this[BRANCH_TREES].forEach(
+                    tree => doneChecker.add(::tree.goDark)
+                );
+            }
             doneChecker.complete();
-            return;
-        }
-        doneChecker.add(done => {
-            super.goDark(done);
         });
-        this[BRANCH_TREES].forEach(tree => {
-            doneChecker.add(done => {
-                tree.goDark(done);
-            });
-        });
-        doneChecker.complete();
     }
 
     // 从隐藏状态恢复
     restoreFromDark(done) {
-        const doneChecker = new DoneChecker(done);
-        if (!this.isDark) {
+        super.restoreFromDark(result => {
+            const doneChecker = new DoneChecker(done);
+            if (result) {
+                this[BRANCH_TREES].forEach(
+                    tree => doneChecker.add(::tree.restoreFromDark)
+                );
+                doneChecker.add(::this.renderDOM);
+            }
             doneChecker.complete();
-            return;
-        }
-        doneChecker.add(done => {
-            super.restoreFromDark(done);
         });
-        this[BRANCH_TREES].forEach(tree => {
-            doneChecker.add(done => {
-                tree.restoreFromDark(done);
-            });
-        });
-
-        doneChecker.add(done => {
-            this.renderDOM(done);
-        });
-        doneChecker.complete();
     }
 
     static isProperNode(node, config) {
