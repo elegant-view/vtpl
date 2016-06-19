@@ -5,11 +5,11 @@
 
 import {extend} from '../utils';
 import ScopeModel from '../ScopeModel';
-import Base from '../Base';
 import Node from '../nodes/Node';
 import ExprWatcher from '../ExprWatcher';
 import parserState from '../parsers/parserState';
 import DoneChecker from '../DoneChecker';
+import DarkEntity from '../DarkEntity';
 
 const TREE_VARS = Symbol('treeVars');
 const NODE_ID_PARSER_MAP = Symbol('nodeIdParserMap');
@@ -21,7 +21,7 @@ const EXPRESSION_WATCHER = Symbol('expressionWatcher');
 const ROOT_SCOPE = Symbol('rootScope');
 const CREATE_PARSER = Symbol('createParser');
 
-export default class Tree extends Base {
+export default class Tree extends DarkEntity {
 
     /**
      * 树的初始化方法。
@@ -262,30 +262,38 @@ export default class Tree extends Base {
     }
 
     goDark(done) {
-        const doneChecker = new DoneChecker(done);
+        super.goDark(result => {
+            const doneChecker = new DoneChecker(done);
 
-        // 调用这棵树下面所有解析器的goDark方法
-        this.iterateParsers(parser => {
-            doneChecker.add(done => {
-                parser.goDark(done);
-            });
-        }, this[PARSERS]);
-        this[EXPRESSION_WATCHER].stop();
+            if (result) {
+                // 调用这棵树下面所有解析器的goDark方法
+                this.iterateParsers(parser => {
+                    doneChecker.add(done => {
+                        parser.goDark(done);
+                    });
+                }, this[PARSERS]);
+                this[EXPRESSION_WATCHER].stop();
+            }
 
-        doneChecker.complete();
+            doneChecker.complete();
+        });
     }
 
     restoreFromDark(done) {
-        const doneChecker = new DoneChecker(done);
-        this.iterateParsers(parser => {
-            doneChecker.add(done => {
-                parser.restoreFromDark(done);
-            });
-        }, this[PARSERS]);
-        doneChecker.add(done => {
-            this[EXPRESSION_WATCHER].resume(done);
+        super.restoreFromDark(result => {
+            const doneChecker = new DoneChecker(done);
+            if (result) {
+                this.iterateParsers(parser => {
+                    doneChecker.add(done => {
+                        parser.restoreFromDark(done);
+                    });
+                }, this[PARSERS]);
+                doneChecker.add(done => {
+                    this[EXPRESSION_WATCHER].resume(done);
+                });
+            }
+            doneChecker.complete();
         });
-        doneChecker.complete();
     }
 
     iterateParsers(iteraterFn, parsers) {
