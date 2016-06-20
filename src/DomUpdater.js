@@ -159,7 +159,7 @@ export default class DomUpdater {
                 return;
             }
 
-            this[TASKS].iterate((task, taskId) => {
+            this[TASKS].safeIterate((task, taskId) => {
                 if (!task) {
                     return;
                 }
@@ -176,16 +176,9 @@ export default class DomUpdater {
                     task.notifyFns[i](error, result);
                 }
 
-                // 这里判断一下主要是为了避免在notifyFns或者taskFn里面调用了stop()
-                if (this[TASKS]) {
-                    return {
-                        value: null
-                    };
-                }
-
                 // 太尴尬了，有可能在 task.fn 里面 stop 了
                 if (!this[IS_EXECUTING]) {
-                    return;
+                    return true;
                 }
             });
         });

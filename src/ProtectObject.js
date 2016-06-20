@@ -18,6 +18,34 @@ export default class ProtectObject {
     }
 
     /**
+     * 判断是否锁定
+     *
+     * @protected
+     * @return {boolean} 是否锁定
+     */
+    isLocked() {
+        return this[IS_LOCKED];
+    }
+
+    /**
+     * 锁定
+     *
+     * @protected
+     */
+    lock() {
+        this[LOCK]();
+    }
+
+    /**
+     * 解锁
+     *
+     * @protected
+     */
+    unlock() {
+        this[UNLOCK]();
+    }
+
+    /**
      * 设置属性，如果被锁定的话，就先存储在缓存对象上面。
      *
      * @public
@@ -48,7 +76,7 @@ export default class ProtectObject {
      * @param  {Function} fn      迭代回调函数
      * @param  {*}   context 回调函数上下文
      */
-    iterate(fn, context) {
+    safeIterate(fn, context) {
         if (!fn) {
             return;
         }
@@ -58,15 +86,8 @@ export default class ProtectObject {
         for (let key in this[OBJECT]) {
         /* eslint-enable guard-for-in */
             const result = fn.call(context, this[OBJECT][key], key);
-            if (result === true) {
+            if (result) {
                 break;
-            }
-            else if (result && typeof result === 'object') {
-                this[OBJECT][key] = result.value;
-
-                if (result.break) {
-                    break;
-                }
             }
         }
         this[UNLOCK]();
@@ -79,12 +100,7 @@ export default class ProtectObject {
     [UNLOCK]() {
         this[IS_LOCKED] = false;
 
-        /* eslint-disable guard-for-in */
-        for (let key in this[OBJECT_CACHE]) {
-        /* eslint-enable guard-for-in */
-            this[OBJECT][key] = this[OBJECT_CACHE][key];
-        }
-
+        this[OBJECT] = this[OBJECT_CACHE];
         this[OBJECT_CACHE] = {};
     }
 
