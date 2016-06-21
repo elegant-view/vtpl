@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import ProtectObject from './ProtectObject';
+import OrderedProtectObject from 'ProtectObject/OrderedProtectObject';
 
 const TASKS = Symbol('tasks');
 const COUNTER = Symbol('counter');
@@ -42,7 +42,7 @@ export default class DomUpdater {
         // requestAnimationFrame执行完之后再添加进去。
         //
         // 综上考虑，在requestAnimationFrame执行过程中，this[TASKS]应该处于被锁的状态，不能对其进行操作。
-        this[TASKS] = new ProtectObject();
+        this[TASKS] = new OrderedProtectObject();
         this[COUNTER] = 0;
         this[NODE_ATTR_NAME_TASK_ID_MAP] = {};
 
@@ -107,7 +107,7 @@ export default class DomUpdater {
         task.notifyFns = task.notifyFns || [];
         notifyFn && task.notifyFns.push(notifyFn);
 
-        this[TASKS].set(taskId, task);
+        this[TASKS].set('' + taskId, task);
 
         this[EXECUTE]();
     }

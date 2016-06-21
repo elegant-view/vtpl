@@ -32,5 +32,8 @@
     "flow-bin": "^0.25.0",
     "jasmine-core": "^2.4.1",
     "requirejs": "^2.2.0"
+  },
+  "dependencies": {
+    "protectobject": "elegant-view/ProtectObject"
   }
 }

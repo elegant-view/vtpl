@@ -5,7 +5,7 @@
 
 import {isClass, isFunction} from './utils';
 import DoneChecker from './DoneChecker';
-import ProtectObject from './ProtectObject';
+import OrderedProtectObject from 'ProtectObject/OrderedProtectObject';
 
 const EVENTS = Symbol('events');
 
@@ -13,7 +13,7 @@ function empty() {}
 
 export default class Event {
     constructor() {
-        this[EVENTS] = new ProtectObject();
+        this[EVENTS] = new OrderedProtectObject();
     }
 
     on(eventName, fn, context) {
@@ -75,7 +75,7 @@ export default class Event {
 
         let [eventName, fn, context] = args;
         if (args.length === 0) {
-            this[EVENTS] = new ProtectObject();
+            this[EVENTS] = new OrderedProtectObject();
         }
 
         const iterator = checkFn => {
