@@ -177,7 +177,7 @@ export default class ExprWatcher extends Event {
                 const exprValue = this[EXPRS][expr]();
                 const oldValue = this[EXPR_OLD_VALUES][expr];
 
-                this.trigger('change', {type: 'resume', expr, newValue: exprValue, oldValue: oldValue}, done);
+                this.triggerWithDone('change', {type: 'resume', expr, newValue: exprValue, oldValue: oldValue}, done);
             });
             /* eslint-enable no-loop-func */
         }
@@ -250,7 +250,7 @@ export default class ExprWatcher extends Event {
         const clone = isFunction(this[EXPR_CLONE_FN][expr]) ? this[EXPR_CLONE_FN][expr] : this[DUMP].bind(this);
 
         if (!equals(expr, exprValue, oldValue)) {
-            this.trigger('change', {expr, newValue: exprValue, oldValue: oldValue}, done);
+            this.triggerWithDone('change', {expr, newValue: exprValue, oldValue: oldValue}, done);
             this[EXPR_OLD_VALUES][expr] = clone(exprValue);
         }
         else {

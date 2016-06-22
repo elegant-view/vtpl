@@ -171,7 +171,7 @@ export default class ScopeModel extends Event {
      */
     [CHANGE](changes, done) {
         const doneChecker = new DoneChecker(done);
-        doneChecker.add(this.trigger.bind(this, 'change', {type: 'change', model: this, changes}));
+        doneChecker.add(this.triggerWithDone.bind(this, 'change', {type: 'change', model: this, changes}));
         doneChecker.add(this[BROADCAST].bind(this, this, {type: 'parentchange', model: this, changes}));
         doneChecker.complete();
     }
@@ -180,7 +180,7 @@ export default class ScopeModel extends Event {
         const doneChecker = new DoneChecker(done);
         for (let i = 0, il = parentModel[CHILDREN].length; i < il; ++i) {
             const childModel = parentModel[CHILDREN][i];
-            doneChecker.add(childModel.trigger.bind(childModel, 'parentchange', event));
+            doneChecker.add(childModel.triggerWithDone.bind(childModel, 'parentchange', event));
 
             doneChecker.add(this[BROADCAST].bind(this, childModel, event));
         }

@@ -63,7 +63,7 @@ export default class DomUpdater {
      * @return {number} 任务ID号
      */
     generateTaskId() {
-        return this[COUNTER]++;
+        return ++this[COUNTER];
     }
 
     /**

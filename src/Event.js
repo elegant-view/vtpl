@@ -3,132 +3,120 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {isClass, isFunction} from './utils';
+import * as util from './utils';
+import ProtectObject from 'ProtectObject/ProtectObject';
 import DoneChecker from './DoneChecker';
-import OrderedProtectObject from 'ProtectObject/OrderedProtectObject';
 
-const EVENTS = Symbol('events');
-
-function empty() {}
+const EVENT = Symbol('events');
 
 export default class Event {
     constructor() {
-        this[EVENTS] = new OrderedProtectObject();
+        this[EVENT] = new ProtectObject();
     }
 
+    /**
+     * 绑定事件
+     *
+     * @public
+     * @param  {string}   eventName 事件名字
+     * @param  {Function} fn        回调函数
+     * @param  {Object=}   context   上下文对象
+     */
     on(eventName, fn, context) {
-        if (!isFunction(fn)) {
+        if (!util.isFunction(fn)) {
             return;
         }
 
-        const eventHandlers = this[EVENTS].get(eventName) || [];
-        eventHandlers.push({fn, context});
-        this[EVENTS].set(eventName, eventHandlers);
+        const handlers = this[EVENT].get(eventName) || [];
+        handlers.push({fn, context});
+        this[EVENT].set(eventName, handlers);
     }
 
     trigger(eventName, ...args) {
-        let doneFn = args[args.length - 1];
-        doneFn = isFunction(doneFn) ? doneFn : empty;
+        const handlers = this[EVENT].get(eventName);
+        if (handlers) {
+            this[EVENT].safeExecute(() => {
+                this[EVENT].set(eventName, handlers);
+                for (let i = 0, il = handlers.length; i < il; ++i) {
+                    const handler = handlers[i];
+                    handler.fn.apply(handler.context, args);
+                }
+            });
+        }
+    }
 
-        const doneChecker = new DoneChecker(doneFn);
-        // 已经被销毁掉了，不再触发事件
-        if (!this[EVENTS]) {
-            doneChecker.complete();
-            return;
+    triggerWithDone(eventName, ...args) {
+        const done = args[args.length - 1];
+        if (!util.isFunction(done)) {
+            throw new TypeError('no `done` function');
         }
 
-        const eventHandlers = this[EVENTS].get(eventName);
-        if (eventHandlers && eventHandlers.length) {
-            let handlerArgs;
-            if (doneFn === empty) {
-                handlerArgs = args;
-            }
-            else {
-                handlerArgs = args.slice(0, -1);
-            }
+        const doneChecker = new DoneChecker(done);
 
-            this[EVENTS].safeExecute(() => {
-                eventHandlers.forEach(handler => {
-                    doneChecker.add(done => {
-                        this.invokeEventHandler(handler, ...handlerArgs.concat(done));
-                    });
-                });
-                this[EVENTS].set(eventName, eventHandlers);
+        const handlers = this[EVENT].get(eventName);
+        if (handlers) {
+            this[EVENT].safeExecute(() => {
+                const handlerArgs = args.slice(0, -1);
+                this[EVENT].set(eventName, handlers);
+                for (let i = 0, il = handlers.length; i < il; ++i) {
+                    const handler = handlers[i];
+                    addToDoneChecker(handler, handlerArgs);
+                }
             });
         }
 
         doneChecker.complete();
+
+        function addToDoneChecker(handler, handlerArgs) {
+            doneChecker.add(checkerDone => {
+                handler.fn.apply(handler.context, handlerArgs.concat(checkerDone));
+            });
+        }
     }
 
-    invokeEventHandler(handler, ...args) {
-        return handler.fn.apply(handler.context, args);
-    }
-
-    getEventHandlers(eventName) {
-        return this[EVENTS].get(eventName);
-    }
-
-    off(...args) {
-        if (!this[EVENTS]) {
+    /**
+     * 移除事件回调
+     *
+     * @public
+     * @param  {string=} eventName 参数名字
+     * @param  {function=} fn 回调函数
+     * @param  {Object=} context 上下文对象
+     */
+    off(eventName, fn, context) {
+        // 已经被销毁
+        if (!this[EVENT]) {
             return;
         }
 
-        let [eventName, fn, context] = args;
-        if (args.length === 0) {
-            this[EVENTS] = new OrderedProtectObject();
+        if (!eventName) {
+            this[EVENT].destroy();
+            this[EVENT] = new ProtectObject();
+            return;
         }
 
         const iterator = checkFn => {
-            let eventHandlers = this[EVENTS].get(eventName);
-            if (eventHandlers && eventHandlers.length) {
-                this[EVENTS][eventName] = eventHandlers.filter(handler => checkFn(handler));
+            const handlers = this[EVENT].get(eventName);
+            const newHandlers = [];
+            for (let i = 0, il = handlers.length; i < il; ++i) {
+                if (checkFn(handlers[i])) {
+                    newHandlers.push(handlers[i]);
+                }
             }
+            this[EVENT].set(eventName, newHandlers);
         };
 
-        if (args.length === 1) {
-            this[EVENTS].set(eventName, null);
+        if (eventName && fn !== undefined) {
+            this[EVENT].set(eventName, null);
         }
-        else if (args.length === 2) {
+        else if (eventName && fn && context !== undefined) {
             iterator(handler => fn !== handler.fn);
         }
-        else if (args.length === 3) {
+        else if (eventName && fn && context) {
             iterator(handler => fn !== handler.fn || context !== handler.context);
         }
     }
 
-    isAllRemoved(...args) {
-        let eventName;
-        let fn;
-        if (args.length === 0 || args.length > 2) {
-            throw new TypeError('wrong arguments');
-        }
-
-        if (args.length >= 1 && isClass(args[0], 'String')) {
-            eventName = args[0];
-        }
-        if (args.length === 2 && isFunction(args[1])) {
-            fn = args[1];
-        }
-
-        const eventHandlers = this[EVENTS].get(eventName);
-        if (eventHandlers && eventHandlers.length) {
-            if (fn) {
-                for (let i = 0, il = eventHandlers.length; i < il; ++i) {
-                    const handler = eventHandlers[i];
-                    if (handler.fn === fn) {
-                        return false;
-                    }
-                }
-            }
-
-            // 只传了eventName，没有传callback，存在eventName对应的回调函数
-            return false;
-        }
-
-        return true;
-    }
-
     destroy() {
-        this[EVENTS] = null;
+        this[EVENT] = null;
     }
 }
