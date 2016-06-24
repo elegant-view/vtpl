@@ -139,7 +139,7 @@ export default class Parser extends DarkEntity {
         }
 
         Node.iterate(startNode, endNode, curNode => {
-            const nextNode = startNode.getNextSibling();
+            const nextNode = curNode.getNextSibling();
             curNode.remove();
             return {
                 type: 'options',
