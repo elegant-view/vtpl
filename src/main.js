@@ -128,11 +128,15 @@ export default class VTpl {
     }
 
     destroy() {
-        this[TREE].getTreeVar('exprCalculater').destroy();
-        this[TREE].getTreeVar('domUpdater').destroy();
-        this[TREE].getTreeVar('nodesManager').destroy();
+        const nodesManager = this[TREE].getTreeVar('nodesManager');
+        const exprCalculater = this[TREE].getTreeVar('exprCalculater');
+        const domUpdater = this[TREE].getTreeVar('domUpdater');
 
         this[TREE].destroy();
         this[TREE] = null;
+
+        exprCalculater.destroy();
+        domUpdater.destroy();
+        nodesManager.destroy();
     }
 }
