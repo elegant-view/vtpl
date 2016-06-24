@@ -219,12 +219,12 @@ export default class ExprParser extends Parser {
     /**
      * 销毁
      *
-     * @inheritDoc
+     * @override
+     * @protected
      */
-    destroy() {
+    release() {
         this[EXPRESION_UPDATE_FUNCTIONS] = null;
-
-        super.destroy();
+        super.release();
     }
 
     /**

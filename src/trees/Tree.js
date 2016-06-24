@@ -308,7 +308,13 @@ export default class Tree extends DarkEntity {
         }
     }
 
-    destroy() {
+    /**
+     * 释放资源
+     *
+     * @override
+     * @protected
+     */
+    release() {
         this.iterateParsers(parser => {
             parser.destroy();
             parser.state = parserState.DESTROIED;
@@ -323,11 +329,11 @@ export default class Tree extends DarkEntity {
         this[NODE_ID_PARSER_MAP] = null;
         this[PARENT] = null;
 
-        this[ROOT_SCOPE].destroy();
-        this[ROOT_SCOPE] = null;
-
         this[EXPRESSION_WATCHER].destroy();
         this[EXPRESSION_WATCHER] = null;
+
+        this[ROOT_SCOPE].destroy();
+        this[ROOT_SCOPE] = null;
     }
 
     /**

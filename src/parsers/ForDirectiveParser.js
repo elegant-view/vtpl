@@ -160,7 +160,13 @@ export default class ForDirectiveParser extends DirectiveParser {
         });
     }
 
-    destroy() {
+    /**
+     * 释放资源
+     *
+     * @override
+     * @protected
+     */
+    release() {
         this[TREES].forEach(tree => tree.destroy());
         this[TREES] = null;
         this[TEMPLATE_SEGMENT] = null;
@@ -168,7 +174,7 @@ export default class ForDirectiveParser extends DirectiveParser {
         this[ITEM_VARIABLE_NAME] = null;
         this[LIST_EXPRESSION] = null;
 
-        super.destroy();
+        super.release();
     }
 
     /**

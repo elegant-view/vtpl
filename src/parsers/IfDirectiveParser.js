@@ -208,7 +208,13 @@ export default class IfDirectiveParser extends DirectiveParser {
         return [];
     }
 
-    destroy() {
+    /**
+     * 释放资源
+     *
+     * @override
+     * @protected
+     */
+    release() {
         for (let i = 0, il = this[BRANCH_TREES].length; i < il; ++i) {
             this[BRANCH_TREES][i].destroy();
         }
@@ -216,7 +222,7 @@ export default class IfDirectiveParser extends DirectiveParser {
         this[EXPRESSIONS] = null;
         this[BRANCH_TREES] = null;
 
-        super.destroy();
+        super.release();
     }
 
     // 转入隐藏状态

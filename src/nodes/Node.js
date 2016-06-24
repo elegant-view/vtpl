@@ -10,7 +10,7 @@ import {
     distinctArr,
     extend
 } from '../utils';
-import Event from '../Event';
+import DoneEvent from '../DoneEvent';
 
 const NODE = Symbol('node');
 const MANAGER = Symbol('manager');
@@ -27,7 +27,7 @@ export default class WrapNode {
         this[NODE] = node;
         this[MANAGER] = manager;
 
-        this[EVENT] = new Event();
+        this[EVENT] = new DoneEvent();
         this[NODE_EVENT_FUNCTIONS] = {};
 
         this[IS_DARK] = false;

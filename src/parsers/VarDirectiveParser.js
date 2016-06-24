@@ -53,10 +53,16 @@ export default class VarDirectiveParser extends DirectiveParser {
         this.getScope().set(this[LEFT_VALUE_NAME], exprWatcher.calculate(this[EXPRESSION]), false, done);
     }
 
-    destroy() {
+    /**
+     * 释放资源
+     *
+     * @override
+     * @protected
+     */
+    release() {
         this[EXPRESSION] = null;
         this[LEFT_VALUE_NAME] = null;
-        super.destroy();
+        super.release();
     }
 
     static isProperNode(node, config) {

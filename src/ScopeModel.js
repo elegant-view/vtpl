@@ -4,7 +4,7 @@
  */
 
 import {isClass, extend, isFunction} from './utils';
-import Event from './Event';
+import DoneEvent from './DoneEvent';
 import DoneChecker from './DoneChecker';
 
 const STORE = Symbol('store');
@@ -16,7 +16,7 @@ const CHANGE = Symbol('change');
 
 const BROADCAST = Symbol('broadcast');
 
-export default class ScopeModel extends Event {
+export default class ScopeModel extends DoneEvent {
     constructor() {
         super();
 

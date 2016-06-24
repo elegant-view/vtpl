@@ -235,9 +235,10 @@ export default class Parser extends DarkEntity {
     /**
      * 销毁解析器，将界面恢复成原样
      *
-     * @public
+     * @override
+     * @protected
      */
-    destroy() {
+    release() {
         // parser是附着在tree上面的，所以在销毁parser的时候，
         // 不要调用tree.destroy()，否则会引起无限递归
         this[TREE] = null;

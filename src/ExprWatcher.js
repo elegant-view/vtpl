@@ -4,7 +4,7 @@
  */
 
 import {isFunction} from './utils';
-import Event from './Event';
+import DoneEvent from './DoneEvent';
 import clone from './clone';
 import deepEqual from './deepEqual';
 import Data from './Data';
@@ -28,7 +28,7 @@ const CONVERT_EXPRESSION_RESULT = Symbol('convertExpressionResult');
 const DUMP = Symbol('dump');
 const EQUALS = Symbol('equals');
 
-export default class ExprWatcher extends Event {
+export default class ExprWatcher extends DoneEvent {
 
     constructor(scopeModel, exprCalculater) {
         super();
