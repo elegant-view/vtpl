@@ -121,6 +121,10 @@ export default class ScopeModel extends DoneEvent {
      * @public
      */
     destroy() {
+        if (!this[STORE]) {
+            return;
+        }
+
         super.destroy();
 
         for (let child of this[CHILDREN]) {
@@ -139,6 +143,8 @@ export default class ScopeModel extends DoneEvent {
             parentScope[CHILDREN] = children;
             this[PARENT] = null;
         }
+
+        this[STORE] = null;
     }
 
     /**

@@ -332,7 +332,9 @@ export default class ExprWatcher extends DoneEvent {
     }
 
     destroy() {
-        this.stop();
+        if (this[SCOPE_MODEL]) {
+            this.stop();
+        }
 
         this[SCOPE_MODEL] = null;
         this[EXPR_CALCULATER] = null;

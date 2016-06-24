@@ -45,4 +45,16 @@ export default class DoneEvent extends Event {
             });
         }
     }
+
+    off(...args) {
+        if (this.getEvent()) {
+            super.off(...args);
+        }
+    }
+
+    destroy() {
+        if (this.getEvent()) {
+            super.destroy();
+        }
+    }
 }

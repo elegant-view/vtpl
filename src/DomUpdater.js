@@ -118,6 +118,11 @@ export default class DomUpdater {
      * @public
      */
     destroy() {
+        // TASKS 为假值是当前对象已被销毁的标志
+        if (!this[TASKS]) {
+            return;
+        }
+
         this.stop();
         this[TASKS].destroy();
 
