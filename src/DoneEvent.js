@@ -52,6 +52,39 @@ export default class DoneEvent extends Event {
         }
     }
 
+    isAllRemoved(...args) {
+        let eventName;
+        let fn;
+        if (args.length === 0 || args.length > 2) {
+            throw new TypeError('wrong arguments');
+        }
+
+        if (args.length >= 1 && util.isClass(args[0], 'String')) {
+            eventName = args[0];
+        }
+        if (args.length === 2 && util.isFunction(args[1])) {
+            fn = args[1];
+        }
+
+        const eventHandlers = this.getEvent().get(eventName);
+        if (eventHandlers && eventHandlers.length) {
+            if (fn) {
+                for (let i = 0, il = eventHandlers.length; i < il; ++i) {
+                    const handler = eventHandlers[i];
+                    if (handler.fn === fn) {
+                        return false;
+                    }
+                }
+            }
+
+            // 只传了eventName，没有传callback，存在eventName对应的回调函数
+            return false;
+        }
+
+        return true;
+    }
+
+
     destroy() {
         if (this.getEvent()) {
             super.destroy();
