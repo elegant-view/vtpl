@@ -83,7 +83,7 @@ export default class IfDirectiveParser extends DirectiveParser {
                 expr = expr.replace(/\n/g, ' ');
                 this[EXPRESSIONS].push(expr);
 
-                let exprWatcher = this.getExpressionWatcher();
+                const exprWatcher = this.getExpressionWatcher();
                 exprWatcher.addExpr(expr);
             }
 

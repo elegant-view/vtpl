@@ -219,7 +219,7 @@ export default class ExprWatcher extends DoneEvent {
         const delayFns = [];
 
         for (let change of event.changes) {
-            let influencedExprs = this[GET_EXPRS_BY_PARAM_NAME](change.name);
+            const influencedExprs = this[GET_EXPRS_BY_PARAM_NAME](change.name);
 
             if (!influencedExprs) {
                 continue;
@@ -250,6 +250,10 @@ export default class ExprWatcher extends DoneEvent {
         const clone = isFunction(this[EXPR_CLONE_FN][expr]) ? this[EXPR_CLONE_FN][expr] : this[DUMP].bind(this);
 
         if (!equals(expr, exprValue, oldValue)) {
+            // if (expr.indexOf('day.date.getDate()') + 1 && exprValue === 13) {
+            //     debugger
+            // }
+            // console.log(expr, exprValue, oldValue);
             this.triggerWithDone('change', {expr, newValue: exprValue, oldValue: oldValue}, done);
             this[EXPR_OLD_VALUES][expr] = clone(exprValue);
         }
@@ -270,8 +274,8 @@ export default class ExprWatcher extends DoneEvent {
             throw new Error('no such expression under the scope.');
         }
 
-        let clone = isFunction(this[EXPR_CLONE_FN][expr]) ? this[EXPR_CLONE_FN][expr] : this[DUMP].bind(this);
-        let value = this[EXPRS][expr]();
+        const clone = isFunction(this[EXPR_CLONE_FN][expr]) ? this[EXPR_CLONE_FN][expr] : this[DUMP].bind(this);
+        const value = this[EXPRS][expr]();
         this[EXPR_OLD_VALUES][expr] = clone(value);
         return this[CONVERT_EXPRESSION_RESULT](value);
     }

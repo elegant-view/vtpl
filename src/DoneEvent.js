@@ -29,12 +29,11 @@ export default class DoneEvent extends Event {
         if (handlers) {
             event.safeExecute(() => {
                 const handlerArgs = args.slice(0, -1);
-                event.set(eventName, handlers);
                 for (let i = 0, il = handlers.length; i < il; ++i) {
                     const handler = handlers[i];
                     addToDoneChecker(handler, handlerArgs);
                 }
-            });
+            }, null, true);
         }
 
         doneChecker.complete();
