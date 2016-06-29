@@ -3,12 +3,11 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-const IS_DESTROIED = Symbol('isDestroied');
+import State, {ensureStates, not} from 'state/State';
 
-
-export default class Base {
+export default class Base extends State {
     constructor() {
-        this[IS_DESTROIED] = false;
+        super();
     }
 
     /**
@@ -16,11 +15,10 @@ export default class Base {
      *
      * @public
      */
+    @ensureStates([not('destroied')])
     destroy() {
-        if (!this[IS_DESTROIED]) {
-            this.release();
-            this[IS_DESTROIED] = true;
-        }
+        this.release();
+        this.addState('destroied');
     }
 
     /**
@@ -28,18 +26,5 @@ export default class Base {
      *
      * @protected
      */
-    release() {
-
-    }
+    release() {}
 }
-
-Base.trait = function trait(props) {
-    let proto = this.prototype;
-    /* eslint-disable guard-for-in */
-    for (let key in props) {
-        proto[key] = props[key];
-    }
-    /* eslint-enable guard-for-in */
-
-    return this;
-};

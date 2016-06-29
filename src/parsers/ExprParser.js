@@ -230,53 +230,34 @@ export default class ExprParser extends Parser {
     /**
      * 节点“隐藏”起来
      *
-     * @public
-     * @param {function()} done 完成异步操作的回调函数
+     * @protected
+     * @override
      */
-    goDark(done) {
-        super.goDark(result => {
-            const doneChecker = new DoneChecker(() => done(result));
-            if (result) {
-                // hide前面故意保留一个空格，因为DOM中不可能出现节点的属性key第一个字符为空格的，
-                // 避免了冲突。
-                const taskId = this.getTaskId(' hide');
-                const domUpdater = this.getDOMUpdater();
-                doneChecker.add(done => {
-                    domUpdater.addTaskFn(
-                        taskId,
-                        ::this.startNode.hide,
-                        done
-                    );
-                });
-            }
-            doneChecker.complete();
+    hide(done) {
+        const doneChecker = new DoneChecker(done);
+        // hide前面故意保留一个空格，因为DOM中不可能出现节点的属性key第一个字符为空格的，
+        // 避免了冲突。
+        const taskId = this.getTaskId(' hide');
+        const domUpdater = this.getDOMUpdater();
+        doneChecker.add(innerDone => {
+            domUpdater.addTaskFn(taskId, ::this.startNode.hide, innerDone);
         });
-
+        doneChecker.complete();
     }
 
     /**
      * 节点“显示”出来
      *
-     * @public
+     * @protected
+     * @override
      * @param {function()} done 完成异步操作的回调函数
      */
-    restoreFromDark(done) {
-        super.restoreFromDark(result => {
-            const doneChecker = new DoneChecker(() => done(result));
-            if (result) {
-                const taskId = this.getTaskId(' hide');
-                const domUpdater = this.getDOMUpdater();
-                doneChecker.add(done => {
-                    domUpdater.addTaskFn(
-                        taskId,
-                        ::this.startNode.show,
-                        done
-                    );
-                });
-            }
-            doneChecker.complete();
-        });
-
+    show(done) {
+        const doneChecker = new DoneChecker(done);
+        const taskId = this.getTaskId(' hide');
+        const domUpdater = this.getDOMUpdater();
+        doneChecker.add(innerDone => domUpdater.addTaskFn(taskId, ::this.startNode.show, innerDone));
+        doneChecker.complete();
     }
 
     /**

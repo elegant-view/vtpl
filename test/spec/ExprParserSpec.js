@@ -10,35 +10,15 @@ import Vtpl from 'vtpl';
 describe('ExprParser', () => {
     let manager;
     let domUpdater;
-    let config;
     let exprCalculater;
     let exprWatcher;
     let scopeModel;
-    let mockTree;
     beforeEach(() => {
         manager = new NodesManager();
         domUpdater = new DomUpdater();
-        config = new Config();
         exprCalculater = new ExprCalculater();
         scopeModel = new ScopeModel();
         exprWatcher = new ExprWatcher(scopeModel, exprCalculater);
-        mockTree = {
-            getTreeVar(src) {
-                if (src === 'domUpdater') {
-                    return domUpdater;
-                }
-                if (src === 'config') {
-                    return config;
-                }
-                if (src === 'exprCalculater') {
-                    return exprCalculater;
-                }
-            },
-            getExprWatcher() {
-                return exprWatcher;
-            },
-            rootScope: scopeModel
-        };
 
         domUpdater.start();
         exprWatcher.start();

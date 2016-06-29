@@ -4,52 +4,70 @@
  */
 
 import Base from './Base';
+import {ensureStates, not, has} from 'state/State';
+import DoneChecker from './DoneChecker';
 
 const IS_DARK = Symbol('isDark');
 
 export default class DarkEntity extends Base {
 
-    constructor(...args) {
-        super(...args);
-
-        this[IS_DARK] = false;
+    constructor() {
+        super();
     }
 
     /**
      * 隐藏当前实体
      *
      * @public
-     * @abstract
-     * @param {function()} done 完成异步操作的回调函数
+     * @final
+     * @param {Function} done 完成异步操作的回调函数
      */
     goDark(done) {
-        if (this[IS_DARK]) {
-            done(false);
-            return;
+        const doneChecker = new DoneChecker(done);
+        if (!this.hasState('dark')) {
+            doneChecker.add(::this.hide);
+            this.addState('dark');
         }
+        doneChecker.complete();
+    }
 
-        this[IS_DARK] = true;
-        done(true);
+    /**
+     * 隐藏
+     *
+     * @protected
+     * @abstract
+     */
+    hide(done) {
+        done();
     }
 
     /**
      * 显示当前实体
      *
      * @public
-     * @abstract
-     * @param {function()} done 完成异步操作的回调函数
+     * @final
+     * @param {Function} done 完成异步操作的回调函数
      */
     restoreFromDark(done) {
-        if (!this[IS_DARK]) {
-            done(false);
-            return;
+        const doneChecker = new DoneChecker(done);
+        if (this.hasState('dark')) {
+            doneChecker.add(::this.show);
+            this.removeState('dark');
         }
+        doneChecker.complete();
+    }
 
-        this[IS_DARK] = false;
-        done(true);
+    /**
+     * 显示
+     *
+     * @protected
+     * @abstract
+     */
+    show(done) {
+        done();
     }
 
     get isDark() {
-        return this[IS_DARK];
+        return this.hasState('dark');
     }
 }

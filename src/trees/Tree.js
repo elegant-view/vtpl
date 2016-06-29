@@ -261,45 +261,44 @@ export default class Tree extends DarkEntity {
         doneChecker.complete();
     }
 
-    goDark(done) {
-        super.goDark(result => {
-            const doneChecker = new DoneChecker(done);
-
-            if (result) {
-                // 调用这棵树下面所有解析器的goDark方法
-                this.iterateParsers(parser => {
-                    doneChecker.add(done => {
-                        parser.goDark(done);
-                    });
-                }, this[PARSERS]);
-                this[EXPRESSION_WATCHER].stop();
-            }
-
-            doneChecker.complete();
-        });
+    /**
+     * 隐藏
+     *
+     * @protected
+     * @override
+     */
+    hide(done) {
+        const doneChecker = new DoneChecker(done);
+        this.iterateParsers(parser => doneChecker.add(::parser.goDark), this[PARSERS]);
+        this[EXPRESSION_WATCHER].stop();
+        doneChecker.complete();
     }
 
-    restoreFromDark(done) {
-        super.restoreFromDark(result => {
-            const doneChecker = new DoneChecker(done);
-            if (result) {
-                this.iterateParsers(parser => {
-                    doneChecker.add(done => {
-                        parser.restoreFromDark(done);
-                    });
-                }, this[PARSERS]);
-                doneChecker.add(done => {
-                    this[EXPRESSION_WATCHER].resume(done);
-                });
-            }
-            doneChecker.complete();
-        });
+    /**
+     * 显示
+     *
+     * @protected
+     * @override
+     */
+    show(done) {
+        const doneChecker = new DoneChecker(done);
+        this.iterateParsers(parser => doneChecker.add(::parser.restoreFromDark), this[PARSERS]);
+        doneChecker.add(::this[EXPRESSION_WATCHER].resume);
+        doneChecker.complete();
     }
 
+    /**
+     * 迭代解析器
+     *
+     * @private
+     * @param  {Function} iteraterFn 迭代函数
+     * @param  {Array.<Parser>} parsers    解析器数组，如果不传，就返回
+     */
     iterateParsers(iteraterFn, parsers) {
         if (!parsers) {
             return;
         }
+
         for (let i = 0, il = parsers.length; i < il; ++i) {
             const parserObj = parsers[i];
             iteraterFn(parserObj.parser, parserObj);
