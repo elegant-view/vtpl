@@ -4,10 +4,7 @@
  */
 
 import Base from './Base';
-import {ensureStates, not, has} from 'state/State';
 import DoneChecker from './DoneChecker';
-
-const IS_DARK = Symbol('isDark');
 
 export default class DarkEntity extends Base {
 
@@ -36,6 +33,7 @@ export default class DarkEntity extends Base {
      *
      * @protected
      * @abstract
+     * @param {Function} done 执行完的回调函数
      */
     hide(done) {
         done();
@@ -62,6 +60,7 @@ export default class DarkEntity extends Base {
      *
      * @protected
      * @abstract
+     * @param {Function} done 执行完的回调函数
      */
     show(done) {
         done();
