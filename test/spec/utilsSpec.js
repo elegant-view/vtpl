@@ -1,7 +1,7 @@
 import {
     each
 }
-from 'vtpl/src/utils';
+from 'src/utils';
 
 describe('A suite', function () {
     it('contains spec with an expectation', function () {

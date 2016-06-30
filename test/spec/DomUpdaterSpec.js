@@ -1,4 +1,4 @@
-import DomUpdater from 'vtpl/src/DomUpdater';
+import DomUpdater from 'src/DomUpdater';
 
 describe('DomUpdater', () => {
     let domUpdater;

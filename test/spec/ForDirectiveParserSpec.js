@@ -1,4 +1,4 @@
-import Vtpl from 'vtpl';
+import Vtpl from 'src/main';
 
 describe('ForDirectiveParser', () => {
     let node;

@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import ScopeModel from 'vtpl/src/ScopeModel';
+import ScopeModel from 'src/ScopeModel';
 
 describe('ScopeModel', () => {
     it('change event broadcast', () => {

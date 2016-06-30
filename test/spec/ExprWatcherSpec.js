@@ -1,6 +1,6 @@
-import ExprWatcher from 'vtpl/src/ExprWatcher';
-import ScopeModel from 'vtpl/src/ScopeModel';
-import ExprCalculater from 'vtpl/src/ExprCalculater';
+import ExprWatcher from 'src/ExprWatcher';
+import ScopeModel from 'src/ScopeModel';
+import ExprCalculater from 'src/ExprCalculater';
 
 describe('ExprWather', () => {
     let watcher;

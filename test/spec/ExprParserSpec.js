@@ -1,11 +1,10 @@
-import ExprParser from 'vtpl/src/parsers/ExprParser';
-import NodesManager from 'vtpl/src/nodes/NodesManager';
-import DomUpdater from 'vtpl/src/DomUpdater';
-import Config from 'vtpl/src/Config';
-import ExprCalculater from 'vtpl/src/ExprCalculater';
-import ScopeModel from 'vtpl/src/ScopeModel';
-import ExprWatcher from 'vtpl/src/ExprWatcher';
-import Vtpl from 'vtpl';
+import ExprParser from 'src/parsers/ExprParser';
+import NodesManager from 'src/nodes/NodesManager';
+import DomUpdater from 'src/DomUpdater';
+import ExprCalculater from 'src/ExprCalculater';
+import ScopeModel from 'src/ScopeModel';
+import ExprWatcher from 'src/ExprWatcher';
+import Vtpl from 'src/main';
 
 describe('ExprParser', () => {
     let manager;

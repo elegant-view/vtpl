@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import OrderedProtectObject from 'ProtectObject/OrderedProtectObject';
+import OrderedProtectObject from 'protectobject/OrderedProtectObject';
 
 const TASKS = Symbol('tasks');
 const COUNTER = Symbol('counter');

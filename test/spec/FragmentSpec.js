@@ -1,5 +1,5 @@
-import Fragment from 'vtpl/src/nodes/Fragment';
-import NodesManager from 'vtpl/src/nodes/NodesManager';
+import Fragment from 'src/nodes/Fragment';
+import NodesManager from 'src/nodes/NodesManager';
 
 let nodesManager;
 beforeEach(() => {

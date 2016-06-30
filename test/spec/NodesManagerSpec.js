@@ -1,5 +1,5 @@
-import NodesManager from 'vtpl/src/nodes/NodesManager';
-import Node from 'vtpl/src/nodes/Node';
+import NodesManager from 'src/nodes/NodesManager';
+import Node from 'src/nodes/Node';
 
 describe('NodesManager 测试', () => {
     let manager;
