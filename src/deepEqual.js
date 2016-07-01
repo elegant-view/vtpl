@@ -32,7 +32,9 @@ function isBaseType(value) {
         || isClass(value, 'Date');
 }
 
-export default function deepEqual(value1, value2) {
+function deepEqual(value1, value2, comparedArray) {
+    comparedArray = comparedArray || [];
+
     // 基类型比较
     if (isBaseType(value1) || isBaseType(value2)) {
         return unwrap(value1) === unwrap(value2);
@@ -51,8 +53,13 @@ export default function deepEqual(value1, value2) {
             return false;
         }
 
+        if (isExistInComparedArray(value1, value2, comparedArray)) {
+            return true;
+        }
+
+        comparedArray.push({value1, value2});
         for (let i = 0, il = value1.length; i < il; ++i) {
-            if (!deepEqual(value1[i], value2[i])) {
+            if (!deepEqual(value1[i], value2[i], comparedArray)) {
                 return false;
             }
         }
@@ -64,8 +71,13 @@ export default function deepEqual(value1, value2) {
         return value1.equals(value2);
     }
 
+    if (isExistInComparedArray(value1, value2, comparedArray)) {
+        return true;
+    }
+    comparedArray.push({value1, value2});
+
     /* eslint-disable guard-for-in */
-    let keys = {};
+    const keys = {};
     for (let key in value1) {
         keys[key] = true;
     }
@@ -75,11 +87,25 @@ export default function deepEqual(value1, value2) {
 
     for (let key in keys) {
         if (value1[key] !== value2[key]
-            && !deepEqual(value1[key], value2[key])
+            && !deepEqual(value1[key], value2[key], comparedArray)
         ) {
             return false;
         }
     }
     return true;
     /* eslint-enable guard-for-in */
+}
+
+function isExistInComparedArray(value1, value2, comparedArray) {
+    for (let i = 0, il = comparedArray.length; i < il; ++i) {
+        if (comparedArray[i].value1 === value1 && comparedArray[i].value2 === value2) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+export default function (value1, value2) {
+    return deepEqual(value1, value2);
 }
