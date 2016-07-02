@@ -14,7 +14,7 @@ export default class DoneEvent extends Event {
      *
      * @public
      * @param  {string} eventName 要触发的事件名字
-     * @param  {...*} ...args   参数，最后一个可以是一个回调函数
+     * @param  {...Array} ...args   参数，最后一个可以是一个回调函数
      */
     triggerWithDone(eventName, ...args) {
         const done = args[args.length - 1];

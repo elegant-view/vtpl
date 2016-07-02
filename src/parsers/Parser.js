@@ -20,6 +20,17 @@ const TREE = Symbol('tree');
 const START_NODE = Symbol('startNode');
 const END_NODE = Symbol('endNode');
 
+/**
+ *	Parser生命周期：
+ *	1、构造函数初始化；
+ *	2、collectExprs遍历DOM树，搜集表达式；
+ *	3、linkScope与作用域绑定；
+ *	4、initRender初始化渲染；
+ *	5、监听scope中数据变化，以便更新DOM；
+ *	6、销毁。
+ *
+ * @class
+ */
 export default class Parser extends DarkEntity {
     constructor(options) {
         super(options);
@@ -114,6 +125,29 @@ export default class Parser extends DarkEntity {
      * @public
      */
     linkScope() {}
+
+    /**
+     * 获得自己监听的表达式，这样就可以判断要不要响应当前change事件了。
+     * 这个方法在Tree中被调用，这样就可以构建`expresion->受影响的parsers`的映射了，
+     * 然后后续每次表达式变化的时候就能快速定位到相应的parser
+     *
+     * @public
+     * @return {Array.<string>} 解析器数组
+     */
+    getOwnExpressions() {
+        return this.expressions || [];
+    }
+
+    /**
+     * 表达式发生变化的回调函数，子类应该覆盖这个方法。
+     *
+     * @protected
+     * @param  {Event}   event 事件对象
+     * @param  {Function} done  执行完之后的回调函数
+     */
+    onExpressionChange(event, done) {
+        done();
+    }
 
     /**
      * 初始渲染

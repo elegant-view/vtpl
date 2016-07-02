@@ -20,6 +20,7 @@ const END_NODE = Symbol('endNode');
 const EXPRESSION_WATCHER = Symbol('expressionWatcher');
 const ROOT_SCOPE = Symbol('rootScope');
 const CREATE_PARSER = Symbol('createParser');
+const EXPRESSION_PARSERS_MAP = Symbol('expressionParsersMap');
 
 export default class Tree extends DarkEntity {
 
@@ -45,6 +46,7 @@ export default class Tree extends DarkEntity {
         this[ROOT_SCOPE] = new ScopeModel();
 
         this[EXPRESSION_WATCHER] = null;
+        this[EXPRESSION_PARSERS_MAP] = {};
     }
 
     get rootScope() {
@@ -236,7 +238,33 @@ export default class Tree extends DarkEntity {
             parser.state = parserState.BEGIN_LINK;
             parser.linkScope();
             parser.state = parserState.END_LINK;
+
+            // 建立expression到parser的映射
+            const parserExpressions = parser.getOwnExpressions();
+            for (let i = 0, il = parserExpressions.length; i < il; ++i) {
+                const expression = parserExpressions[i];
+                const parsers = this[EXPRESSION_PARSERS_MAP][expression] || [];
+                parsers.push(parser);
+                this[EXPRESSION_PARSERS_MAP][expression] = parsers;
+            }
         }, this[PARSERS]);
+
+        // 监听exprWatcher的change事件
+        this[EXPRESSION_WATCHER].on('change', (event, done) => {
+            const doneChecker = new DoneChecker(done);
+
+            const expression = event.expr;
+            const parsers = this[EXPRESSION_PARSERS_MAP][expression];
+            if (parsers) {
+                for (let i = 0, il = parsers.length; i < il; ++i) {
+                    /* eslint-disable no-loop-func */
+                    doneChecker.add(innerDone => parsers[i].onExpressionChange(event, innerDone));
+                    /* eslint-enable no-loop-func */
+                }
+            }
+
+            doneChecker.complete();
+        });
     }
 
     /**
@@ -250,9 +278,7 @@ export default class Tree extends DarkEntity {
         this.iterateParsers(parser => {
             // 将解析器对象和对应树的scope绑定起来
             parser.state = parserState.BEGIN_INIT_RENDER;
-            doneChecker.add(done => {
-                parser.initRender(done);
-            });
+            doneChecker.add(innerDone => parser.initRender(innerDone));
             parser.state = parserState.READY;
         }, this[PARSERS]);
 

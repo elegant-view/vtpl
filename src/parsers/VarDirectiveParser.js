@@ -15,6 +15,7 @@ export default class VarDirectiveParser extends DirectiveParser {
 
         this[EXPRESSION] = null;
         this[LEFT_VALUE_NAME] = null;
+        this.expressions = [];
     }
 
     collectExprs() {
@@ -25,6 +26,7 @@ export default class VarDirectiveParser extends DirectiveParser {
 
         const exprWatcher = this.getExpressionWatcher();
         exprWatcher.addExpr(this[EXPRESSION]);
+        this.expressions.push(this[EXPRESSION]);
 
         try {
             this[LEFT_VALUE_NAME] = nodeValue.match(/var:\s*([\w\$]+)\s*=/)[1];
@@ -34,18 +36,17 @@ export default class VarDirectiveParser extends DirectiveParser {
         }
     }
 
-    linkScope() {
+
+    onExpressionChange(event, done) {
         const exprWatcher = this.getExpressionWatcher();
-        exprWatcher.on('change', (event, done) => {
-            const doneChecker = new DoneChecker(done);
-            if (!this.isDark && event.expr === this[EXPRESSION]) {
-                doneChecker.add(done => {
-                    const exprVal = exprWatcher.calculate(this[EXPRESSION]);
-                    this.getScope().set(this[LEFT_VALUE_NAME], exprVal, false, done);
-                });
-            }
-            doneChecker.complete();
-        });
+        const doneChecker = new DoneChecker(done);
+        if (!this.isDark && event.expr === this[EXPRESSION]) {
+            doneChecker.add(done => {
+                const exprVal = exprWatcher.calculate(this[EXPRESSION]);
+                this.getScope().set(this[LEFT_VALUE_NAME], exprVal, false, done);
+            });
+        }
+        doneChecker.complete();
     }
 
     initRender(done) {
@@ -62,6 +63,7 @@ export default class VarDirectiveParser extends DirectiveParser {
     release() {
         this[EXPRESSION] = null;
         this[LEFT_VALUE_NAME] = null;
+        this.expressions = null;
         super.release();
     }
 

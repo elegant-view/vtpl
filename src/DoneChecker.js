@@ -16,14 +16,32 @@ const STATE_DONE = Symbol('stateDone');
 const STATE_COMPLETE = Symbol('stateComplete');
 
 export default class DoneChecker {
+
+    /**
+     * 构造函数
+     *
+     * @public
+     * @constructor
+     * @param  {Function} onDone 完成所有异步函数之后的回调函数，complete方法也可以设置这个参数，并且具有较高优先级
+     */
     constructor(onDone) {
         this[ASYN_FUNCTIONS] = [];
         this[TOTAL] = 0;
         this[COUNTER] = 0;
         this[STATE] = STATE_READY;
         this[ON_DONE] = isFunction(onDone) ? onDone : empty;
+
+        // setTimeout(() => {
+        //     throw new Error('-----');
+        // }, 3000);
     }
 
+    /**
+     * 添加异步执行函数
+     *
+     * @public
+     * @param {Function} asynFn 异步执行函数
+     */
     add(asynFn) {
         if (this[STATE] !== STATE_READY) {
             throw new Error('wrong state');
@@ -54,7 +72,11 @@ export default class DoneChecker {
         });
     }
 
-    // 在异步函数添加完毕之后应该调用一下这个函数，以便说明total不再变化了。
+    /**
+     * 在异步函数添加完毕之后应该调用一下这个函数，以便说明total不再变化了。
+     *
+     * @public
+     */
     complete() {
         if (this[STATE] !== STATE_READY) {
             throw new Error('wrong state');

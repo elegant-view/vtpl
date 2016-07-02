@@ -23,6 +23,7 @@ export default class IfDirectiveParser extends DirectiveParser {
         this[EXPRESSIONS] = [];
         this[BRANCH_TREES] = [];
         this[HAS_ELSE_BRANCH] = false;
+        this.expressions = [];
     }
 
     collectExprs() {
@@ -85,6 +86,7 @@ export default class IfDirectiveParser extends DirectiveParser {
 
                 const exprWatcher = this.getExpressionWatcher();
                 exprWatcher.addExpr(expr);
+                this.expressions.push(expr);
             }
 
             if (ifNodeType === IfDirectiveParser.ELSE) {
@@ -117,37 +119,9 @@ export default class IfDirectiveParser extends DirectiveParser {
     }
 
     linkScope() {
-        const exprWatcher = this.getExpressionWatcher();
-
         for (let i = 0, il = this[BRANCH_TREES].length; i < il; ++i) {
             this[BRANCH_TREES][i].link();
         }
-
-        exprWatcher.on('change', (event, done) => {
-            const doneChecker = new DoneChecker(done);
-            if (this.isDark) {
-                doneChecker.complete();
-                return;
-            }
-
-            let hasExpr = false;
-            for (let i = 0, il = this[EXPRESSIONS].length; i < il; ++i) {
-                if (this[EXPRESSIONS][i] === event.expr) {
-                    hasExpr = true;
-                    break;
-                }
-            }
-
-            if (!hasExpr) {
-                doneChecker.complete();
-                return;
-            }
-
-            doneChecker.add(done => {
-                this.renderDOM(done);
-            });
-            doneChecker.complete();
-        });
     }
 
     initRender(done) {
@@ -164,6 +138,32 @@ export default class IfDirectiveParser extends DirectiveParser {
             /* eslint-enable no-loop-func */
         }
 
+        doneChecker.complete();
+    }
+
+    onExpressionChange(event, done) {
+        const doneChecker = new DoneChecker(done);
+        if (this.isDark) {
+            doneChecker.complete();
+            return;
+        }
+
+        let hasExpr = false;
+        for (let i = 0, il = this[EXPRESSIONS].length; i < il; ++i) {
+            if (this[EXPRESSIONS][i] === event.expr) {
+                hasExpr = true;
+                break;
+            }
+        }
+
+        if (!hasExpr) {
+            doneChecker.complete();
+            return;
+        }
+
+        doneChecker.add(done => {
+            this.renderDOM(done);
+        });
         doneChecker.complete();
     }
 
@@ -221,6 +221,7 @@ export default class IfDirectiveParser extends DirectiveParser {
 
         this[EXPRESSIONS] = null;
         this[BRANCH_TREES] = null;
+        this.expressions = null;
 
         super.release();
     }

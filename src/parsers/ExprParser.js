@@ -30,6 +30,7 @@ export default class ExprParser extends Parser {
         super(options);
 
         this[EXPRESION_UPDATE_FUNCTIONS] = {};
+        this.expressions = [];
     }
 
     /**
@@ -50,6 +51,7 @@ export default class ExprParser extends Parser {
             const nodeValue = parserNode.getNodeValue();
             if (isExpr(nodeValue)) {
                 exprWatcher.addExpr(nodeValue);
+                this.expressions.push(nodeValue);
 
                 const updateFns = this[EXPRESION_UPDATE_FUNCTIONS][nodeValue] || [];
                 updateFns.push((exprValue, callback) => {
@@ -78,6 +80,7 @@ export default class ExprParser extends Parser {
                 }
                 else {
                     exprWatcher.addExpr(attribute.value);
+                    this.expressions.push(attribute.value);
 
                     const updateFns = this[EXPRESION_UPDATE_FUNCTIONS][attribute.value] || [];
                     attribute.name === 'd-rest'
@@ -170,23 +173,7 @@ export default class ExprParser extends Parser {
      *
      * @public
      */
-    linkScope() {
-        const exprWatcher = this.getExpressionWatcher();
-        exprWatcher.on('change', (event, done) => {
-            const doneChecker = new DoneChecker(done);
-            if (!this.isDark) {
-                const updateFns = this[EXPRESION_UPDATE_FUNCTIONS][event.expr];
-                if (updateFns && updateFns.length) {
-                    updateFns.forEach(fn => {
-                        doneChecker.add(done => {
-                            fn(event.newValue, done);
-                        });
-                    });
-                }
-            }
-            doneChecker.complete();
-        });
-    }
+    linkScope() {}
 
     /**
      * 初始化渲染
@@ -217,12 +204,34 @@ export default class ExprParser extends Parser {
     }
 
     /**
+     * 表达式变化监听函数
+     *
+     * @protected
+     * @override
+     * @param  {Event}   event 事件对象
+     * @param  {Function} done  处理完成回调函数
+     */
+    onExpressionChange(event, done) {
+        const doneChecker = new DoneChecker(done);
+        if (!this.isDark) {
+            const updateFns = this[EXPRESION_UPDATE_FUNCTIONS][event.expr];
+            if (updateFns && updateFns.length) {
+                updateFns.forEach(fn => {
+                    doneChecker.add(innerDone => fn(event.newValue, innerDone));
+                });
+            }
+        }
+        doneChecker.complete();
+    }
+
+    /**
      * 销毁
      *
      * @override
      * @protected
      */
     release() {
+        this.expressions = null;
         this[EXPRESION_UPDATE_FUNCTIONS] = null;
         super.release();
     }

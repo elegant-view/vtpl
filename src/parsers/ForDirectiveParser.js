@@ -23,6 +23,8 @@ export default class ForDirectiveParser extends DirectiveParser {
         this[TREES] = [];
         this[ITEM_VARIABLE_NAME] = null;
         this[LIST_EXPRESSION] = null;
+
+        this.expressions = [];
     }
 
     collectExprs() {
@@ -42,7 +44,7 @@ export default class ForDirectiveParser extends DirectiveParser {
             curNode = nextNode;
         }
 
-        let expr = this.startNode.getNodeValue().replace('for:', '');
+        const expr = this.startNode.getNodeValue().replace('for:', '');
         try {
             [, this[LIST_EXPRESSION], this[ITEM_VARIABLE_NAME]] = expr.match(/^\s*([$\w.\[\]]+)\s+as\s+([$\w]+)\s*$/);
         }
@@ -53,6 +55,7 @@ export default class ForDirectiveParser extends DirectiveParser {
         let exprWatcher = this.getExpressionWatcher();
         this[LIST_EXPRESSION] = `$\{${this[LIST_EXPRESSION]}}`;
         exprWatcher.addExpr(this[LIST_EXPRESSION]);
+        this.expressions.push(this[LIST_EXPRESSION]);
 
         this[UPDATE_FUNCTION] = this.createUpdateFn(
             this.startNode.getNextSibling(),
@@ -60,22 +63,19 @@ export default class ForDirectiveParser extends DirectiveParser {
         );
     }
 
-    linkScope() {
-        const exprWatcher = this.getExpressionWatcher();
-        exprWatcher.on('change', (event, done) => {
-            const doneChecker = new DoneChecker(done);
-            if (!this.isDark && event.expr === this[LIST_EXPRESSION]) {
-                doneChecker.add(done => {
-                    this[UPDATE_FUNCTION](event.newValue, done);
-                });
-            }
-            doneChecker.complete();
-        });
-    }
-
     initRender(done) {
         const exprWatcher = this.getExpressionWatcher();
         this[UPDATE_FUNCTION](exprWatcher.calculate(this[LIST_EXPRESSION]), done);
+    }
+
+    onExpressionChange(event, done) {
+        const doneChecker = new DoneChecker(done);
+        if (!this.isDark && event.expr === this[LIST_EXPRESSION]) {
+            doneChecker.add(done => {
+                this[UPDATE_FUNCTION](event.newValue, done);
+            });
+        }
+        doneChecker.complete();
     }
 
     /**
@@ -158,6 +158,7 @@ export default class ForDirectiveParser extends DirectiveParser {
         this[UPDATE_FUNCTION] = null;
         this[ITEM_VARIABLE_NAME] = null;
         this[LIST_EXPRESSION] = null;
+        this.expressions = null;
 
         super.release();
     }
