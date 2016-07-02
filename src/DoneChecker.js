@@ -30,10 +30,6 @@ export default class DoneChecker {
         this[COUNTER] = 0;
         this[STATE] = STATE_READY;
         this[ON_DONE] = isFunction(onDone) ? onDone : empty;
-
-        // setTimeout(() => {
-        //     throw new Error('-----');
-        // }, 3000);
     }
 
     /**

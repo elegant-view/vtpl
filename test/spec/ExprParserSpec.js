@@ -87,6 +87,24 @@ describe('ExprParser', () => {
 
             setTimeout(() => destroyAssists(assists), 1000);
         });
+
+        it('should collect rest expressions', () => {
+            const assists = createAssists();
+            const [tree, nodesManager] = assists;
+
+            const domNode = document.createElement('div');
+            domNode.setAttribute('ev-rest', '${name}');
+            const startNode = nodesManager.getNode(domNode);
+            const endNode = nodesManager.getNode(domNode);
+            const exprParser = new ExprParser({tree, startNode, endNode});
+
+            exprParser.collectExprs();
+
+            expect(exprParser.expressions.length).toBe(1);
+            expect(exprParser.expressions[0]).toBe('${name}');
+
+            setTimeout(() => destroyAssists(assists), 1000);
+        });
     });
 
 
@@ -197,9 +215,9 @@ describe('ExprParser', () => {
         }, 70);
     });
 
-    it('d-rest', done => {
+    it('ev-rest', done => {
         let node = document.createElement('div');
-        node.setAttribute('d-rest', '${rest}');
+        node.setAttribute('ev-rest', '${rest}');
         node.setAttribute('name', 'yibuyisheng1');
         node.setAttribute('in-school', 'school1');
 

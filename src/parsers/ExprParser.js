@@ -25,6 +25,14 @@ export default class ExprParser extends Parser {
 
         this[EXPRESION_UPDATE_FUNCTIONS] = {};
         this.expressions = [];
+
+        /**
+         * 剩余属性更新函数，暂存作用
+         *
+         * @private
+         * @type {Map.<string, Function>}
+         */
+        this.restAttributeUpdateFns = {};
     }
 
     /**
@@ -34,8 +42,6 @@ export default class ExprParser extends Parser {
      */
     collectExprs() {
         const parserNode = this.startNode;
-
-        const domUpdater = this.getDOMUpdater();
 
         const nodeType = parserNode.getNodeType();
         const exprWatcher = this.getExpressionWatcher();
@@ -48,13 +54,7 @@ export default class ExprParser extends Parser {
                 this.expressions.push(nodeValue);
 
                 const updateFns = this[EXPRESION_UPDATE_FUNCTIONS][nodeValue] || [];
-                updateFns.push((exprValue, callback) => {
-                    domUpdater.addTaskFn(
-                        this.getTaskId('nodeValue'),
-                        () => this.setAttr('nodeValue', exprValue),
-                        callback
-                    );
-                });
+                updateFns.push(this.createTextNodeUpdateFn());
                 this[EXPRESION_UPDATE_FUNCTIONS][nodeValue] = updateFns;
             }
         }
@@ -66,70 +66,130 @@ export default class ExprParser extends Parser {
                 const attribute = attributes[i];
                 attrs[line2camel(attribute.name)] = true;
 
-                if (Node.isEventName(attribute.name) || attribute.name === 'on-outclick') {
-                    this.setEvent(attribute.name, attribute.value);
+                if (Node.isEventName(attribute.name)) {
+                    this.createDOMEventListener(attribute.name, attribute.value);
                 }
-                else if (!isExpr(attribute.value)) {
-                    this.setAttr(attribute.name, attribute.value);
-                }
-                else {
+                else if (isExpr(attribute.value)) {
                     exprWatcher.addExpr(attribute.value);
                     this.expressions.push(attribute.value);
 
                     const updateFns = this[EXPRESION_UPDATE_FUNCTIONS][attribute.value] || [];
-                    attribute.name === 'd-rest'
-                        ? updateFns.push(setRestAttrs.bind(this, attrs))
-                        : updateFns.push(
-                            updateAttr.bind(this, this.getTaskId(attribute.name), attribute.name)
-                        );
+                    attribute.name === 'ev-rest'
+                        ? updateFns.push(this.createRestAttributesUpdateFn(attrs))
+                        : updateFns.push(this.createElementNodeUpdateFn(attribute.name));
                     this[EXPRESION_UPDATE_FUNCTIONS][attribute.value] = updateFns;
+                }
+                else {
+                    this.setAttr(attribute.name, attribute.value);
                 }
             }
         }
-
-        function setRestAttrs(attrs, value) {
-            this.setRestAttrs(value, attrs);
-        }
-
-        function updateAttr(taskId, attrName, exprValue, callback) {
-            domUpdater.addTaskFn(
-                taskId,
-                () => this.setAttr(attrName, exprValue),
-                callback
-            );
-        }
     }
 
-    setRestAttrs(value, attrs) {
-        if (!value || typeof value !== 'object') {
-            return;
-        }
-
-        for (let key in value) {
-            if (!(key in attrs) && key !== 'children') {
-                this.setAttr(key, value[key]);
-            }
-        }
-    }
-
-    setEvent(attrName, attrValue) {
+    /**
+     * 创建DOM事件监听器。比如有这样的一个元素节点：
+     *
+     *   <div on-click="onClick(event)">...</div>
+     *
+     * 那么说明需要监听这个div元素的click事件，其回调函数是对应作用域中的onClick函数
+     *
+     * @private
+     * @param  {string} attrName  属性名，比如`on-click`这种。
+     * @param  {string} attrValue 属性值，比如`onClick(event)`这种
+     */
+    createDOMEventListener(attrName, attrValue) {
         if (!attrValue) {
             return;
         }
 
         const eventName = attrName.replace('on-', '');
         this.startNode.off(eventName);
+
+        attrValue = attrValue.replace(/^\${|}$/g, '');
+        const exprCalculater = this.getExpressionCalculater();
+        exprCalculater.createExprFn(attrValue, true);
+
         this.startNode.on(eventName, event => {
-            attrValue = attrValue.replace(/^\${|}$/g, '');
-
-            const exprCalculater = this.getExpressionCalculater();
-            exprCalculater.createExprFn(attrValue, true);
-
             const localScope = this.getScope().createChild();
             localScope.set('event', event);
             exprCalculater.calculate(attrValue, true, localScope, true);
             localScope.destroy();
         });
+    }
+
+    /**
+     * 创建“剩余属性”的更新函数。举个例子，假设有这样一个元素节点：
+     *
+     *   <div name="yibuyisheng" ev-rest="restObject">...</div>
+     *
+     * 那么在对应作用域上的restObject发生变化之后，会取restObject上除name属性之外的所有属性，设置（setAttribute）到div元素节点上面去。
+     *
+     * @private
+     * @param  {Map.<string, string>} restAttributes 剩余属性
+     * @return {Function}
+     */
+    createRestAttributesUpdateFn(restAttributes) {
+        const domUpdater = this.getDOMUpdater();
+        const restAttributeUpdateFns = this.restAttributeUpdateFns;
+        return (expressionValue, done) => {
+            const doneChecker = new DoneChecker(done);
+
+            if (expressionValue && typeof expressionValue === 'object') {
+                for (let key in expressionValue) {
+                    if (!(key in restAttributes) && key !== 'children') {
+
+                        /* eslint-disable no-loop-func */
+                        // 如果已经创建了，就不要重复创建了。
+                        if (!restAttributeUpdateFns[key]) {
+                            restAttributeUpdateFns[key] = () => this.setAttr(key, expressionValue[key]);
+                        }
+
+                        doneChecker.add(innerDone => {
+                            domUpdater.addTaskFn(this.getTaskId(key), restAttributeUpdateFns[key], innerDone);
+                        });
+                        /* eslint-enable no-loop-func */
+                    }
+                }
+            }
+
+            doneChecker.complete();
+        };
+    }
+
+    /**
+     * 创建元素节点属性更新函数。
+     *
+     * @private
+     * @param  {string} attributeName 属性名
+     * @return {Function}
+     */
+    createElementNodeUpdateFn(attributeName) {
+        const domUpdater = this.getDOMUpdater();
+        const taskId = this.getTaskId(attributeName);
+        return (expressionValue, done) => {
+            domUpdater.addTaskFn(
+                taskId,
+                () => this.setAttr(attributeName, expressionValue),
+                done
+            );
+        };
+    }
+
+    /**
+     * 创建文本节点的文本内容更新函数。
+     *
+     * @private
+     * @return {Function}
+     */
+    createTextNodeUpdateFn() {
+        const domUpdater = this.getDOMUpdater();
+        return (exprValue, done) => {
+            domUpdater.addTaskFn(
+                this.getTaskId('nodeValue'),
+                () => this.setNodeValue(exprValue),
+                done
+            );
+        };
     }
 
     /**
@@ -140,12 +200,7 @@ export default class ExprParser extends Parser {
      * @param {string} attrValue 属性值
      */
     setAttr(attrName, attrValue) {
-        if (attrName === 'nodeValue') {
-            this.setNodeValue(attrValue);
-        }
-        else {
-            this.startNode.attr(attrName, attrValue);
-        }
+        this.startNode.attr(attrName, attrValue);
     }
 
     /**
@@ -163,13 +218,6 @@ export default class ExprParser extends Parser {
     }
 
     /**
-     * 将界面更新相关函数和scopeModel关联起来，顺便记得在初始的时候刷一下界面
-     *
-     * @public
-     */
-    linkScope() {}
-
-    /**
      * 初始化渲染
      *
      * @public
@@ -179,22 +227,22 @@ export default class ExprParser extends Parser {
         const doneChecker = new DoneChecker(done);
 
         const exprWatcher = this.getExpressionWatcher();
+        /* eslint-disable guard-for-in */
         for (let expr in this[EXPRESION_UPDATE_FUNCTIONS]) {
-            if (!this[EXPRESION_UPDATE_FUNCTIONS].hasOwnProperty(expr)) {
-                continue;
-            }
-
             const fns = this[EXPRESION_UPDATE_FUNCTIONS][expr];
 
-            fns.forEach(execute.bind(null, expr));
+            for (let i = 0, il = fns.length; i < il; ++i) {
+                /* eslint-disable no-loop-func */
+                // 此处add执行是同步的。
+                doneChecker.add(innerDone => {
+                    fns[i](exprWatcher.calculate(expr), innerDone);
+                });
+                /* eslint-enable no-loop-func */
+            }
         }
-        doneChecker.complete();
+        /* eslint-enable guard-for-in */
 
-        function execute(expr, fn) {
-            doneChecker.add(done => {
-                fn(exprWatcher.calculate(expr), done);
-            });
-        }
+        doneChecker.complete();
     }
 
     /**
@@ -227,6 +275,7 @@ export default class ExprParser extends Parser {
     release() {
         this.expressions = null;
         this[EXPRESION_UPDATE_FUNCTIONS] = null;
+        this.restAttributeUpdateFns = null;
         super.release();
     }
 

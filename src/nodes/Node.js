@@ -608,19 +608,11 @@ export default class WrapNode {
      * @return {boolean}
      */
     static isEventName(str) {
-        let eventList = this.eventList;
-
         if (str.indexOf('on-') !== 0) {
             return;
         }
         str = str.slice(3);
-        for (let i = 0, il = eventList.length; i < il; ++i) {
-            if (str === eventList[i]) {
-                return true;
-            }
-        }
-
-        return false;
+        return !!this.eventMap[str];
     }
 
     /**
@@ -750,7 +742,33 @@ extend(WrapNode, {
     DOCUMENT_FRAGMENT_NODE: 11,
     NOTATION_NODE: 12,
 
-    eventList: ('blur focus focusin focusout load resize scroll unload click dblclick '
-        + 'mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave '
-        + 'change select submit keydown keypress keyup error contextmenu').split(' ')
+    eventMap: {
+        blur: true,
+        focus: true,
+        focusin: true,
+        focusout: true,
+        load: true,
+        resize: true,
+        scroll: true,
+        unload: true,
+        click: true,
+        dblclick: true,
+        mousedown: true,
+        mouseup: true,
+        mousemove: true,
+        mouseover: true,
+        mouseout: true,
+        mouseenter: true,
+        mouseleave: true,
+        change: true,
+        select: true,
+        submit: true,
+        keydown: true,
+        keypress: true,
+        keyup: true,
+        error: true,
+        contextmenu: true,
+
+        outclick: true
+    }
 });
