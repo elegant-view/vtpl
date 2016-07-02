@@ -13,49 +13,50 @@ import ExprParser from 'src/parsers/ExprParser';
 
 describe('ExprParser', () => {
 
+    function createAssists() {
+        let tree;
+        let nodesManager;
+        let domUpdater;
+        let exprWatcher;
+        let scopeModel;
+        let exprCalculater;
+
+        nodesManager = new NodesManager();
+
+        scopeModel = new ScopeModel();
+        domUpdater = new DomUpdater();
+        exprCalculater = new ExprCalculater();
+        exprWatcher = new ExprWatcher(scopeModel, exprCalculater);
+
+        tree = {
+            getTreeVar(name) {
+                if (name === 'domUpdater') {
+                    return domUpdater;
+                }
+            },
+            getExprWatcher() {
+                return exprWatcher;
+            },
+            scopeModel
+        };
+
+        return {tree, nodesManager, domUpdater, exprWatcher, scopeModel, exprCalculater};
+    }
+
+    function destroyAssists(assists) {
+        const {nodesManager, domUpdater, exprWatcher, scopeModel, exprCalculater} = assists;
+        nodesManager.destroy();
+        domUpdater.destroy();
+        exprWatcher.destroy();
+        scopeModel.destroy();
+        exprCalculater.destroy();
+    }
+
     describe('collectExprs method', () => {
-        function createAssists() {
-            let tree;
-            let nodesManager;
-            let domUpdater;
-            let exprWatcher;
-            let scopeModel;
-            let exprCalculater;
-
-            nodesManager = new NodesManager();
-
-            scopeModel = new ScopeModel();
-            domUpdater = new DomUpdater();
-            exprCalculater = new ExprCalculater();
-            exprWatcher = new ExprWatcher(scopeModel, exprCalculater);
-
-            tree = {
-                getTreeVar(name) {
-                    if (name === 'domUpdater') {
-                        return domUpdater;
-                    }
-                },
-                getExprWatcher() {
-                    return exprWatcher;
-                },
-                scopeModel
-            };
-
-            return [tree, nodesManager, domUpdater, exprWatcher, scopeModel, exprCalculater];
-        }
-
-        function destroyAssists(assists) {
-            const [, nodesManager, domUpdater, exprWatcher, scopeModel, exprCalculater] = assists;
-            nodesManager.destroy();
-            domUpdater.destroy();
-            exprWatcher.destroy();
-            scopeModel.destroy();
-            exprCalculater.destroy();
-        }
 
         it('should collect nodeValue expression', () => {
             const assists = createAssists();
-            const [tree, nodesManager] = assists;
+            const {tree, nodesManager} = assists;
 
             const domNode = document.createTextNode('${name}');
             const startNode = nodesManager.getNode(domNode);
@@ -72,7 +73,7 @@ describe('ExprParser', () => {
 
         it('should collect DOM element\'s attribute expressions', () => {
             const assists = createAssists();
-            const [tree, nodesManager] = assists;
+            const {tree, nodesManager} = assists;
 
             const domNode = document.createElement('div');
             domNode.setAttribute('name', '${name}');
@@ -90,7 +91,7 @@ describe('ExprParser', () => {
 
         it('should collect rest expressions', () => {
             const assists = createAssists();
-            const [tree, nodesManager] = assists;
+            const {tree, nodesManager} = assists;
 
             const domNode = document.createElement('div');
             domNode.setAttribute('ev-rest', '${name}');
@@ -102,6 +103,28 @@ describe('ExprParser', () => {
 
             expect(exprParser.expressions.length).toBe(1);
             expect(exprParser.expressions[0]).toBe('${name}');
+
+            setTimeout(() => destroyAssists(assists), 1000);
+        });
+    });
+
+    describe('initRender method', () => {
+        it('should set the text node content to `yibuyisheng`', done => {
+            const assists = createAssists();
+            const {tree, nodesManager, scopeModel, domUpdater} = assists;
+
+            const domNode = document.createTextNode('${name}');
+            const startNode = nodesManager.getNode(domNode);
+            const endNode = nodesManager.getNode(domNode);
+            const exprParser = new ExprParser({tree, startNode, endNode});
+
+            exprParser.collectExprs();
+            scopeModel.set('name', 'yibuyisheng', true);
+            exprParser.initRender(() => {
+                expect(domNode.textContent).toBe('yibuyisheng');
+                done();
+            });
+            domUpdater.start();
 
             setTimeout(() => destroyAssists(assists), 1000);
         });
