@@ -1,11 +1,5 @@
 /**
  * @file 表达式解析器，一个文本节点或者元素节点对应一个表达式解析器实例。
- *       包含的比较重要的几个属性：
- *       - 1、node ：当前节点，是nodes/Node类型的，可能为元素节点和文本节点；
- *       - 2、exprFns ：表达式函数和节点更新函数
- *           - 1、exprFns[expr].exprFn ：计算表达式值的函数，类型是`function(ScopeModel):*`；
- *           - 2、exprFns[expr].updateFns ：根据表达式值去更新dom的函数数组，类型是`[function(*)]`。
- *       - 3、tree ：当前解析器挂靠的树。
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 

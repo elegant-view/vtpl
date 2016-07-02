@@ -26,7 +26,7 @@ const END_NODE = Symbol('endNode');
  *	2、collectExprs遍历DOM树，搜集表达式；
  *	3、linkScope与作用域绑定；
  *	4、initRender初始化渲染；
- *	5、监听scope中数据变化，以便更新DOM；
+ *	5、监听scope中数据变化，以便更新DOM（调用onExpressionChange方法）；
  *	6、销毁。
  *
  * @class
@@ -35,12 +35,12 @@ export default class Parser extends DarkEntity {
     constructor(options) {
         super(options);
 
-        if (!(options.tree instanceof Tree)) {
-            throw new Error('you should pass in a `Tree`');
-        }
-        if (!Node.isNode(options.startNode) || !Node.isNode(options.endNode)) {
-            throw new Error('you should pass in `startNode` and `endNode`');
-        }
+        // if (!(options.tree instanceof Tree)) {
+        //     throw new Error('you should pass in a `Tree`');
+        // }
+        // if (!Node.isNode(options.startNode) || !Node.isNode(options.endNode)) {
+        //     throw new Error('you should pass in `startNode` and `endNode`');
+        // }
 
         this[TREE] = options.tree;
         this[STATE] = parserState.INITIALIZING;

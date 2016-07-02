@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import log from './log';
+// import log from './log';
 
 const GET_VARIABLE_NAMES_FROM_EXPR = Symbol('getVariableNamesFromExpr');
 const FNS = Symbol('fns');

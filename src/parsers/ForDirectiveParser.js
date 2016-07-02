@@ -110,11 +110,11 @@ export default class ForDirectiveParser extends DirectiveParser {
                     parser[TREES][index].link();
 
                     doneChecker.add(::parser[TREES][index].initRender);
-                    doneChecker.add(done => parser[TREES][index].rootScope.set(local, false, done));
+                    doneChecker.add(innerDone => parser[TREES][index].rootScope.set(local, false, innerDone));
                 }
                 else {
                     doneChecker.add(::parser[TREES][index].restoreFromDark);
-                    doneChecker.add(done => parser[TREES][index].rootScope.set(local, false, done));
+                    doneChecker.add(innerDone => parser[TREES][index].rootScope.set(local, false, innerDone));
                 }
 
                 ++index;
@@ -122,8 +122,8 @@ export default class ForDirectiveParser extends DirectiveParser {
 
             for (let i = index, il = parser[TREES].length; i < il; ++i) {
                 /* eslint-disable no-loop-func */
-                doneChecker.add(done => {
-                    parser[TREES][i].goDark(done);
+                doneChecker.add(innerDone => {
+                    parser[TREES][i].goDark(innerDone);
                 });
                 /* eslint-enable no-loop-func */
             }
