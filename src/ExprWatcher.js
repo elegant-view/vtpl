@@ -250,10 +250,6 @@ export default class ExprWatcher extends DoneEvent {
         const clone = isFunction(this[EXPR_CLONE_FN][expr]) ? this[EXPR_CLONE_FN][expr] : this[DUMP].bind(this);
 
         if (!equals(expr, exprValue, oldValue)) {
-            // if (expr.indexOf('day.date.getDate()') + 1 && exprValue === 13) {
-            //     debugger
-            // }
-            // console.log(expr, exprValue, oldValue);
             this.triggerWithDone('change', {expr, newValue: exprValue, oldValue: oldValue}, done);
             this[EXPR_OLD_VALUES][expr] = clone(exprValue);
         }

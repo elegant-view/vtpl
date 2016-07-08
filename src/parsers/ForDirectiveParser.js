@@ -27,6 +27,12 @@ export default class ForDirectiveParser extends DirectiveParser {
         this.expressions = [];
     }
 
+    /**
+     * 搜集表达式，生成DOM更新函数
+     *
+     * @public
+     * @override
+     */
     collectExprs() {
         // for指令之间没有节点，啥也不干
         if (this.startNode.getNextSibling().equal(this.endNode)) {
@@ -44,12 +50,12 @@ export default class ForDirectiveParser extends DirectiveParser {
             curNode = nextNode;
         }
 
-        const expr = this.startNode.getNodeValue().replace('for:', '');
+        const expr = this.startNode.getNodeValue().replace(/^\s*for:\s*|\s+$/g, '');
         try {
             [, this[LIST_EXPRESSION], this[ITEM_VARIABLE_NAME]] = expr.match(/^\s*([$\w.\[\]]+)\s+as\s+([$\w]+)\s*$/);
         }
         catch (error) {
-            throw new Error(`wrong for expression ${expr}`);
+            throw new Error(`wrong for expression: ${expr}`);
         }
 
         let exprWatcher = this.getExpressionWatcher();
@@ -63,11 +69,26 @@ export default class ForDirectiveParser extends DirectiveParser {
         );
     }
 
+    /**
+     * 初始化渲染
+     *
+     * @public
+     * @override
+     * @param  {Function} done 完成（做完DOM操作）初始化渲染的回调函数
+     */
     initRender(done) {
         const exprWatcher = this.getExpressionWatcher();
         this[UPDATE_FUNCTION](exprWatcher.calculate(this[LIST_EXPRESSION]), done);
     }
 
+    /**
+     * 当前解析器实例所涉及到的表达式的值发生变化之后，会触发的方法
+     *
+     * @public
+     * @override
+     * @param  {Event}   event 事件对象
+     * @param  {Function} done  完成DOM操作之后的回调函数
+     */
     onExpressionChange(event, done) {
         const doneChecker = new DoneChecker(done);
         if (!this.isDark && event.expr === this[LIST_EXPRESSION]) {
@@ -132,12 +153,26 @@ export default class ForDirectiveParser extends DirectiveParser {
         };
     }
 
+    /**
+     * 隐藏。隐藏之后，该指令管辖范围的表达式变化不会触发界面的变化
+     *
+     * @override
+     * @protected
+     * @param  {Function} done 处理结束的回调函数
+     */
     hide(done) {
         const doneChecker = new DoneChecker(done);
         this[TREES].forEach(tree => doneChecker.add(::tree.goDark));
         doneChecker.complete();
     }
 
+    /**
+     * 显示。显示之后，该指令管辖范围的表达式变化才会触发界面的变化
+     *
+     * @override
+     * @protected
+     * @param  {Function} done 处理结束的回调函数
+     */
     show(done) {
         const doneChecker = new DoneChecker(done);
         const exprWatcher = this.getExpressionWatcher();
@@ -167,57 +202,116 @@ export default class ForDirectiveParser extends DirectiveParser {
      * 创建树
      *
      * @protected
+     * @override
      * @return {Tree}
      */
     createTree() {
-        let parser = this;
-        let nodesManager = this.getNodesManager();
-        let copySeg = nodesManager.createDocumentFragment('div');
+        const parser = this;
+        const nodesManager = this.getNodesManager();
+        const copySeg = nodesManager.createDocumentFragment('div');
         copySeg.setInnerHTML(this[TEMPLATE_SEGMENT].getInnerHTML());
 
-        let childNodes = copySeg.getChildNodes();
-        let startNode = childNodes[0];
-        let endNode = childNodes[childNodes.length - 1];
+        const childNodes = copySeg.getChildNodes();
+        const startNode = childNodes[0];
+        const endNode = childNodes[childNodes.length - 1];
 
         let curNode = startNode;
         while (curNode && !curNode.isAfter(endNode)) {
-            let nextNode = curNode.getNextSibling();
+            const nextNode = curNode.getNextSibling();
             parser.endNode.getParentNode().insertBefore(curNode, parser.endNode);
             curNode = nextNode;
         }
 
-        let tree = super.createTree(this.tree, startNode, endNode);
+        const tree = super.createTree(this.tree, startNode, endNode);
         return tree;
     }
 
-    // 主要用于遍历的时候，不让遍历器进入子孙节点
+    /**
+     * 获取需要遍历的子孙节点。主要用于遍历的时候，不让遍历器进入子孙节点
+     *
+     * @override
+     * @public
+     * @return {Array.<WrapNode>}
+     */
     getChildNodes() {
         return [];
     }
 
+    /**
+     * 获取结束节点
+     *
+     * @override
+     * @public
+     * @return {WrapNode}
+     */
     getEndNode() {
         return this.endNode;
     }
 
+    /**
+     * 获取指令的开始节点
+     *
+     * @override
+     * @public
+     * @return {WrapNode}
+     */
     getStartNode() {
         return this.startNode;
     }
 
+    /**
+     * 判断是不是for指令的开始节点
+     *
+     * @static
+     * @override
+     * @public
+     * @param  {WrapNode}  node   待判断的节点
+     * @param  {Config}  config 配置对象
+     * @return {boolean}
+     */
     static isProperNode(node, config) {
         return DirectiveParser.isProperNode(node, config)
             && config.forPrefixRegExp.test(node.getNodeValue());
     }
 
+    /**
+     * 判断是不是for指令结束节点
+     *
+     * @static
+     * @override
+     * @public
+     * @param  {WrapNode}  node   待判断的节点
+     * @param  {Config}  config 配置对象
+     * @return {boolean}
+     */
     static isEndNode(node, config) {
         let nodeType = node.getNodeType();
         return nodeType === Node.COMMENT_NODE
             && config.forEndPrefixRegExp.test(node.getNodeValue());
     }
 
-    static findEndNode(...args) {
-        return this.walkToEnd(...args);
+    /**
+     * 从for指令开始节点开始，找到for指令结束节点，此处会处理for指令嵌套的问题
+     *
+     * @static
+     * @override
+     * @public
+     * @param  {WrapNode} startNode 开始节点
+     * @param  {Config} config 配置对象
+     * @return {WrapNode}
+     */
+    static findEndNode(startNode, config) {
+        return this.walkToEnd(startNode, config);
     }
 
+    /**
+     * 如果没有找到结束节点，需要生成的错误对象。
+     *
+     * @static
+     * @override
+     * @public
+     * @return {Error}
+     */
     static getNoEndNodeError() {
         return new Error('the `for` directive is not properly ended!');
     }

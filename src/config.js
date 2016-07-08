@@ -24,7 +24,7 @@ export default class Config {
         this.forEndName = '/for';
 
         this.forPrefixRegExp = /^\s*for:\s*/;
-        this.forEndPrefixRegExp = /^\s*\/for\s*/;
+        this.forEndPrefixRegExp = /^\s*\/for\s*$/;
 
         this.eventPrefix = 'event';
 

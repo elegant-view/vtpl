@@ -125,6 +125,98 @@ describe('ExprParser', () => {
                 done();
             });
             domUpdater.start();
+            expect(domNode.textContent).toBe('${name}');
+
+            setTimeout(() => destroyAssists(assists), 1000);
+        });
+    });
+
+    describe('expression change', () => {
+        it('should set the text node content to `yibuyisheng`', done => {
+            const assists = createAssists();
+            const {tree, nodesManager, scopeModel, domUpdater, exprWatcher} = assists;
+
+            const domNode = document.createTextNode('${name}');
+            const startNode = nodesManager.getNode(domNode);
+            const endNode = nodesManager.getNode(domNode);
+            const exprParser = new ExprParser({tree, startNode, endNode});
+
+            exprParser.collectExprs();
+            exprParser.initRender();
+            domUpdater.start();
+
+            exprWatcher.start();
+            exprWatcher.on('change', (event, done) => {
+                exprParser.onExpressionChange(event, done);
+            });
+
+            scopeModel.set('name', 'yibuyisheng', false, () => {
+                expect(domNode.textContent).toBe('yibuyisheng');
+                done();
+            });
+            expect(domNode.textContent).toBe('${name}');
+
+            setTimeout(() => destroyAssists(assists), 1000);
+        });
+    });
+
+    describe('hide', () => {
+        it('should hide the text node', done => {
+            const assists = createAssists();
+            const {tree, nodesManager, domUpdater, exprWatcher} = assists;
+
+            const domNode = document.createTextNode('${name}');
+            const startNode = nodesManager.getNode(domNode);
+            const endNode = nodesManager.getNode(domNode);
+            const exprParser = new ExprParser({tree, startNode, endNode});
+
+            exprParser.collectExprs();
+            exprParser.initRender();
+            domUpdater.start();
+
+            exprWatcher.start();
+            exprWatcher.on('change', (event, done) => {
+                exprParser.onExpressionChange(event, done);
+            });
+
+            exprParser.goDark(() => {
+                expect(startNode.isHidden()).toBe(true);
+                done();
+            });
+            expect(startNode.isHidden()).toBe(false);
+
+            setTimeout(() => destroyAssists(assists), 1000);
+        });
+    });
+
+    describe('show', () => {
+        it('should show the text node', done => {
+            const assists = createAssists();
+            const {tree, nodesManager, domUpdater, exprWatcher} = assists;
+
+            const domNode = document.createTextNode('${name}');
+            const startNode = nodesManager.getNode(domNode);
+            const endNode = nodesManager.getNode(domNode);
+            const exprParser = new ExprParser({tree, startNode, endNode});
+
+            exprParser.collectExprs();
+            exprParser.initRender();
+            domUpdater.start();
+
+            exprWatcher.start();
+            exprWatcher.on('change', (event, done) => {
+                exprParser.onExpressionChange(event, done);
+            });
+
+            exprParser.goDark(() => {
+                expect(startNode.isHidden()).toBe(true);
+
+                exprParser.restoreFromDark(() => {
+                    expect(startNode.isHidden()).toBe(false);
+                    done();
+                });
+            });
+            expect(startNode.isHidden()).toBe(false);
 
             setTimeout(() => destroyAssists(assists), 1000);
         });
@@ -151,35 +243,6 @@ describe('ExprParser', () => {
         domUpdater.destroy();
         exprCalculater.destroy();
         exprWatcher.destroy();
-    });
-
-    it('element node', done => {
-        let node = document.createElement('div');
-        node.setAttribute('name', '${name}');
-
-        let tpl = new Vtpl({startNode: node, endNode: node});
-        tpl.render();
-
-        tpl.setData('name', 'yibuyisheng', {
-            done() {
-                expect(node.getAttribute('name')).toBe('yibuyisheng');
-                done();
-            }
-        });
-    });
-
-    it('text node', done => {
-        let node = document.createTextNode('${name}');
-
-        let tpl = new Vtpl({startNode: node, endNode: node});
-        tpl.render();
-
-        tpl.setData('name', 'yibuyisheng', {
-            done() {
-                expect(node.nodeValue).toBe('yibuyisheng');
-                done();
-            }
-        });
     });
 
     it('#goDark()', done => {
@@ -258,49 +321,6 @@ describe('ExprParser', () => {
             expect(node.getAttribute('age')).toBe('20');
             expect(node.getAttribute('in-school')).toBe('school1');
             done();
-        }, 70);
-    });
-
-    // it('undefined expression', done => {
-    //     let node = document.createElement('div');
-    //     node.setAttribute('name', '${student.name}');
-
-    //     let tpl = new Vtpl({startNode: node, endNode: node});
-    //     tpl.render(() => {
-    //         debugger
-    //         expect(node.getAttribute('name')).toBe('');
-    //         done();
-    //     });
-    // });
-
-    it('replace by html', done => {
-        let node = document.createElement('p');
-        node.innerHTML = ' ${html} ';
-
-        let tpl = new Vtpl({startNode: node, endNode: node});
-        tpl.render();
-
-        tpl.setData({
-            html: {
-                type: 'html',
-                html: '<span></span><span></span>'
-            }
-        });
-        setTimeout(() => {
-            expect(node.innerHTML).toBe('<span></span><span></span>');
-
-            tpl.setData({html: {type: 'html', html: '123'}});
-            setTimeout(() => {
-                expect(node.innerHTML).toBe('123');
-
-                tpl.setData({
-                    html: 'text'
-                });
-                setTimeout(() => {
-                    expect(node.textContent).toBe('text');
-                    done();
-                }, 70);
-            }, 70);
         }, 70);
     });
 });

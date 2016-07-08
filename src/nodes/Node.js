@@ -11,27 +11,32 @@ import {
     extend
 } from '../utils';
 import DoneEvent from '../DoneEvent';
+import State from 'state/State';
 
 const NODE = Symbol('node');
 const MANAGER = Symbol('manager');
 const EVENT = Symbol('event');
 const NODE_EVENT_FUNCTIONS = Symbol('nodeEventFunctions');
-const IS_DARK = Symbol('isDark');
 const COMMENT_NODE = Symbol('commentNode');
 const NODE_VALUE = Symbol('nodeValue');
 const GET_IN_DOM_NODE = Symbol('getInDOMNode');
 const IN_DARK_ERROR = Symbol('inDarkError');
 
-export default class WrapNode {
+/**
+ * 使用到的状态：dark
+ *
+ * @class WrapNode
+ */
+export default class WrapNode extends State {
     constructor(node, manager) {
+        super();
+
         this[NODE] = node;
         this[MANAGER] = manager;
 
         this[EVENT] = new DoneEvent();
         this[NODE_EVENT_FUNCTIONS] = {};
 
-        this[IS_DARK] = false;
-        this[COMMENT_NODE] = document.createComment('placeholder');
         this[NODE_VALUE] = null;
     }
 
@@ -479,14 +484,14 @@ export default class WrapNode {
      * @public
      */
     show() {
-        if (!this[IS_DARK] || !this[COMMENT_NODE].parentNode) {
-            return;
+        if (this.hasState('dark')) {
+            const parentNode = this[COMMENT_NODE] && this[COMMENT_NODE].parentNode;
+            if (parentNode) {
+                parentNode.insertBefore(this[NODE], this[COMMENT_NODE]);
+                parentNode.removeChild(this[COMMENT_NODE]);
+            }
+            this.removeState('dark');
         }
-
-        this[COMMENT_NODE].parentNode.insertBefore(this[NODE], this[COMMENT_NODE]);
-        this[COMMENT_NODE].parentNode.removeChild(this[COMMENT_NODE]);
-
-        this[IS_DARK] = false;
     }
 
     /**
@@ -495,24 +500,34 @@ export default class WrapNode {
      * @public
      */
     hide() {
-        if (this[IS_DARK] || !this[NODE].parentNode) {
-            return;
+        if (!this.hasState('dark')) {
+            const parentNode = this[NODE] && this[NODE].parentNode;
+            if (parentNode) {
+                parentNode.insertBefore(this[COMMENT_NODE], this[NODE]);
+                parentNode.removeChild(this[NODE]);
+            }
+            this.addState('dark');
         }
+    }
 
-        this[NODE].parentNode.insertBefore(this[COMMENT_NODE], this[NODE]);
-        this[NODE].parentNode.removeChild(this[NODE]);
-
-        this[IS_DARK] = true;
+    /**
+     * 判断节点是否隐藏
+     *
+     * @public
+     * @return {boolean}
+     */
+    isHidden() {
+        return this.hasState('dark');
     }
 
     [IN_DARK_ERROR]() {
-        if (this[IS_DARK]) {
+        if (this.hasState('dark')) {
             throw new Error('current node is in dark.');
         }
     }
 
     [GET_IN_DOM_NODE]() {
-        return this[IS_DARK] ? this[COMMENT_NODE] : this[NODE];
+        return this.hasState('dark') ? this[COMMENT_NODE] : this[NODE];
     }
 
     /**

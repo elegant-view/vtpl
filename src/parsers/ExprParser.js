@@ -102,7 +102,7 @@ export default class ExprParser extends Parser {
             return;
         }
 
-        const eventName = attrName.replace('on-', '');
+        const eventName = attrName.replace(/^on-/, '');
         this.startNode.off(eventName);
 
         attrValue = attrValue.replace(/^\${|}$/g, '');
@@ -204,7 +204,7 @@ export default class ExprParser extends Parser {
     }
 
     /**
-     * 设置文本节点的“nodeValue”
+     * 设置文本节点的“nodeValue”，子类可以覆盖这个方法，以便支持html字符串的情况。
      *
      * @protected
      * @param {*} value 要设置的值
