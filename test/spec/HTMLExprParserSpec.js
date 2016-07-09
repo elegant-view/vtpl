@@ -8,7 +8,6 @@ import DomUpdater from 'src/DomUpdater';
 import ExprCalculater from 'src/ExprCalculater';
 import ScopeModel from 'src/ScopeModel';
 import ExprWatcher from 'src/ExprWatcher';
-import Vtpl from 'src/main';
 import HTMLExprParser from 'src/parsers/HTMLExprParser';
 
 describe('HTMLExprParser', () => {
@@ -33,6 +32,9 @@ describe('HTMLExprParser', () => {
                 if (name === 'domUpdater') {
                     return domUpdater;
                 }
+                else if (name === 'nodesManager') {
+                    return nodesManager;
+                }
             },
             getExprWatcher() {
                 return exprWatcher;
@@ -52,56 +54,74 @@ describe('HTMLExprParser', () => {
         exprCalculater.destroy();
     }
 
-    let manager;
-    let domUpdater;
-    let exprCalculater;
-    let exprWatcher;
-    let scopeModel;
-    beforeEach(() => {
-        manager = new NodesManager();
-        domUpdater = new DomUpdater();
-        exprCalculater = new ExprCalculater();
-        scopeModel = new ScopeModel();
-        exprWatcher = new ExprWatcher(scopeModel, exprCalculater);
+    describe('setNodeValue method', () => {
+        it('should set html content when init render', done => {
+            const assists = createAssists();
+            const {tree, nodesManager, scopeModel, domUpdater} = assists;
 
-        domUpdater.start();
-        exprWatcher.start();
-    });
-    afterEach(() => {
-        manager.destroy();
-        domUpdater.destroy();
-        exprCalculater.destroy();
-        exprWatcher.destroy();
-    });
+            const domNode = document.createElement('div');
+            domNode.innerHTML = '${name}';
+            const startNode = nodesManager.getNode(domNode.firstChild);
+            const endNode = nodesManager.getNode(domNode.firstChild);
+            const htmlExprParser = new HTMLExprParser({tree, startNode, endNode});
 
-    it('replace by html', done => {
-        let node = document.createElement('p');
-        node.innerHTML = ' ${html} ';
+            htmlExprParser.collectExprs();
+            domUpdater.start();
+            scopeModel.set('name', {type: 'html', html: '<span>yibuyisheng</span>'});
+            htmlExprParser.initRender(() => {
+                expect(domNode.innerHTML).toBe('<span>yibuyisheng</span>');
+                done();
+            });
 
-        let tpl = new Vtpl({startNode: node, endNode: node});
-        tpl.render();
-
-        tpl.setData({
-            html: {
-                type: 'html',
-                html: '<span></span><span></span>'
-            }
+            setTimeout(() => destroyAssists(assists), 1000);
         });
-        setTimeout(() => {
-            expect(node.innerHTML).toBe('<span></span><span></span>');
 
-            tpl.setData({html: {type: 'html', html: '123'}});
-            setTimeout(() => {
-                expect(node.innerHTML).toBe('123');
+        it('should set text content when init render', done => {
+            const assists = createAssists();
+            const {tree, nodesManager, scopeModel, domUpdater} = assists;
 
-                tpl.setData({
-                    html: 'text'
-                });
-                setTimeout(() => {
-                    expect(node.textContent).toBe('text');
+            const domNode = document.createElement('div');
+            domNode.innerHTML = '${name}';
+            const startNode = nodesManager.getNode(domNode.firstChild);
+            const endNode = nodesManager.getNode(domNode.firstChild);
+            const htmlExprParser = new HTMLExprParser({tree, startNode, endNode});
+
+            htmlExprParser.collectExprs();
+            domUpdater.start();
+            scopeModel.set('name', 'yibuyisheng');
+            htmlExprParser.initRender(() => {
+                expect(domNode.innerHTML).toBe('yibuyisheng');
+                done();
+            });
+
+            setTimeout(() => destroyAssists(assists), 1000);
+        });
+
+        it('should handle text content and html content in turn', done => {
+            const assists = createAssists();
+            const {tree, nodesManager, scopeModel, domUpdater, exprWatcher} = assists;
+
+            const domNode = document.createElement('div');
+            domNode.innerHTML = '${name}';
+            const startNode = nodesManager.getNode(domNode.firstChild);
+            const endNode = nodesManager.getNode(domNode.firstChild);
+            const htmlExprParser = new HTMLExprParser({tree, startNode, endNode});
+
+            htmlExprParser.collectExprs();
+            domUpdater.start();
+            exprWatcher.start();
+            exprWatcher.on('change', (event, done) => htmlExprParser.onExpressionChange(event, done));
+            scopeModel.set('name', 'yibuyisheng');
+            htmlExprParser.initRender(() => {
+                expect(domNode.innerHTML).toBe('yibuyisheng');
+
+                scopeModel.set('name', {type: 'html', html: '<span>yibuyisheng</span>'}, false, () => {
+                    expect(domNode.innerHTML).toBe('<span>yibuyisheng</span>');
                     done();
-                }, 70);
-            }, 70);
-        }, 70);
+                });
+            });
+
+            setTimeout(() => destroyAssists(assists), 1000);
+        });
     });
 });
