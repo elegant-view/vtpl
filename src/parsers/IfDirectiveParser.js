@@ -80,8 +80,8 @@ export default class IfDirectiveParser extends DirectiveParser {
             if (ifNodeType === IfDirectiveParser.IF_START
                 || ifNodeType === IfDirectiveParser.ELIF
             ) {
-                let expr = '${' + node.getNodeValue().replace(config.getAllIfRegExp(), '') + '}';
-                expr = expr.replace(/\n/g, ' ');
+                const [, rawExpr] = node.getNodeValue().match(/\s*if:\s*((.|\n)*\S)\s*$/);
+                const expr = '${' + rawExpr.replace(/\n/g, ' ') + '}';
                 this[EXPRESSIONS].push(expr);
 
                 const exprWatcher = this.getExpressionWatcher();
@@ -245,18 +245,55 @@ export default class IfDirectiveParser extends DirectiveParser {
         doneChecker.complete();
     }
 
+    /**
+     * 判断节点是不是if指令的开始节点
+     *
+     * @public
+     * @static
+     * @override
+     * @param  {WrapNode}  node   待判断的节点
+     * @param  {Config}  config 配置对象
+     * @return {boolean}
+     */
     static isProperNode(node, config) {
         return getIfNodeType(node, config) === IfDirectiveParser.IF_START;
     }
 
+    /**
+     * 判断是不是if节点的结束节点
+     *
+     * @public
+     * @static
+     * @override
+     * @param  {WrapNode}  node   待判断的节点
+     * @param  {Config}  config 配置对象
+     * @return {boolean}
+     */
     static isEndNode(node, config) {
         return getIfNodeType(node, config) === IfDirectiveParser.IF_END;
     }
 
-    static findEndNode(...args) {
-        return this.walkToEnd(...args);
+    /**
+     * 找到if指令的结束节点
+     *
+     * @public
+     * @static
+     * @override
+     * @param  {WrapNode} startNode 起始节点
+     * @param  {Config} config 配置对象
+     */
+    static findEndNode(startNode, config) {
+        return this.walkToEnd(startNode, config);
     }
 
+    /**
+     * 没有找到指令结束节点要抛出的错误
+     *
+     * @public
+     * @static
+     * @override
+     * @return {Error}
+     */
     static getNoEndNodeError() {
         return new Error('the if directive is not properly ended!');
     }
@@ -268,12 +305,12 @@ IfDirectiveParser.ELSE = 3;
 IfDirectiveParser.IF_END = 4;
 
 function getIfNodeType(node, config) {
-    let nodeType = node.getNodeType();
+    const nodeType = node.getNodeType();
     if (nodeType !== Node.COMMENT_NODE) {
         return;
     }
 
-    let nodeValue = node.getNodeValue();
+    const nodeValue = node.getNodeValue();
     if (config.ifPrefixRegExp.test(nodeValue)) {
         return IfDirectiveParser.IF_START;
     }
