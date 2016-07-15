@@ -108,6 +108,34 @@ export default class VTpl {
         }
     }
 
+    /**
+     * 第一次渲染。
+     * 注意，此处有坑：
+     * 如果这样写代码：
+     *
+     * // template.html
+     * <!-- if: a -->
+     * yibuyisheng1
+     * <!-- else -->
+     * yibuyisheng
+     * <!-- /if -->
+     *
+     * // test.js
+     * vtpl.render(() => {
+     * 	console.log(1);
+     * });
+     * vtpl.setData('name', 'yibuyisheng', {
+     * 	done() {
+     * 		console.log(2);
+     * 	}
+     * });
+     *
+     * 此段代码会先打印2，然后再打印1，因为setData并没有触发模板中表达式的改变，所以setData的回调函数相当于是同步的，
+     * 而render的回调函数是异步的，所以会后执行。也就是说，此处还没有render完，就执行了setData回调。
+     *
+     * @public
+     * @param  {Function} done 渲染完成回调函数
+     */
     render(done) {
         this[TREE].compile();
         this[TREE].link();

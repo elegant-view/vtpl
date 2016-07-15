@@ -174,6 +174,171 @@ describe('IfDirectiveParser', () => {
         });
     });
 
+    describe('initRender method', () => {
+        it('should show the name `yibuyisheng` in if branch', done => {
+            const assists = createAssists();
+            const {nodesManager, tree, scopeModel, domUpdater} = assists;
+
+            const rootNode = document.createElement('div');
+            rootNode.innerHTML = [
+                '<!-- if: show -->',
+                    'yibuyisheng',
+                '<!-- /if -->'
+            ].join('');
+
+            const ifDirectiveParser = new IfDirectiveParser({
+                tree,
+                startNode: nodesManager.getNode(rootNode.firstChild),
+                endNode: nodesManager.getNode(rootNode.lastChild)
+            });
+
+            ifDirectiveParser.collectExprs();
+            ifDirectiveParser.linkScope();
+            scopeModel.set('show', 1);
+            domUpdater.start();
+            ifDirectiveParser.initRender(() => {
+                expect(rootNode.innerText).toBe('yibuyisheng');
+                done();
+            });
+
+            setTimeout(() => destroyAssists(assists), 1000);
+        });
+
+        it('should hide the name `yibuyisheng` in if branch', done => {
+            const assists = createAssists();
+            const {nodesManager, tree, scopeModel, domUpdater} = assists;
+
+            const rootNode = document.createElement('div');
+            rootNode.innerHTML = [
+                '<!-- if: show -->',
+                    'yibuyisheng',
+                '<!-- /if -->'
+            ].join('');
+
+            const ifDirectiveParser = new IfDirectiveParser({
+                tree,
+                startNode: nodesManager.getNode(rootNode.firstChild),
+                endNode: nodesManager.getNode(rootNode.lastChild)
+            });
+
+            ifDirectiveParser.collectExprs();
+            ifDirectiveParser.linkScope();
+            scopeModel.set('show', 0);
+            domUpdater.start();
+
+            ifDirectiveParser.initRender(() => {
+                expect(rootNode.innerText).toBe('');
+                done();
+            });
+
+            setTimeout(() => destroyAssists(assists), 1000);
+        });
+
+        it('should show the name `yibuyisheng` in elif branch', done => {
+            const assists = createAssists();
+            const {nodesManager, tree, scopeModel, domUpdater} = assists;
+
+            const rootNode = document.createElement('div');
+            rootNode.innerHTML = [
+                '<!-- if: a -->',
+                    'yibuyisheng1',
+                '<!-- elif: show -->',
+                    'yibuyisheng',
+                '<!-- /if -->'
+            ].join('');
+
+            const ifDirectiveParser = new IfDirectiveParser({
+                tree,
+                startNode: nodesManager.getNode(rootNode.firstChild),
+                endNode: nodesManager.getNode(rootNode.lastChild)
+            });
+
+            ifDirectiveParser.collectExprs();
+            ifDirectiveParser.linkScope();
+            scopeModel.set('show', 1);
+            domUpdater.start();
+
+            ifDirectiveParser.initRender(() => {
+                expect(rootNode.innerText).toBe('yibuyisheng');
+                done();
+            });
+
+            setTimeout(() => destroyAssists(assists), 1000);
+        });
+
+        it('should show the name `yibuyisheng` in else branch', done => {
+            const assists = createAssists();
+            const {nodesManager, tree, scopeModel, domUpdater} = assists;
+
+            const rootNode = document.createElement('div');
+            rootNode.innerHTML = [
+                '<!-- if: a -->',
+                    'yibuyisheng1',
+                '<!-- else -->',
+                    'yibuyisheng',
+                '<!-- /if -->'
+            ].join('');
+
+            const ifDirectiveParser = new IfDirectiveParser({
+                tree,
+                startNode: nodesManager.getNode(rootNode.firstChild),
+                endNode: nodesManager.getNode(rootNode.lastChild)
+            });
+
+            ifDirectiveParser.collectExprs();
+            ifDirectiveParser.linkScope();
+            scopeModel.set('show', 1);
+            domUpdater.start();
+
+            ifDirectiveParser.initRender(() => {
+                expect(rootNode.innerText).toBe('yibuyisheng');
+                done();
+            });
+
+            setTimeout(() => destroyAssists(assists), 1000);
+        });
+    });
+
+    describe('onExpressionChange method', () => {
+        it('should show name `yibuyisheng`', done => {
+            const assists = createAssists();
+            const {nodesManager, tree, scopeModel, domUpdater, exprWatcher} = assists;
+
+            const rootNode = document.createElement('div');
+            rootNode.innerHTML = [
+                '<!-- if: a -->',
+                    'yibuyisheng1',
+                '<!-- else -->',
+                    'yibuyisheng',
+                '<!-- /if -->'
+            ].join('');
+
+            const ifDirectiveParser = new IfDirectiveParser({
+                tree,
+                startNode: nodesManager.getNode(rootNode.firstChild),
+                endNode: nodesManager.getNode(rootNode.lastChild)
+            });
+
+            ifDirectiveParser.collectExprs();
+            ifDirectiveParser.linkScope();
+            domUpdater.start();
+            exprWatcher.start();
+
+            exprWatcher.on('change', (event, done) => {
+                ifDirectiveParser.onExpressionChange(event, done);
+            });
+
+            ifDirectiveParser.initRender(() => {
+                scopeModel.set('show', true, false, () => {
+                    expect(rootNode.innerText).toBe('yibuyisheng');
+                    done();
+                });
+            });
+
+            setTimeout(() => destroyAssists(assists), 1000);
+        });
+    });
+
 
     // let node;
     //

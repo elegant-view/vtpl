@@ -38,6 +38,8 @@ export default class WrapNode extends State {
         this[NODE_EVENT_FUNCTIONS] = {};
 
         this[NODE_VALUE] = null;
+
+        this[COMMENT_NODE] = document.createComment('holder');
     }
 
     /**

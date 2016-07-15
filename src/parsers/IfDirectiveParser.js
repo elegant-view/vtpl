@@ -26,13 +26,18 @@ export default class IfDirectiveParser extends DirectiveParser {
         this.expressions = [];
     }
 
+    /**
+     * 搜集表达式
+     *
+     * @public
+     * @override
+     */
     collectExprs() {
         const branchNodeStack = [];
         // 这个计数器是用来处理if指令嵌套问题的。
         // 当nestCounter为0的时候，遇到的各种if相关指令才属于当前parser的，
         // 否则是嵌套的if指令
         let nestCounter = 0;
-        const config = this.getConfig();
         Node.iterate(this.startNode, this.endNode, node => {
             let ifNodeType = getIfNodeType(node, this.getConfig());
             // if
@@ -118,55 +123,75 @@ export default class IfDirectiveParser extends DirectiveParser {
         }
     }
 
+    /**
+     * 将数据和DOM关联起来
+     *
+     * @public
+     * @override
+     */
     linkScope() {
         for (let i = 0, il = this[BRANCH_TREES].length; i < il; ++i) {
             this[BRANCH_TREES][i].link();
         }
     }
 
+    /**
+     * 初始渲染
+     *
+     * @public
+     * @override
+     * @param {Function} done 渲染结束触发的回调函数
+     */
     initRender(done) {
         const doneChecker = new DoneChecker(done);
         doneChecker.add(done => {
             this.renderDOM(done);
         });
 
+        const doneTaskFn = treeIndex => {
+            return innerDone => this[BRANCH_TREES][treeIndex].initRender(innerDone);
+        };
+
         for (let i = 0, il = this[BRANCH_TREES].length; i < il; ++i) {
-            /* eslint-disable no-loop-func */
-            doneChecker.add(done => {
-                this[BRANCH_TREES][i].initRender(done);
-            });
-            /* eslint-enable no-loop-func */
+            doneChecker.add(doneTaskFn(i));
         }
 
         doneChecker.complete();
     }
 
+    /**
+     * 在相关表达式值发生变化时会触发的函数
+     *
+     * @public
+     * @override
+     * @param  {Event}   event 事件对象
+     * @param  {Function} done  处理完成之后的回调函数
+     */
     onExpressionChange(event, done) {
         const doneChecker = new DoneChecker(done);
-        if (this.isDark) {
-            doneChecker.complete();
-            return;
-        }
+        if (!this.isDark) {
+            let hasExpr = false;
+            for (let i = 0, il = this[EXPRESSIONS].length; i < il; ++i) {
+                if (this[EXPRESSIONS][i] === event.expr) {
+                    hasExpr = true;
+                    break;
+                }
+            }
 
-        let hasExpr = false;
-        for (let i = 0, il = this[EXPRESSIONS].length; i < il; ++i) {
-            if (this[EXPRESSIONS][i] === event.expr) {
-                hasExpr = true;
-                break;
+            if (hasExpr) {
+                doneChecker.add(innerDone => this.renderDOM(innerDone));
             }
         }
 
-        if (!hasExpr) {
-            doneChecker.complete();
-            return;
-        }
-
-        doneChecker.add(done => {
-            this.renderDOM(done);
-        });
         doneChecker.complete();
     }
 
+    /**
+     * 渲染界面
+     *
+     * @private
+     * @param  {Function} done 渲染完成的回调函数
+     */
     renderDOM(done) {
         const doneChecker = new DoneChecker(done);
         if (this.isDark) {
@@ -184,21 +209,17 @@ export default class IfDirectiveParser extends DirectiveParser {
             let branchTree = this[BRANCH_TREES][i];
             if (exprValue) {
                 hasShowBranch = true;
-                doneChecker.add(done => {
-                    branchTree.restoreFromDark(done);
-                });
+                doneChecker.add(innerDone => branchTree.restoreFromDark(innerDone));
             }
             else {
-                doneChecker.add(done => {
-                    branchTree.goDark(done);
-                });
+                doneChecker.add(innerDone => branchTree.goDark(innerDone));
             }
         }
 
         if (this[HAS_ELSE_BRANCH]) {
-            doneChecker.add(done => {
-                this[BRANCH_TREES][i][hasShowBranch ? 'goDark' : 'restoreFromDark'](done);
-            });
+            doneChecker.add(
+                innerDone => this[BRANCH_TREES][i][hasShowBranch ? 'goDark' : 'restoreFromDark'](innerDone)
+            );
         }
 
         doneChecker.complete();
