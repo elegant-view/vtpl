@@ -20,9 +20,9 @@ describe('ExprWather', () => {
     });
 
     it('base', () => {
-        watcher.addExpr('${name}');
+        watcher.addExpr('{name}');
         watcher.on('change', event => {
-            expect(event.expr).toBe('${name}');
+            expect(event.expr).toBe('{name}');
             expect(event.newValue).toBe('yibuyisheng');
             expect(event.oldValue).toBe(undefined);
         });
@@ -30,7 +30,7 @@ describe('ExprWather', () => {
     });
 
     it('date change', () => {
-        watcher.addExpr('${dt}');
+        watcher.addExpr('{dt}');
         let dt = new Date();
         scopeModel.set('dt', dt);
 
@@ -44,7 +44,7 @@ describe('ExprWather', () => {
     });
 
     it('array change', () => {
-        watcher.addExpr('${array}');
+        watcher.addExpr('{array}');
         let array = [];
         scopeModel.set('array', array);
 
@@ -56,7 +56,7 @@ describe('ExprWather', () => {
     });
 
     it('callback success', complete => {
-        watcher.addExpr('${name}');
+        watcher.addExpr('{name}');
 
         watcher.on('change', (event, done) => {
             done();
@@ -69,7 +69,7 @@ describe('ExprWather', () => {
     });
 
     it('callback fail', complete => {
-        watcher.addExpr('${name}');
+        watcher.addExpr('{name}');
 
         watcher.on('change', (event, done) => {
             // done();

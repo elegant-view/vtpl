@@ -82,7 +82,7 @@ export default class ExprCalculater {
      * 创建表达式计算函数
      *
      * @public
-     * @param  {string} expr        纯正的表达式字符串。`---${name}---`就不是纯正的，而`name`就算是纯正的。
+     * @param  {string} expr        纯正的表达式字符串。`---{name}---`就不是纯正的，而`name`就算是纯正的。
      * @param  {boolean} avoidReturn 最后生成的表达式计算函数是否需要返回值
      * @return {Object}             返回生成的表达式计算对象。
      */
@@ -165,7 +165,7 @@ export default class ExprCalculater {
      * 从表达式中抽离出变量名
      *
      * @private
-     * @param  {string} expr 表达式字符串，类似于 `${name}` 中的 name
+     * @param  {string} expr 表达式字符串，类似于 `{name}` 中的 name
      * @return {Array.<string>}      变量名数组
      */
     [GET_VARIABLE_NAMES_FROM_EXPR](expr) {

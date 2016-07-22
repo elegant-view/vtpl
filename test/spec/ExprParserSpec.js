@@ -58,7 +58,7 @@ describe('ExprParser', () => {
             const assists = createAssists();
             const {tree, nodesManager} = assists;
 
-            const domNode = document.createTextNode('${name}');
+            const domNode = document.createTextNode('{name}');
             const startNode = nodesManager.getNode(domNode);
             const endNode = nodesManager.getNode(domNode);
             const exprParser = new ExprParser({tree, startNode, endNode});
@@ -66,7 +66,7 @@ describe('ExprParser', () => {
             exprParser.collectExprs();
 
             expect(exprParser.expressions.length).toBe(1);
-            expect(exprParser.expressions[0]).toBe('${name}');
+            expect(exprParser.expressions[0]).toBe('{name}');
 
             setTimeout(() => destroyAssists(assists), 1000);
         });
@@ -76,7 +76,7 @@ describe('ExprParser', () => {
             const {tree, nodesManager} = assists;
 
             const domNode = document.createElement('div');
-            domNode.setAttribute('name', '${name}');
+            domNode.setAttribute('name', '{name}');
             const startNode = nodesManager.getNode(domNode);
             const endNode = nodesManager.getNode(domNode);
             const exprParser = new ExprParser({tree, startNode, endNode});
@@ -84,7 +84,7 @@ describe('ExprParser', () => {
             exprParser.collectExprs();
 
             expect(exprParser.expressions.length).toBe(1);
-            expect(exprParser.expressions[0]).toBe('${name}');
+            expect(exprParser.expressions[0]).toBe('{name}');
 
             setTimeout(() => destroyAssists(assists), 1000);
         });
@@ -94,7 +94,7 @@ describe('ExprParser', () => {
             const {tree, nodesManager} = assists;
 
             const domNode = document.createElement('div');
-            domNode.setAttribute('ev-rest', '${name}');
+            domNode.setAttribute('ev-rest', '{name}');
             const startNode = nodesManager.getNode(domNode);
             const endNode = nodesManager.getNode(domNode);
             const exprParser = new ExprParser({tree, startNode, endNode});
@@ -102,7 +102,7 @@ describe('ExprParser', () => {
             exprParser.collectExprs();
 
             expect(exprParser.expressions.length).toBe(1);
-            expect(exprParser.expressions[0]).toBe('${name}');
+            expect(exprParser.expressions[0]).toBe('{name}');
 
             setTimeout(() => destroyAssists(assists), 1000);
         });
@@ -113,7 +113,7 @@ describe('ExprParser', () => {
             const assists = createAssists();
             const {tree, nodesManager, scopeModel, domUpdater} = assists;
 
-            const domNode = document.createTextNode('${name}');
+            const domNode = document.createTextNode('{name}');
             const startNode = nodesManager.getNode(domNode);
             const endNode = nodesManager.getNode(domNode);
             const exprParser = new ExprParser({tree, startNode, endNode});
@@ -125,7 +125,7 @@ describe('ExprParser', () => {
                 done();
             });
             domUpdater.start();
-            expect(domNode.textContent).toBe('${name}');
+            expect(domNode.textContent).toBe('{name}');
 
             setTimeout(() => destroyAssists(assists), 1000);
         });
@@ -136,7 +136,7 @@ describe('ExprParser', () => {
             const assists = createAssists();
             const {tree, nodesManager, scopeModel, domUpdater, exprWatcher} = assists;
 
-            const domNode = document.createTextNode('${name}');
+            const domNode = document.createTextNode('{name}');
             const startNode = nodesManager.getNode(domNode);
             const endNode = nodesManager.getNode(domNode);
             const exprParser = new ExprParser({tree, startNode, endNode});
@@ -154,7 +154,7 @@ describe('ExprParser', () => {
                 expect(domNode.textContent).toBe('yibuyisheng');
                 done();
             });
-            expect(domNode.textContent).toBe('${name}');
+            expect(domNode.textContent).toBe('{name}');
 
             setTimeout(() => destroyAssists(assists), 1000);
         });
@@ -165,7 +165,7 @@ describe('ExprParser', () => {
             const assists = createAssists();
             const {tree, nodesManager, domUpdater, exprWatcher} = assists;
 
-            const domNode = document.createTextNode('${name}');
+            const domNode = document.createTextNode('{name}');
             const startNode = nodesManager.getNode(domNode);
             const endNode = nodesManager.getNode(domNode);
             const exprParser = new ExprParser({tree, startNode, endNode});
@@ -194,7 +194,7 @@ describe('ExprParser', () => {
             const assists = createAssists();
             const {tree, nodesManager, domUpdater, exprWatcher} = assists;
 
-            const domNode = document.createTextNode('${name}');
+            const domNode = document.createTextNode('{name}');
             const startNode = nodesManager.getNode(domNode);
             const endNode = nodesManager.getNode(domNode);
             const exprParser = new ExprParser({tree, startNode, endNode});
@@ -246,7 +246,7 @@ describe('ExprParser', () => {
     });
 
     it('#goDark()', done => {
-        let node = document.createTextNode('${name}');
+        let node = document.createTextNode('{name}');
 
         let tpl = new Vtpl({startNode: node, endNode: node});
         tpl.render();
@@ -279,23 +279,23 @@ describe('ExprParser', () => {
     });
 
     it('refresh date', done => {
-        let node = document.createTextNode('${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}');
+        let node = document.createTextNode('{dt.getFullYear()}-{dt.getMonth() + 1}-{dt.getDate()}');
 
         let tpl = new Vtpl({startNode: node, endNode: node});
         tpl.render();
 
         let dt = new Date();
         let now = new Date();
-        tpl.setData('dt', dt);
         node = tpl.nodesManager.getNode(node);
+        tpl.setData('dt', dt);
         setTimeout(() => {
-            expect(node.getNodeValue()).toBe(`${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`);
+            expect(node.getNodeValue()).toBe(`${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`);
 
             dt.setMonth(-1);
             now.setMonth(-1);
             tpl.setData('dt', dt);
             setTimeout(() => {
-                expect(node.getNodeValue()).toBe(`${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`);
+                expect(node.getNodeValue()).toBe(`${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`);
                 done();
             }, 70);
         }, 70);
@@ -303,7 +303,7 @@ describe('ExprParser', () => {
 
     it('ev-rest', done => {
         let node = document.createElement('div');
-        node.setAttribute('ev-rest', '${rest}');
+        node.setAttribute('ev-rest', '{rest}');
         node.setAttribute('name', 'yibuyisheng1');
         node.setAttribute('in-school', 'school1');
 

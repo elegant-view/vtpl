@@ -12,7 +12,7 @@ export default class DirectiveParser extends Parser {
         nextTick(done);
     }
 
-    static isProperNode(node, config) {
+    static isProperNode(node) {
         return node.getNodeType() === Node.COMMENT_NODE;
     }
 
@@ -25,19 +25,18 @@ export default class DirectiveParser extends Parser {
      * 仅供内部使用。
      *
      * @param {nodes/Node} startNode 开始寻找的节点
-     * @param {Config} config 配置
      * @return {nodes/Node}
      */
-    static walkToEnd(startNode, config) {
+    static walkToEnd(startNode) {
         let curNode = startNode;
         // 为了应对指令嵌套
         let stackCounter = 0;
         while ((curNode = curNode.getNextSibling())) {
-            if (this.isProperNode(curNode, config)) {
+            if (this.isProperNode(curNode)) {
                 ++stackCounter;
             }
 
-            if (this.isEndNode(curNode, config)) {
+            if (this.isEndNode(curNode)) {
                 if (stackCounter === 0) {
                     return curNode;
                 }

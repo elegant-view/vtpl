@@ -188,7 +188,7 @@ describe('ForDirectiveParser', () => {
             forDirectiveParser.collectExprs();
 
             expect(forDirectiveParser.expressions.length).toBe(1);
-            expect(forDirectiveParser.expressions[0]).toBe('${list}');
+            expect(forDirectiveParser.expressions[0]).toBe('{list}');
 
             setTimeout(() => destroyAssists(assists), 1000);
         });
@@ -223,7 +223,7 @@ describe('ForDirectiveParser', () => {
             const rootNode = document.createElement('div');
             rootNode.innerHTML = [
                 '<!-- for: list as item -->',
-                '${item}',
+                '{item}',
                 '<!-- /for -->'
             ].join('');
             const forDirectiveParser = new ForDirectiveParser({
@@ -252,7 +252,7 @@ describe('ForDirectiveParser', () => {
             const rootNode = document.createElement('div');
             rootNode.innerHTML = [
                 '<!-- for: list as item -->',
-                '${item}',
+                '{item}',
                 '<!-- /for -->'
             ].join('');
             const forDirectiveParser = new ForDirectiveParser({
@@ -284,7 +284,7 @@ describe('ForDirectiveParser', () => {
             const rootNode = document.createElement('div');
             rootNode.innerHTML = [
                 '<!-- for: list as item -->',
-                '${item}',
+                '{item}',
                 '<!-- /for -->'
             ].join('');
             const forDirectiveParser = new ForDirectiveParser({
@@ -315,7 +315,7 @@ describe('ForDirectiveParser', () => {
             const rootNode = document.createElement('div');
             rootNode.innerHTML = [
                 '<!-- for: list as item -->',
-                '${item}',
+                '{item}',
                 '<!-- /for -->'
             ].join('');
             const forDirectiveParser = new ForDirectiveParser({
@@ -354,7 +354,7 @@ describe('ForDirectiveParser', () => {
     // });
     //
     // it('simple list', done => {
-    //     node.innerHTML = '<!-- for: students as student -->${student.name}<!-- /for -->';
+    //     node.innerHTML = '<!-- for: students as student -->{student.name}<!-- /for -->';
     //
     //     let tpl = new Vtpl({startNode: node, endNode: node});
     //     tpl.render();
@@ -385,7 +385,7 @@ describe('ForDirectiveParser', () => {
     // });
     //
     // it('simple object', done => {
-    //     node.innerHTML = '<!-- for: student as value -->${key}-${value},<!-- /for -->';
+    //     node.innerHTML = '<!-- for: student as value -->{key}-{value},<!-- /for -->';
     //
     //     let tpl = new Vtpl({startNode: node, endNode: node});
     //     tpl.render();

@@ -15,6 +15,41 @@ const EXPRESSIONS = Symbol('expressions');
 const BRANCH_TREES = Symbol('branchTrees');
 const HAS_ELSE_BRANCH = Symbol('hasElseBranch');
 
+/**
+ * 匹配if开始指令的前缀
+ *
+ * @type {RegExp}
+ */
+const IF_START_PREFIX_REG = /^\s*if:\s*/;
+
+/**
+ * elif前缀
+ *
+ * @type {RegExp}
+ */
+const ELIF_PREFIX_REG = /^\s*elif:\s*/;
+
+/**
+ * else
+ *
+ * @type {RegExp}
+ */
+const ELSE_REG = /^\s*else\s*/;
+
+/**
+ * if结束指令
+ *
+ * @type {RegExp}
+ */
+const IF_END_REG = /^\s*\/if\s*/;
+
+/**
+ * if和elif中的表达式
+ *
+ * @type {RegExp}
+ */
+const IF_ELIF_EXPRESSION_REG = /\s*(?:el)?if:\s*((.|\n)*\S)\s*$/;
+
 export default class IfDirectiveParser extends DirectiveParser {
 
     constructor(options) {
@@ -39,7 +74,7 @@ export default class IfDirectiveParser extends DirectiveParser {
         // 否则是嵌套的if指令
         let nestCounter = 0;
         Node.iterate(this.startNode, this.endNode, node => {
-            let ifNodeType = getIfNodeType(node, this.getConfig());
+            let ifNodeType = getIfNodeType(node);
             // if
             if (ifNodeType === IfDirectiveParser.IF_START) {
                 // 已经有了一个if分支，再来一个if分支，说明很可能是if嵌套
@@ -85,8 +120,8 @@ export default class IfDirectiveParser extends DirectiveParser {
             if (ifNodeType === IfDirectiveParser.IF_START
                 || ifNodeType === IfDirectiveParser.ELIF
             ) {
-                const [, rawExpr] = node.getNodeValue().match(/\s*if:\s*((.|\n)*\S)\s*$/);
-                const expr = '${' + rawExpr.replace(/\n/g, ' ') + '}';
+                const [, rawExpr] = node.getNodeValue().match(IF_ELIF_EXPRESSION_REG);
+                const expr = this.wrapRawExpression(rawExpr.replace(/\n/g, ' '));
                 this[EXPRESSIONS].push(expr);
 
                 const exprWatcher = this.getExpressionWatcher();
@@ -273,11 +308,10 @@ export default class IfDirectiveParser extends DirectiveParser {
      * @static
      * @override
      * @param  {WrapNode}  node   待判断的节点
-     * @param  {Config}  config 配置对象
      * @return {boolean}
      */
-    static isProperNode(node, config) {
-        return getIfNodeType(node, config) === IfDirectiveParser.IF_START;
+    static isProperNode(node) {
+        return getIfNodeType(node) === IfDirectiveParser.IF_START;
     }
 
     /**
@@ -287,11 +321,10 @@ export default class IfDirectiveParser extends DirectiveParser {
      * @static
      * @override
      * @param  {WrapNode}  node   待判断的节点
-     * @param  {Config}  config 配置对象
      * @return {boolean}
      */
-    static isEndNode(node, config) {
-        return getIfNodeType(node, config) === IfDirectiveParser.IF_END;
+    static isEndNode(node) {
+        return getIfNodeType(node) === IfDirectiveParser.IF_END;
     }
 
     /**
@@ -301,10 +334,9 @@ export default class IfDirectiveParser extends DirectiveParser {
      * @static
      * @override
      * @param  {WrapNode} startNode 起始节点
-     * @param  {Config} config 配置对象
      */
-    static findEndNode(startNode, config) {
-        return this.walkToEnd(startNode, config);
+    static findEndNode(startNode) {
+        return this.walkToEnd(startNode);
     }
 
     /**
@@ -325,26 +357,26 @@ IfDirectiveParser.ELIF = 2;
 IfDirectiveParser.ELSE = 3;
 IfDirectiveParser.IF_END = 4;
 
-function getIfNodeType(node, config) {
+function getIfNodeType(node) {
     const nodeType = node.getNodeType();
     if (nodeType !== Node.COMMENT_NODE) {
         return;
     }
 
     const nodeValue = node.getNodeValue();
-    if (config.ifPrefixRegExp.test(nodeValue)) {
+    if (IF_START_PREFIX_REG.test(nodeValue)) {
         return IfDirectiveParser.IF_START;
     }
 
-    if (config.elifPrefixRegExp.test(nodeValue)) {
+    if (ELIF_PREFIX_REG.test(nodeValue)) {
         return IfDirectiveParser.ELIF;
     }
 
-    if (config.elsePrefixRegExp.test(nodeValue)) {
+    if (ELSE_REG.test(nodeValue)) {
         return IfDirectiveParser.ELSE;
     }
 
-    if (config.ifEndPrefixRegExp.test(nodeValue)) {
+    if (IF_END_REG.test(nodeValue)) {
         return IfDirectiveParser.IF_END;
     }
 }

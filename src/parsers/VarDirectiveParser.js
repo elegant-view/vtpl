@@ -5,9 +5,17 @@
 
 import DirectiveParser from './DirectiveParser';
 import DoneChecker from '../DoneChecker';
+import * as utils from '../utils';
 
 const EXPRESSION = Symbol('expression');
 const LEFT_VALUE_NAME = Symbol('leftValueName');
+
+/**
+ * 匹配var中表达式
+ *
+ * @type {RegExp}
+ */
+const VAR_EXPRESSION_REG = /var:\s*([\w\$]+)\s*=/;
 
 export default class VarDirectiveParser extends DirectiveParser {
     constructor(options) {
@@ -19,17 +27,15 @@ export default class VarDirectiveParser extends DirectiveParser {
     }
 
     collectExprs() {
-        let nodeValue = this.startNode.getNodeValue() || '';
-        // 去掉换行
-        nodeValue = nodeValue.replace(/\n/g, '');
-        this[EXPRESSION] = `$\{${nodeValue.slice(nodeValue.indexOf('=', 0) + 1)}}`;
+        const nodeValue = (this.startNode.getNodeValue() || '').replace(/\n/g, ' ');
+        this[EXPRESSION] = this.wrapRawExpression(nodeValue.slice(nodeValue.indexOf('=', 0) + 1));
 
         const exprWatcher = this.getExpressionWatcher();
         exprWatcher.addExpr(this[EXPRESSION]);
         this.expressions.push(this[EXPRESSION]);
 
         try {
-            this[LEFT_VALUE_NAME] = nodeValue.match(/var:\s*([\w\$]+)\s*=/)[1];
+            this[LEFT_VALUE_NAME] = nodeValue.match(VAR_EXPRESSION_REG)[1];
         }
         catch (e) {
             throw new Error(`wrong var expression ${this[LEFT_VALUE_NAME]}`);
@@ -67,9 +73,9 @@ export default class VarDirectiveParser extends DirectiveParser {
         super.release();
     }
 
-    static isProperNode(node, config) {
+    static isProperNode(node) {
         const nodeValue = node.getNodeValue();
         return DirectiveParser.isProperNode(node)
-            && nodeValue.replace(/^\s+/, '').indexOf(config.varName + ':') === 0;
+            && utils.trim(nodeValue).indexOf('var:') === 0;
     }
 }

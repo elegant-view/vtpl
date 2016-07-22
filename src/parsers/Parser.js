@@ -168,19 +168,7 @@ export default class Parser extends DarkEntity {
      * @param {Node} endNode 结束节点
      */
     removeFromDOM(startNode, endNode) {
-        if (!Node.isNode(startNode) || !Node.isNode(endNode)) {
-            return;
-        }
-
-        Node.iterate(startNode, endNode, curNode => {
-            const nextNode = curNode.getNextSibling();
-            curNode.remove();
-            return {
-                type: 'options',
-                getChildNodes: () => [],
-                getNextNode: () => nextNode
-            };
-        });
+        Node.removeFromDOM(startNode, endNode);
     }
 
     /**
@@ -232,11 +220,6 @@ export default class Parser extends DarkEntity {
         return rootScope;
     }
 
-    getConfig() {
-        const config = this.tree.getTreeVar('config');
-        return config;
-    }
-
     /**
      * 根据父级数创建子树。
      *
@@ -264,6 +247,28 @@ export default class Parser extends DarkEntity {
         tree.destroy();
         this.tree.rootScope.removeChild(treeScope);
         tree.setParent(null);
+    }
+
+    /**
+     * 判断指定字符串是不是表达式
+     *
+     * @protected
+     * @param  {string}  expr 带有前后缀的表达式
+     * @return {boolean}
+     */
+    isExpression(expr) {
+        return /{.+?}/.test(expr);
+    }
+
+    /**
+     * 将没有前后缀的表达式用前后缀包裹起来
+     *
+     * @protected
+     * @param {string} expr 待包裹的表达式
+     * @return {string}
+     */
+    wrapRawExpression(expr) {
+        return `{${expr}}`;
     }
 
     /**

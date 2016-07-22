@@ -133,10 +133,18 @@ export function regExpEncode(str) {
 
 export function empty() {}
 
-export function isExpr(expr) {
-    return /\$\{(.+?)}/.test(expr);
-}
+
 
 export function nextTick(fn) {
     setTimeout(fn);
+}
+
+/**
+ * 去掉字符串前后的空格
+ *
+ * @param  {string} str 字符串
+ * @return {string}     去掉前后空格的字符串
+ */
+export function trim(str) {
+    return str.replace(/^\s+|\s+$/g, '');
 }

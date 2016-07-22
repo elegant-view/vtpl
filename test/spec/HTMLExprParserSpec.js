@@ -60,7 +60,7 @@ describe('HTMLExprParser', () => {
             const {tree, nodesManager, scopeModel, domUpdater} = assists;
 
             const domNode = document.createElement('div');
-            domNode.innerHTML = '${name}';
+            domNode.innerHTML = '{name}';
             const startNode = nodesManager.getNode(domNode.firstChild);
             const endNode = nodesManager.getNode(domNode.firstChild);
             const htmlExprParser = new HTMLExprParser({tree, startNode, endNode});
@@ -81,7 +81,7 @@ describe('HTMLExprParser', () => {
             const {tree, nodesManager, scopeModel, domUpdater} = assists;
 
             const domNode = document.createElement('div');
-            domNode.innerHTML = '${name}';
+            domNode.innerHTML = '{name}';
             const startNode = nodesManager.getNode(domNode.firstChild);
             const endNode = nodesManager.getNode(domNode.firstChild);
             const htmlExprParser = new HTMLExprParser({tree, startNode, endNode});
@@ -102,7 +102,7 @@ describe('HTMLExprParser', () => {
             const {tree, nodesManager, scopeModel, domUpdater, exprWatcher} = assists;
 
             const domNode = document.createElement('div');
-            domNode.innerHTML = '${name}';
+            domNode.innerHTML = '{name}';
             const startNode = nodesManager.getNode(domNode.firstChild);
             const endNode = nodesManager.getNode(domNode.firstChild);
             const htmlExprParser = new HTMLExprParser({tree, startNode, endNode});

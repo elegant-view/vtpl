@@ -5,11 +5,25 @@
 
 import Parser from './Parser';
 import Node from '../nodes/Node';
-import {line2camel, isExpr} from '../utils';
+import {line2camel} from '../utils';
 import DoneChecker from '../DoneChecker';
 // import log from '../log';
 
 const EXPRESION_UPDATE_FUNCTIONS = Symbol('expressionUpdateFunctions');
+
+/**
+ * 用于去掉表达式前后缀的正则
+ *
+ * @type {RegExp}
+ */
+const EXPRESION_PURIFY_REG = /^{|}$/g;
+
+/**
+ * 匹配事件名前缀的正则
+ *
+ * @type {RegExp}
+ */
+const EVENT_PREFIX_REG = /^on-/;
 
 export default class ExprParser extends Parser {
 
@@ -33,6 +47,8 @@ export default class ExprParser extends Parser {
          * @type {Map.<string, Function>}
          */
         this.restAttributeUpdateFns = {};
+
+        this.eventHandlers = {};
     }
 
     /**
@@ -49,7 +65,7 @@ export default class ExprParser extends Parser {
         // 文本节点
         if (nodeType === Node.TEXT_NODE) {
             const nodeValue = parserNode.getNodeValue();
-            if (isExpr(nodeValue)) {
+            if (this.isExpression(nodeValue)) {
                 exprWatcher.addExpr(nodeValue);
                 this.expressions.push(nodeValue);
 
@@ -69,7 +85,7 @@ export default class ExprParser extends Parser {
                 if (Node.isEventName(attribute.name)) {
                     this.createDOMEventListener(attribute.name, attribute.value);
                 }
-                else if (isExpr(attribute.value)) {
+                else if (this.isExpression(attribute.value)) {
                     exprWatcher.addExpr(attribute.value);
                     this.expressions.push(attribute.value);
 
@@ -102,19 +118,22 @@ export default class ExprParser extends Parser {
             return;
         }
 
-        const eventName = attrName.replace(/^on-/, '');
-        this.startNode.off(eventName);
+        const eventName = attrName.replace(EVENT_PREFIX_REG, '');
+        if (this.eventHandlers[eventName]) {
+            this.startNode.off(eventName, this.eventHandlers[eventName]);
+        }
 
-        attrValue = attrValue.replace(/^\${|}$/g, '');
+        attrValue = attrValue.replace(EXPRESION_PURIFY_REG, '');
         const exprCalculater = this.getExpressionCalculater();
         exprCalculater.createExprFn(attrValue, true);
 
-        this.startNode.on(eventName, event => {
+        this.eventHandlers[eventName] = event => {
             const localScope = this.getScope().createChild();
             localScope.set('event', event);
             exprCalculater.calculate(attrValue, true, localScope, true);
             localScope.destroy();
-        });
+        };
+        this.startNode.on(eventName, this.eventHandlers[eventName]);
     }
 
     /**
@@ -276,6 +295,13 @@ export default class ExprParser extends Parser {
         this.expressions = null;
         this[EXPRESION_UPDATE_FUNCTIONS] = null;
         this.restAttributeUpdateFns = null;
+
+        /* eslint-disable guard-for-in */
+        for (let eventName in this.eventHandlers) {
+            this.startNode.off(eventName, this.eventHandlers[eventName]);
+        }
+        /* eslint-enable guard-for-in */
+
         super.release();
     }
 

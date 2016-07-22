@@ -355,6 +355,10 @@ export default class WrapNode extends State {
                 return this.setClass(value);
             }
 
+            if (name === 'readonly') {
+                return this[NODE].readOnly = value;
+            }
+
             if (WrapNode.isEventName(name)) {
                 return this.on(name.replace('on', ''), value);
             }
@@ -742,6 +746,33 @@ export default class WrapNode extends State {
 
     static isNode(obj) {
         return obj instanceof WrapNode;
+    }
+
+    static removeFromDOM(startNode, endNode) {
+        if (!WrapNode.isNode(startNode) || !WrapNode.isNode(endNode)) {
+            return;
+        }
+
+        if (!startNode.getParentNode() || !endNode.getParentNode()) {
+            startNode.remove();
+            endNode.remove();
+            return;
+        }
+
+        if (!startNode.isBrotherWith(endNode)) {
+            throw new Error('not brother node');
+        }
+
+        let curNode = startNode;
+        while (curNode) {
+            const nextNode = curNode.getNextSibling();
+            curNode.remove();
+
+            if (curNode === endNode) {
+                break;
+            }
+            curNode = nextNode;
+        }
     }
 }
 

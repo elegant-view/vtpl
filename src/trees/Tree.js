@@ -348,6 +348,7 @@ export default class Tree extends DarkEntity {
 
         this[START_NODE] = null;
         this[END_NODE] = null;
+
         this.config = null;
 
         this[TREE_VARS] = null;

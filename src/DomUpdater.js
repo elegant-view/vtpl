@@ -4,6 +4,7 @@
  */
 
 import OrderedProtectObject from 'protectobject/OrderedProtectObject';
+import State from 'state/State';
 
 const TASKS = Symbol('tasks');
 const COUNTER = Symbol('counter');
@@ -33,8 +34,10 @@ function getRequestAnimationFrameFn() {
     };
 }
 
-export default class DomUpdater {
+export default class DomUpdater extends State {
     constructor() {
+        super();
+
         // 为啥这里要用ProtectObject呢？
         // 因为在taskFn或者notifyFn里面有可能间接修改tasks，这就容易引起错误了，思考如下场景：
         // 假设现在有taskId为2的任务添加进来了，然后在任务执行过程中，又添加taskId为2的任务，此时如果直接操作tasks，
@@ -159,6 +162,7 @@ export default class DomUpdater {
         }
 
         requestAnimationFrame(() => {
+
             // 避免在调用 [EXECUTE]() 之后，马上调用 stop() 所造成的错误
             if (!this[IS_EXECUTING]) {
                 return;
@@ -186,6 +190,7 @@ export default class DomUpdater {
                     return true;
                 }
             });
+
         });
     }
 }

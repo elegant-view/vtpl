@@ -6,12 +6,34 @@
 import DirectiveParser from './DirectiveParser';
 import Node from '../nodes/Node';
 import DoneChecker from '../DoneChecker';
+import * as utils from '../utils';
 
 const TEMPLATE_SEGMENT = Symbol('templateSegment');
 const UPDATE_FUNCTION = Symbol('updateFunction');
 const TREES = Symbol('trees');
 const ITEM_VARIABLE_NAME = Symbol('itemVariableName');
 const LIST_EXPRESSION = Symbol('listExpression');
+
+/**
+ * 匹配for开始指令的前缀
+ *
+ * @type {RegExp}
+ */
+const FOR_START_PREFIX_REG = /^\s*for:\s*/;
+
+/**
+ * 匹配for结束指令的前缀
+ *
+ * @type {RegExp}
+ */
+const FOR_END_PREFIX_REG = /^\s*\/for\s*$/;
+
+/**
+ * 匹配for指令中涉及到的表达式
+ *
+ * @type  {RegExp}
+ */
+const EXPRESSION_MATCHER_REG = /^\s*([$\w.\[\]]+)\s+as\s+([$\w]+)\s*$/;
 
 export default class ForDirectiveParser extends DirectiveParser {
 
@@ -50,16 +72,16 @@ export default class ForDirectiveParser extends DirectiveParser {
             curNode = nextNode;
         }
 
-        const expr = this.startNode.getNodeValue().replace(/^\s*for:\s*|\s+$/g, '');
+        const expr = utils.trim(this.startNode.getNodeValue().replace(FOR_START_PREFIX_REG, ''));
         try {
-            [, this[LIST_EXPRESSION], this[ITEM_VARIABLE_NAME]] = expr.match(/^\s*([$\w.\[\]]+)\s+as\s+([$\w]+)\s*$/);
+            [, this[LIST_EXPRESSION], this[ITEM_VARIABLE_NAME]] = expr.match(EXPRESSION_MATCHER_REG);
         }
         catch (error) {
             throw new Error(`wrong for expression: ${expr}`);
         }
 
         let exprWatcher = this.getExpressionWatcher();
-        this[LIST_EXPRESSION] = `$\{${this[LIST_EXPRESSION]}}`;
+        this[LIST_EXPRESSION] = this.wrapRawExpression(this[LIST_EXPRESSION]);
         exprWatcher.addExpr(this[LIST_EXPRESSION]);
         this.expressions.push(this[LIST_EXPRESSION]);
 
@@ -266,12 +288,11 @@ export default class ForDirectiveParser extends DirectiveParser {
      * @override
      * @public
      * @param  {WrapNode}  node   待判断的节点
-     * @param  {Config}  config 配置对象
      * @return {boolean}
      */
-    static isProperNode(node, config) {
-        return DirectiveParser.isProperNode(node, config)
-            && config.forPrefixRegExp.test(node.getNodeValue());
+    static isProperNode(node) {
+        return DirectiveParser.isProperNode(node)
+            && FOR_START_PREFIX_REG.test(node.getNodeValue());
     }
 
     /**
@@ -281,13 +302,12 @@ export default class ForDirectiveParser extends DirectiveParser {
      * @override
      * @public
      * @param  {WrapNode}  node   待判断的节点
-     * @param  {Config}  config 配置对象
      * @return {boolean}
      */
-    static isEndNode(node, config) {
+    static isEndNode(node) {
         let nodeType = node.getNodeType();
         return nodeType === Node.COMMENT_NODE
-            && config.forEndPrefixRegExp.test(node.getNodeValue());
+            && FOR_END_PREFIX_REG.test(node.getNodeValue());
     }
 
     /**
@@ -297,11 +317,10 @@ export default class ForDirectiveParser extends DirectiveParser {
      * @override
      * @public
      * @param  {WrapNode} startNode 开始节点
-     * @param  {Config} config 配置对象
      * @return {WrapNode}
      */
-    static findEndNode(startNode, config) {
-        return this.walkToEnd(startNode, config);
+    static findEndNode(startNode) {
+        return this.walkToEnd(startNode);
     }
 
     /**

@@ -65,12 +65,12 @@ export default class VTpl {
     }
 
     setExprEqualFn(expr, handler) {
-        let exprWatcher = this[TREE].getExprWatcher();
+        const exprWatcher = this[TREE].getExprWatcher();
         exprWatcher.setExprEqualFn(expr, handler);
     }
 
     setExprCloneFn(expr, handler) {
-        let exprWatcher = this[TREE].getExprWatcher();
+        const exprWatcher = this[TREE].getExprWatcher();
         exprWatcher.setExprCloneFn(expr, handler);
     }
 

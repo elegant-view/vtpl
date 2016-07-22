@@ -3,7 +3,7 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import {isFunction} from './utils';
+import * as utils from './utils';
 import DoneEvent from './DoneEvent';
 import clone from './clone';
 import deepEqual from './deepEqual';
@@ -78,7 +78,7 @@ export default class ExprWatcher extends DoneEvent {
      * 添加要检测的表达式
      *
      * @public
-     * @param {string} expr 表达式字符串，带有`${}`的
+     * @param {string} expr 表达式字符串，带有`{}`的
      */
     addExpr(expr) {
         const {paramNameDependency, fn} = this[GENERATE_EXPRESSION_FUNCTION](expr);
@@ -103,31 +103,31 @@ export default class ExprWatcher extends DoneEvent {
      */
     [GENERATE_EXPRESSION_FUNCTION](expr) {
         // 先去掉expr里面前后空格
-        expr = expr.replace(/^\s+|\s+$/g, '');
+        expr = utils.trim(expr);
 
-        let exprs = expr.match(/\$\{(.+?)\}/g);
+        const exprs = expr.match(/{(.+?)}/g);
         if (!exprs || !exprs.length) {
             return;
         }
 
-        let paramNameDependency = [];
-        let rawExprs = [];
+        const paramNameDependency = [];
+        const rawExprs = [];
         for (let i = 0, il = exprs.length; i < il; ++i) {
-            let rawExpr = exprs[i].replace(/^\$\{|\}$/g, '');
+            const rawExpr = exprs[i].replace(/^{|}$/g, '');
             rawExprs.push(rawExpr);
-            let {paramNames} = this[EXPR_CALCULATER].createExprFn(rawExpr, false);
+            const {paramNames} = this[EXPR_CALCULATER].createExprFn(rawExpr, false);
             paramNameDependency.push.apply(paramNameDependency, paramNames);
         }
 
         return {
             paramNameDependency,
             fn: () => {
-                if (rawExprs.length === 1 && expr.replace(/^\$\{|\}$/g, '') === rawExprs[0]) {
+                if (rawExprs.length === 1 && expr.replace(/^{|}$/g, '') === rawExprs[0]) {
                     let result = this[EXPR_CALCULATER].calculate(rawExprs[0], false, this[SCOPE_MODEL]);
                     this[CONVERT_EXPRESSION_RESULT](result);
                     return result;
                 }
-                return expr.replace(/\$\{(.+?)\}/g, (...args) => {
+                return expr.replace(/{(.+?)}/g, (...args) => {
                     let result = this[EXPR_CALCULATER].calculate(args[1], false, this[SCOPE_MODEL]);
                     this[CONVERT_EXPRESSION_RESULT](result);
                     return result;
@@ -246,15 +246,19 @@ export default class ExprWatcher extends DoneEvent {
         const exprValue = this[EXPRS][expr]();
         const oldValue = this[EXPR_OLD_VALUES][expr];
 
-        const equals = isFunction(this[EXPR_EQUAL_FN][expr]) ? this[EXPR_EQUAL_FN][expr] : this[EQUALS].bind(this);
-        const clone = isFunction(this[EXPR_CLONE_FN][expr]) ? this[EXPR_CLONE_FN][expr] : this[DUMP].bind(this);
+        const equals = utils.isFunction(this[EXPR_EQUAL_FN][expr])
+            ? this[EXPR_EQUAL_FN][expr]
+            : this[EQUALS].bind(this);
+        const clone = utils.isFunction(this[EXPR_CLONE_FN][expr])
+            ? this[EXPR_CLONE_FN][expr]
+            : this[DUMP].bind(this);
 
         if (!equals(expr, exprValue, oldValue)) {
             this.triggerWithDone('change', {expr, newValue: exprValue, oldValue: oldValue}, done);
             this[EXPR_OLD_VALUES][expr] = clone(exprValue);
         }
         else {
-            isFunction(done) && done();
+            utils.isFunction(done) && done();
         }
     }
 
@@ -262,7 +266,7 @@ export default class ExprWatcher extends DoneEvent {
      * 计算表达式的值
      *
      * @public
-     * @param  {string} expr 表达式字符串`${name}`
+     * @param  {string} expr 表达式字符串`{name}`
      * @return {*}      计算结果
      */
     calculate(expr) {
@@ -270,7 +274,7 @@ export default class ExprWatcher extends DoneEvent {
             throw new Error('no such expression under the scope.');
         }
 
-        const clone = isFunction(this[EXPR_CLONE_FN][expr]) ? this[EXPR_CLONE_FN][expr] : this[DUMP].bind(this);
+        const clone = utils.isFunction(this[EXPR_CLONE_FN][expr]) ? this[EXPR_CLONE_FN][expr] : this[DUMP].bind(this);
         const value = this[EXPRS][expr]();
         this[EXPR_OLD_VALUES][expr] = clone(value);
         return this[CONVERT_EXPRESSION_RESULT](value);

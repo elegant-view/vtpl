@@ -144,7 +144,7 @@ describe('IfDirectiveParser', () => {
             ifDirectiveParser.collectExprs();
 
             expect(ifDirectiveParser.expressions.length).toBe(1);
-            expect(ifDirectiveParser.expressions[0]).toBe('${a}');
+            expect(ifDirectiveParser.expressions[0]).toBe('{a}');
 
             setTimeout(() => destroyAssists(assists), 1000);
         });
@@ -169,7 +169,7 @@ describe('IfDirectiveParser', () => {
             ifDirectiveParser.collectExprs();
 
             expect(ifDirectiveParser.expressions.length).toBe(1);
-            expect(ifDirectiveParser.expressions[0]).toBe('${a -  b}');
+            expect(ifDirectiveParser.expressions[0]).toBe('{a -  b}');
 
             setTimeout(() => destroyAssists(assists), 1000);
         });
