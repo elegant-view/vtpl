@@ -72,6 +72,9 @@ export default class ExprParser extends Parser {
                 const updateFns = this[EXPRESION_UPDATE_FUNCTIONS][nodeValue] || [];
                 updateFns.push(this.createTextNodeUpdateFn());
                 this[EXPRESION_UPDATE_FUNCTIONS][nodeValue] = updateFns;
+
+                // 设置一下nodeValue，避免用户看到表达式样子
+                this.setNodeValue('');
             }
         }
         // 元素节点
@@ -197,7 +200,7 @@ export default class ExprParser extends Parser {
     /**
      * 创建文本节点的文本内容更新函数。
      *
-     * @private
+     * @protected
      * @return {Function}
      */
     createTextNodeUpdateFn() {
@@ -253,9 +256,7 @@ export default class ExprParser extends Parser {
             for (let i = 0, il = fns.length; i < il; ++i) {
                 /* eslint-disable no-loop-func */
                 // 此处add执行是同步的。
-                doneChecker.add(innerDone => {
-                    fns[i](exprWatcher.calculate(expr), innerDone);
-                });
+                doneChecker.add(innerDone => fns[i](exprWatcher.calculate(expr), innerDone));
                 /* eslint-enable no-loop-func */
             }
         }
