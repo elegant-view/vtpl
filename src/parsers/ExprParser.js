@@ -132,7 +132,7 @@ export default class ExprParser extends Parser {
 
         this.eventHandlers[eventName] = event => {
             const localScope = this.getScope().createChild();
-            localScope.set('event', event);
+            localScope.set('event', this.getNodesManager().wrapEvent(event));
             exprCalculater.calculate(attrValue, true, localScope, true);
             localScope.destroy();
         };

@@ -102,4 +102,18 @@ export default class NodesManager extends Base {
     createDocumentFragment() {
         return new Fragment(this);
     }
+
+    /**
+     * 包装一下原生的事件对象
+     *
+     * @public
+     * @param  {Event} event 原生事件对象
+     * @return {Event}       包装过后的事件对象
+     */
+    wrapEvent(event) {
+        return {
+            originalEvent: event,
+            target: event.target && this.getNode(event.target)
+        };
+    }
 }

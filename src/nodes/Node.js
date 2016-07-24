@@ -387,7 +387,8 @@ export default class WrapNode extends State {
             return;
         }
 
-        this[NODE].className = WrapNode.getClassList(klass).join(' ');
+        const classList = WrapNode.getClassList(klass);
+        this[NODE].className = classList && classList.length ? classList.join(' ') : klass + '';
     }
 
     /**
@@ -405,6 +406,39 @@ export default class WrapNode extends State {
     }
 
     /**
+     * 获取元素在页面中的位置和尺寸信息
+     *
+     * @return {Object} 元素的尺寸和位置信息，包含`top`、`right`、`bottom`、`left`、`width`和`height`属性
+     */
+    getBoundingClientRect() {
+        const rect = this[NODE].getBoundingClientRect();
+        const offset = {
+            top: rect.top,
+            right: rect.right,
+            bottom: rect.bottom,
+            left: rect.left,
+            width: rect.right - rect.left,
+            height: rect.bottom - rect.top
+        };
+        const clientTop = document.documentElement.clientTop
+            || document.body.clientTop
+            || 0;
+        const clientLeft = document.documentElement.clientLeft
+            || document.body.clientLeft
+            || 0;
+        const scrollTop = window.pageYOffset
+            || document.documentElement.scrollTop;
+        const scrollLeft = window.pageXOffset
+            || document.documentElement.scrollLeft;
+        offset.top = offset.top + scrollTop - clientTop;
+        offset.bottom = offset.bottom + scrollTop - clientTop;
+        offset.left = offset.left + scrollLeft - clientLeft;
+        offset.right = offset.right + scrollLeft - clientLeft;
+
+        return offset;
+    }
+
+    /**
      * 从父节点中移除当前节点
      *
      * @public
@@ -416,6 +450,17 @@ export default class WrapNode extends State {
         if (this[NODE].parentNode) {
             this[NODE].parentNode.removeChild(this[NODE]);
         }
+    }
+
+    /**
+     * 包含
+     *
+     * @public
+     * @param  {WrapNode} node 节点
+     * @return {boolean}
+     */
+    contains(node) {
+        return this[NODE].contains(node[NODE]);
     }
 
     /**
