@@ -78,7 +78,7 @@ export default class DomUpdater extends State {
      * @return {number}          任务ID
      */
     generateNodeAttrUpdateId(node, attrName) {
-        let key = node.getNodeId() + '-' + attrName;
+        const key = node.getNodeId() + '-' + attrName;
         if (!this[NODE_ATTR_NAME_TASK_ID_MAP][key]) {
             this[NODE_ATTR_NAME_TASK_ID_MAP][key] = this.generateTaskId();
         }
@@ -111,8 +111,6 @@ export default class DomUpdater extends State {
         notifyFn && task.notifyFns.push(notifyFn);
 
         this[TASKS].set('' + taskId, task);
-
-        this[EXECUTE]();
     }
 
     /**
@@ -168,7 +166,10 @@ export default class DomUpdater extends State {
                 return;
             }
 
+            // console.time('requestAnimationFrame');
+            // let counter = 0;
             this[TASKS].safeIterate((task, taskId) => {
+                // counter++;
                 if (!task) {
                     return;
                 }
@@ -190,7 +191,12 @@ export default class DomUpdater extends State {
                     return true;
                 }
             });
+            // if (counter) {
+            //     console.log(counter);
+            //     console.timeEnd('requestAnimationFrame');
+            // }
 
+            this[EXECUTE]();
         });
     }
 }

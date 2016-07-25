@@ -11,6 +11,7 @@ import ExprWatcher from 'src/ExprWatcher';
 import ForDirectiveParser from 'src/parsers/ForDirectiveParser';
 import Config from 'src/Config';
 import ExprParser from 'src/parsers/ExprParser';
+import IfDirectiveParser from 'src/parsers/IfDirectiveParser';
 
 describe('ForDirectiveParser', () => {
 
@@ -37,7 +38,7 @@ describe('ForDirectiveParser', () => {
                     return nodesManager;
                 }
                 else if (name === 'parserClasses') {
-                    return [ExprParser];
+                    return [ExprParser, IfDirectiveParser];
                 }
                 else if (name === 'exprCalculater') {
                     return exprCalculater;
@@ -344,160 +345,39 @@ describe('ForDirectiveParser', () => {
         });
     });
 
+    describe('nest if directive', () => {
+        it('should show yibuyisheng', done => {
+            const assists = createAssists();
+            const {tree, nodesManager, scopeModel, domUpdater, exprWatcher} = assists;
 
+            const rootNode = document.createElement('div');
+            rootNode.innerHTML = [
+                '<!-- for: list as item -->',
+                    '<!-- if: item === \'yibuyisheng\' -->',
+                        'yibuyisheng',
+                    '<!-- else -->',
+                        '===',
+                    '<!-- /if -->',
+                '<!-- /for -->'
+            ].join('');
+            const forDirectiveParser = new ForDirectiveParser({
+                tree,
+                startNode: nodesManager.getNode(rootNode.firstChild),
+                endNode: nodesManager.getNode(rootNode.lastChild)
+            });
 
+            forDirectiveParser.collectExprs();
+            domUpdater.start();
+            exprWatcher.start();
 
-    // let node;
-    //
-    // beforeEach(() => {
-    //     node = document.createElement('div');
-    // });
-    //
-    // it('simple list', done => {
-    //     node.innerHTML = '<!-- for: students as student -->{student.name}<!-- /for -->';
-    //
-    //     let tpl = new Vtpl({startNode: node, endNode: node});
-    //     tpl.render();
-    //
-    //     tpl.setData({students: [
-    //         {
-    //             name: 'yibuyisheng1'
-    //         },
-    //         {
-    //             name: 'yibuyisheng2'
-    //         }
-    //     ]}, {
-    //         done() {
-    //             expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng1yibuyisheng2');
-    //
-    //             tpl.setData({students: [
-    //                 {
-    //                     name: 'yibuyisheng3'
-    //                 }
-    //             ]}, {
-    //                 done() {
-    //                     expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng3');
-    //                     done();
-    //                 }
-    //             });
-    //         }
-    //     });
-    // });
-    //
-    // it('simple object', done => {
-    //     node.innerHTML = '<!-- for: student as value -->{key}-{value},<!-- /for -->';
-    //
-    //     let tpl = new Vtpl({startNode: node, endNode: node});
-    //     tpl.render();
-    //
-    //     tpl.setData({
-    //         student: {
-    //             name: 'yibuyisheng',
-    //             age: 30,
-    //             company: 'Baidu'
-    //         }
-    //     }, {
-    //         done() {
-    //             // TODO: 顺序可能不是这样的。。。。暂时写成这样
-    //             expect(node.textContent.replace(/\s*/g, '')).toBe('name-yibuyisheng,age-30,company-Baidu,');
-    //             done();
-    //         }
-    //     });
-    // });
-    //
-    // it('nest', done => {
-    //     node.innerHTML = `
-    //         <!-- for: students as student -->
-    //             $\{student.name}
-    //             <!-- for: student as value -->
-    //                 $\{key}-$\{value}
-    //             <!-- /for -->
-    //         <!-- /for -->
-    //     `;
-    //
-    //     let tpl = new Vtpl({startNode: node, endNode: node});
-    //     tpl.render();
-    //
-    //     tpl.setData({
-    //         students: [{
-    //             name: 'yibuyisheng',
-    //             age: 30,
-    //             company: 'Baidu'
-    //         }]
-    //     }, {
-    //         done() {
-    //             // TODO: Object打印顺序问题
-    //             expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyishengname-yibuyishengage-30company-Baidu');
-    //             done();
-    //         }
-    //     });
-    // });
-    //
-    // it('`for` and `if` nest', done => {
-    //     node.innerHTML = `
-    //         <!-- for: students as student -->
-    //             <!-- if: student.name === 'yibuyisheng' -->
-    //                 yibuyisheng
-    //                 <!-- if: student.age === 10 -->
-    //                     10 years old
-    //                 <!-- elif: student.age === 18 -->
-    //                     18 years old
-    //                 <!-- else -->
-    //                     other ages
-    //                 <!-- /if -->
-    //             <!-- else -->
-    //                 not yibuyisheng
-    //                 <!-- if: student.age === 1 -->
-    //                     1 years old
-    //                 <!-- elif: student.age === 2 -->
-    //                     2 years old
-    //                 <!-- /if -->
-    //             <!-- /if -->
-    //         <!-- /for -->
-    //     `;
-    //
-    //     let tpl = new Vtpl({startNode: node, endNode: node});
-    //     tpl.render();
-    //
-    //     tpl.setData({
-    //         students: [
-    //             {
-    //                 name: 'yibuyisheng',
-    //                 age: 18
-    //             },
-    //             {
-    //                 name: 'yibuyisheng',
-    //                 age: 10
-    //             },
-    //             {
-    //                 name: 'yibuyisheng1',
-    //                 age: 3
-    //             },
-    //             {
-    //                 name: 'yibuyisheng1',
-    //                 age: 2
-    //             }
-    //         ]
-    //     }, {
-    //         done() {
-    //             expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldyibuyisheng10yearsoldnotyibuyishengnotyibuyisheng2yearsold');
-    //
-    //             tpl.setData('students', [
-    //                 {
-    //                     name: 'yibuyisheng',
-    //                     age: 18
-    //                 },
-    //                 {
-    //                     name: 'yibuyisheng1',
-    //                     age: 2
-    //                 }
-    //             ], {
-    //                 done() {
-    //                     expect(node.textContent.replace(/\s*/g, '')).toBe('yibuyisheng18yearsoldnotyibuyisheng2yearsold');
-    //                     done();
-    //                 }
-    //             });
-    //         }
-    //     });
-    // });
+            forDirectiveParser.initRender();
+            exprWatcher.on('change', (event, done) => forDirectiveParser.onExpressionChange(event, done));
+            scopeModel.set('list', ['yibuyisheng'], false, () => {
+                expect(rootNode.innerText).toBe('yibuyisheng');
+                done();
+            });
+
+            setTimeout(() => destroyAssists(assists), 1000);
+        });
+    });
 });

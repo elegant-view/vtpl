@@ -439,6 +439,26 @@ export default class WrapNode extends State {
     }
 
     /**
+     * clientHeight
+     *
+     * @public
+     * @return {number}
+     */
+    getClientHeight() {
+        return this[NODE].clientHeight;
+    }
+
+    /**
+     * clientWidth
+     *
+     * @public
+     * @return {number}
+     */
+    getClientWidth() {
+        return this[NODE].clientWidth;
+    }
+
+    /**
      * 从父节点中移除当前节点
      *
      * @public
@@ -818,6 +838,18 @@ export default class WrapNode extends State {
             }
             curNode = nextNode;
         }
+    }
+
+    /**
+     * 获取视口高度
+     *
+     * @static
+     * @param {Window=} win 窗口对象
+     * @return {number}
+     */
+    static getWindowHeight(win) {
+        win = win || window;
+        return win.innerHeight;
     }
 }
 
