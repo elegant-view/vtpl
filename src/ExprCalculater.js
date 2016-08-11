@@ -10,7 +10,18 @@ const FNS = Symbol('fns');
 const EXPR_NAME_MAP = Symbol('exprNameMap');
 const RESERVED_WORDS = Symbol('reservedWords');
 
+/**
+ * ExprCalculater
+ *
+ * @class
+ */
 export default class ExprCalculater {
+
+    /**
+     * constructor
+     *
+     * @public
+     */
     constructor() {
         this[FNS] = {};
         this[EXPR_NAME_MAP] = {};
@@ -156,6 +167,11 @@ export default class ExprCalculater {
         return result;
     }
 
+    /**
+     * 销毁
+     *
+     * @public
+     */
     destroy() {
         this[FNS] = null;
         this[EXPR_NAME_MAP] = null;
