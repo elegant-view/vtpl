@@ -7,18 +7,48 @@ import Parser from './Parser';
 import Node from '../nodes/Node';
 import {nextTick} from '../utils';
 
+/**
+ * DirectiveParser
+ *
+ * @class
+ * @extends {Parser}
+ */
 export default class DirectiveParser extends Parser {
 
     static priority = 1;
 
+    /**
+     * initRender
+     *
+     * @public
+     * @override
+     * @param  {Function} done done
+     */
     initRender(done) {
         nextTick(done);
     }
 
+    /**
+     * isProperNode
+     *
+     * @public
+     * @override
+     * @static
+     * @param  {WrapNode}  node node
+     * @return {boolean}
+     */
     static isProperNode(node) {
         return node.getNodeType() === Node.COMMENT_NODE;
     }
 
+    /**
+     * isEndNode
+     *
+     * @public
+     * @override
+     * @static
+     * @return {boolean}
+     */
     static isEndNode() {
         return true;
     }
@@ -27,6 +57,8 @@ export default class DirectiveParser extends Parser {
      * 对于分起始部分和结束部分的指令，找到结束部分指令对应的节点。
      * 仅供内部使用。
      *
+     * @protected
+     * @static
      * @param {nodes/Node} startNode 开始寻找的节点
      * @return {nodes/Node}
      */

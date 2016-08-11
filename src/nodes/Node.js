@@ -26,8 +26,17 @@ const IN_DARK_ERROR = Symbol('inDarkError');
  * 使用到的状态：dark
  *
  * @class WrapNode
+ * @extends {State}
  */
 export default class WrapNode extends State {
+
+    /**
+     * constructor
+     *
+     * @public
+     * @param {WrapNode} node node
+     * @param {NodesManager} manager manager
+     */
     constructor(node, manager) {
         super();
 
@@ -329,6 +338,7 @@ export default class WrapNode extends State {
      * @return {*}
      */
     attr(name, value) {
+        /* eslint-disable prefer-rest-params */
         if (this.getNodeType() === WrapNode.TEXT_NODE && name === 'nodeValue') {
             if (arguments.length === 1) {
                 return this.getNodeValue();
@@ -345,6 +355,7 @@ export default class WrapNode extends State {
         if (arguments.length === 1) {
             return this.getAttribute(name);
         }
+        /* eslint-enable prefer-rest-params */
 
         if (this.getNodeType() === WrapNode.ELEMENT_NODE) {
             if (name === 'style' && isPureObject(value)) {
@@ -398,16 +409,21 @@ export default class WrapNode extends State {
      * @param {Object} styleObj style对应的js对象
      */
     setStyle(styleObj) {
+        /* eslint-disable guard-for-in */
+        /* eslint-disable fecs-use-for-of */
         for (let k in styleObj) {
             if (styleObj.hasOwnProperty(k)) {
                 this[NODE].style[k] = styleObj[k];
             }
         }
+        /* eslint-enable guard-for-in */
+        /* eslint-enable fecs-use-for-of */
     }
 
     /**
      * 获取元素在页面中的位置和尺寸信息
      *
+     * @public
      * @return {Object} 元素的尺寸和位置信息，包含`top`、`right`、`bottom`、`left`、`width`和`height`属性
      */
     getBoundingClientRect() {
@@ -591,12 +607,23 @@ export default class WrapNode extends State {
         return this.hasState('dark');
     }
 
+    /**
+     * in dark error
+     *
+     * @private
+     */
     [IN_DARK_ERROR]() {
         if (this.hasState('dark')) {
             throw new Error('current node is in dark.');
         }
     }
 
+    /**
+     * get in dom node
+     *
+     * @private
+     * @return {WrapNode}
+     */
     [GET_IN_DOM_NODE]() {
         return this.hasState('dark') ? this[COMMENT_NODE] : this[NODE];
     }
@@ -646,7 +673,9 @@ export default class WrapNode extends State {
         this[EVENT].off();
 
         /* eslint-disable guard-for-in */
+        /* eslint-disable fecs-use-for-of */
         for (let eventName in this[NODE_EVENT_FUNCTIONS]) {
+        /* eslint-enable fecs-use-for-of */
         /* eslint-enable guard-for-in */
             let eventFn = this[NODE_EVENT_FUNCTIONS][eventName];
             if (eventName === 'outclick') {
@@ -673,11 +702,15 @@ export default class WrapNode extends State {
             klasses = klass.split(' ');
         }
         else if (isPureObject(klass)) {
+            /* eslint-disable guard-for-in */
+            /* eslint-disable fecs-use-for-of */
             for (let k in klass) {
                 if (klass[k]) {
                     klasses.push(klass[k]);
                 }
             }
+            /* eslint-enable guard-for-in */
+            /* eslint-enable fecs-use-for-of */
         }
         else if (isArray(klass)) {
             klasses = klass;

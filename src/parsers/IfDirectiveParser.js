@@ -18,6 +18,7 @@ const HAS_ELSE_BRANCH = Symbol('hasElseBranch');
 /**
  * 匹配if开始指令的前缀
  *
+ * @const
  * @type {RegExp}
  */
 const IF_START_PREFIX_REG = /^\s*if:\s*/;
@@ -25,6 +26,7 @@ const IF_START_PREFIX_REG = /^\s*if:\s*/;
 /**
  * elif前缀
  *
+ * @const
  * @type {RegExp}
  */
 const ELIF_PREFIX_REG = /^\s*elif:\s*/;
@@ -32,6 +34,7 @@ const ELIF_PREFIX_REG = /^\s*elif:\s*/;
 /**
  * else
  *
+ * @const
  * @type {RegExp}
  */
 const ELSE_REG = /^\s*else\s*/;
@@ -39,6 +42,7 @@ const ELSE_REG = /^\s*else\s*/;
 /**
  * if结束指令
  *
+ * @const
  * @type {RegExp}
  */
 const IF_END_REG = /^\s*\/if\s*/;
@@ -46,14 +50,27 @@ const IF_END_REG = /^\s*\/if\s*/;
 /**
  * if和elif中的表达式
  *
+ * @const
  * @type {RegExp}
  */
 const IF_ELIF_EXPRESSION_REG = /\s*(?:el)?if:\s*((.|\n)*\S)\s*$/;
 
+/**
+ * IfDirectiveParser
+ *
+ * @class
+ * @extends {DirectiveParser}
+ */
 export default class IfDirectiveParser extends DirectiveParser {
 
     static priority = 2;
 
+    /**
+     * constructor
+     *
+     * @public
+     * @param {Object} options 参数
+     */
     constructor(options) {
         super(options);
 
@@ -122,7 +139,7 @@ export default class IfDirectiveParser extends DirectiveParser {
             if (ifNodeType === IfDirectiveParser.IF_START
                 || ifNodeType === IfDirectiveParser.ELIF
             ) {
-                const [, rawExpr] = node.getNodeValue().match(IF_ELIF_EXPRESSION_REG);
+                const rawExpr = node.getNodeValue().match(IF_ELIF_EXPRESSION_REG)[1];
                 const expr = this.wrapRawExpression(rawExpr.replace(/\n/g, ' '));
                 this[EXPRESSIONS].push(expr);
 
@@ -185,9 +202,7 @@ export default class IfDirectiveParser extends DirectiveParser {
             this.renderDOM(done);
         });
 
-        const doneTaskFn = treeIndex => {
-            return innerDone => this[BRANCH_TREES][treeIndex].initRender(innerDone);
-        };
+        const doneTaskFn = treeIndex => innerDone => this[BRANCH_TREES][treeIndex].initRender(innerDone);
 
         for (let i = 0, il = this[BRANCH_TREES].length; i < il; ++i) {
             doneChecker.add(doneTaskFn(i));
@@ -262,6 +277,13 @@ export default class IfDirectiveParser extends DirectiveParser {
         doneChecker.complete();
     }
 
+    /**
+     * 获取子节点
+     *
+     * @public
+     * @override
+     * @return {Array.<WrapNode>}
+     */
     getChildNodes() {
         return [];
     }
@@ -284,7 +306,13 @@ export default class IfDirectiveParser extends DirectiveParser {
         super.release();
     }
 
-    // 转入隐藏状态
+    /**
+     * hide
+     *
+     * @public
+     * @override
+     * @param  {Function} done done
+     */
     hide(done) {
         const doneChecker = new DoneChecker(done);
         this[BRANCH_TREES].forEach(
@@ -293,7 +321,13 @@ export default class IfDirectiveParser extends DirectiveParser {
         doneChecker.complete();
     }
 
-    // 从隐藏状态恢复
+    /**
+     * show
+     *
+     * @protected
+     * @override
+     * @param  {Function} done done
+     */
     show(done) {
         const doneChecker = new DoneChecker(done);
         this[BRANCH_TREES].forEach(

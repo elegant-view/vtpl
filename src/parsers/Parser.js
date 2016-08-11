@@ -124,12 +124,14 @@ export default class Parser extends DarkEntity {
      */
     set state(state) {
         let illegal = false;
+        /* eslint-disable fecs-use-for-of */
         for (let key in parserState) {
             if (parserState[key] === state) {
                 illegal = true;
                 break;
             }
         }
+        /* eslint-enable fecs-use-for-of */
         if (!illegal) {
             throw new TypeError('wrong state value');
         }

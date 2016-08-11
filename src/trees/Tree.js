@@ -22,6 +22,12 @@ const ROOT_SCOPE = Symbol('rootScope');
 const CREATE_PARSER = Symbol('createParser');
 const EXPRESSION_PARSERS_MAP = Symbol('expressionParsersMap');
 
+/**
+ * Tree
+ *
+ * @class
+ * @extends {DarkEntity}
+ */
 export default class Tree extends DarkEntity {
 
     /**
@@ -49,10 +55,22 @@ export default class Tree extends DarkEntity {
         this[EXPRESSION_PARSERS_MAP] = {};
     }
 
+    /**
+     * 获取rootScope
+     *
+     * @public
+     * @return {ScopeModel}
+     */
     get rootScope() {
         return this[ROOT_SCOPE];
     }
 
+    /**
+     * 设置rootScope
+     *
+     * @public
+     * @param  {ScopeModel} scope model
+     */
     set rootScope(scope) {
         this[ROOT_SCOPE] = scope;
     }

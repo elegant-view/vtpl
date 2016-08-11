@@ -14,6 +14,7 @@ const EXPRESION_UPDATE_FUNCTIONS = Symbol('expressionUpdateFunctions');
 /**
  * 用于去掉表达式前后缀的正则
  *
+ * @const
  * @type {RegExp}
  */
 const EXPRESION_PURIFY_REG = /^{|}$/g;
@@ -21,10 +22,17 @@ const EXPRESION_PURIFY_REG = /^{|}$/g;
 /**
  * 匹配事件名前缀的正则
  *
+ * @const
  * @type {RegExp}
  */
 const EVENT_PREFIX_REG = /^on-/;
 
+/**
+ * ExprParser
+ *
+ * @class
+ * @extends {Parser}
+ */
 export default class ExprParser extends Parser {
 
     static priority = 1;
@@ -32,7 +40,8 @@ export default class ExprParser extends Parser {
     /**
      * 初始化
      *
-     * @inheritDoc
+     * @public
+     * @override
      * @param  {Object} options 参数
      * @param  {Node} options.node 要解析的DOM节点
      */
@@ -159,6 +168,8 @@ export default class ExprParser extends Parser {
             const doneChecker = new DoneChecker(done);
 
             if (expressionValue && typeof expressionValue === 'object') {
+                /* eslint-disable guard-for-in */
+                /* eslint-disable fecs-use-for-of */
                 for (let key in expressionValue) {
                     if (!(key in restAttributes) && key !== 'children') {
 
@@ -174,6 +185,8 @@ export default class ExprParser extends Parser {
                         /* eslint-enable no-loop-func */
                     }
                 }
+                /* eslint-enable guard-for-in */
+                /* eslint-enable fecs-use-for-of */
             }
 
             doneChecker.complete();
@@ -233,11 +246,7 @@ export default class ExprParser extends Parser {
      * @protected
      * @param {*} value 要设置的值
      */
-    setNodeValue(value) {
-        // 把假值全部转换成空字符串
-        if (!value) {
-            value = '';
-        }
+    setNodeValue(value = '') {
         this.startNode.setNodeValue(value);
     }
 
@@ -252,6 +261,7 @@ export default class ExprParser extends Parser {
 
         const exprWatcher = this.getExpressionWatcher();
         /* eslint-disable guard-for-in */
+        /* eslint-disable fecs-use-for-of */
         for (let expr in this[EXPRESION_UPDATE_FUNCTIONS]) {
             const fns = this[EXPRESION_UPDATE_FUNCTIONS][expr];
 
@@ -262,6 +272,7 @@ export default class ExprParser extends Parser {
                 /* eslint-enable no-loop-func */
             }
         }
+        /* eslint-enable fecs-use-for-of */
         /* eslint-enable guard-for-in */
 
         doneChecker.complete();
@@ -300,9 +311,11 @@ export default class ExprParser extends Parser {
         this.restAttributeUpdateFns = null;
 
         /* eslint-disable guard-for-in */
+        /* eslint-disable fecs-use-for-of */
         for (let eventName in this.eventHandlers) {
             this.startNode.off(eventName, this.eventHandlers[eventName]);
         }
+        /* eslint-enable fecs-use-for-of */
         /* eslint-enable guard-for-in */
 
         super.release();

@@ -13,14 +13,27 @@ const LEFT_VALUE_NAME = Symbol('leftValueName');
 /**
  * 匹配var中表达式
  *
+ * @const
  * @type {RegExp}
  */
 const VAR_EXPRESSION_REG = /var:\s*([\w\$]+)\s*=/;
 
+/**
+ * VarDirectiveParser
+ *
+ * @class
+ * @extends {DirectiveParser}
+ */
 export default class VarDirectiveParser extends DirectiveParser {
 
     static priority = 2;
 
+    /**
+     * constructor
+     *
+     * @public
+     * @param {Object} options 参数
+     */
     constructor(options) {
         super(options);
 
@@ -29,6 +42,12 @@ export default class VarDirectiveParser extends DirectiveParser {
         this.expressions = [];
     }
 
+    /**
+     * collectExprs
+     *
+     * @public
+     * @override
+     */
     collectExprs() {
         const nodeValue = (this.startNode.getNodeValue() || '').replace(/\n/g, ' ');
         this[EXPRESSION] = this.wrapRawExpression(nodeValue.slice(nodeValue.indexOf('=', 0) + 1));
@@ -45,7 +64,14 @@ export default class VarDirectiveParser extends DirectiveParser {
         }
     }
 
-
+    /**
+     * onExpressionChange
+     *
+     * @public
+     * @override
+     * @param  {Object}   event change参数
+     * @param  {Function} done  done
+     */
     onExpressionChange(event, done) {
         const exprWatcher = this.getExpressionWatcher();
         const doneChecker = new DoneChecker(done);
@@ -58,6 +84,13 @@ export default class VarDirectiveParser extends DirectiveParser {
         doneChecker.complete();
     }
 
+    /**
+     * initRender
+     *
+     * @public
+     * @override
+     * @param  {Function} done done
+     */
     initRender(done) {
         const exprWatcher = this.getExpressionWatcher();
         this.getScope().set(this[LEFT_VALUE_NAME], exprWatcher.calculate(this[EXPRESSION]), false, done);
@@ -76,6 +109,15 @@ export default class VarDirectiveParser extends DirectiveParser {
         super.release();
     }
 
+    /**
+     * isProperNode
+     *
+     * @public
+     * @static
+     * @override
+     * @param  {WrapNode}  node node
+     * @return {boolean}
+     */
     static isProperNode(node) {
         const nodeValue = node.getNodeValue();
         return DirectiveParser.isProperNode(node)

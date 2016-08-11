@@ -9,7 +9,19 @@ import log from '../log';
 const MANAGER = Symbol('manager');
 const FRAGMENT = Symbol('fragment');
 
+/**
+ * Fragment
+ *
+ * @class
+ */
 export default class Fragment {
+
+    /**
+     * constructor
+     *
+     * @public
+     * @param  {NodesManager} manager manager
+     */
     constructor(manager) {
         this[MANAGER] = manager;
         this[FRAGMENT] = this[MANAGER].createElement('div');

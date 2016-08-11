@@ -6,6 +6,12 @@
 import ExprParser from './ExprParser';
 import {isPureObject} from '../utils';
 
+/**
+ * HTMLExprParser
+ *
+ * @class
+ * @extends {ExprParser}
+ */
 export default class HTMLExprParser extends ExprParser {
 
     static priority = 2;

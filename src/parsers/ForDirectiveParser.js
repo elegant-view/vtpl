@@ -17,13 +17,14 @@ const LIST_EXPRESSION = Symbol('listExpression');
 /**
  * 匹配for开始指令的前缀
  *
+ * @const
  * @type {RegExp}
  */
 const FOR_START_PREFIX_REG = /^\s*for:\s*/;
 
 /**
  * 匹配for结束指令的前缀
- *
+ *@const
  * @type {RegExp}
  */
 const FOR_END_PREFIX_REG = /^\s*\/for\s*$/;
@@ -31,14 +32,27 @@ const FOR_END_PREFIX_REG = /^\s*\/for\s*$/;
 /**
  * 匹配for指令中涉及到的表达式
  *
+ * @const
  * @type  {RegExp}
  */
 const EXPRESSION_MATCHER_REG = /^\s*([$\w.\[\]]+)\s+as\s+([$\w]+)\s*$/;
 
+/**
+ * ForDirectiveParser
+ *
+ * @class
+ * @extends {DirectiveParser}
+ */
 export default class ForDirectiveParser extends DirectiveParser {
 
     static priority = 2;
 
+    /**
+     * constructor
+     *
+     * @public
+     * @param  {Object} options 参数
+     */
     constructor(options) {
         super(options);
 
@@ -141,25 +155,29 @@ export default class ForDirectiveParser extends DirectiveParser {
             const doneChecker = new DoneChecker(done);
             let index = 0;
             /* eslint-disable guard-for-in */
+            /* eslint-disable fecs-use-for-of */
             for (let k in listObj) {
+            /* eslint-enable fecs-use-for-of */
             /* eslint-enable guard-for-in */
                 const local = {
                     key: k,
-                    index: index
+                    index: index,
+                    [itemVariableName]: listObj[k]
                 };
-                local[itemVariableName] = listObj[k];
 
                 if (!parser[TREES][index]) {
                     parser[TREES][index] = parser.createTree();
                     parser[TREES][index].compile();
                     parser[TREES][index].link();
 
+                    /* eslint-disable no-loop-func */
                     doneChecker.add(::parser[TREES][index].initRender);
                     doneChecker.add(innerDone => parser[TREES][index].rootScope.set(local, false, innerDone));
                 }
                 else {
                     doneChecker.add(::parser[TREES][index].restoreFromDark);
                     doneChecker.add(innerDone => parser[TREES][index].rootScope.set(local, false, innerDone));
+                    /* eslint-enable no-loop-func */
                 }
 
                 ++index;

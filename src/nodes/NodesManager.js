@@ -13,8 +13,19 @@ const DOM_NODE_ID_KEY = Symbol('domNodeIdKey');
 
 let managerIdCounter = 0;
 
+/**
+ * NodesManager
+ *
+ * @class
+ * @extends {Base}
+ */
 export default class NodesManager extends Base {
 
+    /**
+     * constructor
+     *
+     * @public
+     */
     constructor() {
         super();
 
@@ -65,9 +76,11 @@ export default class NodesManager extends Base {
      */
     destroy() {
         /* eslint-disable guard-for-in */
+        /* eslint-disable fecs-use-for-of */
         for (let id in this[NODES_MAP]) {
             this[NODES_MAP][id].destroy();
         }
+        /* eslint-enable fecs-use-for-of */
         /* eslint-enable guard-for-in */
     }
 
