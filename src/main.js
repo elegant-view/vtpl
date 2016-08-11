@@ -20,7 +20,19 @@ import Parser from './parsers/Parser';
 
 const TREE = Symbol('tree');
 
+/**
+ * VTpl
+ *
+ * @class
+ */
 export default class VTpl {
+
+    /**
+     * constructor
+     *
+     * @public
+     * @param  {Object} options 参数
+     */
     constructor(options) {
         options = extend({
             config: new Config()
@@ -56,19 +68,45 @@ export default class VTpl {
         this.registerParser(HTMLExprParser);
     }
 
+    /**
+     * 获取节点管理器
+     *
+     * @public
+     * @return {NodesManager}
+     */
     get nodesManager() {
         return this[TREE].getTreeVar('nodesManager');
     }
 
+    /**
+     * 获取tree
+     *
+     * @public
+     * @return {Tree}
+     */
     get tree() {
         return this[TREE];
     }
 
+    /**
+     * 设置表达式相等判断函数
+     *
+     * @public
+     * @param {string} expr    表达式
+     * @param {Function} handler 相等比较函数
+     */
     setExprEqualFn(expr, handler) {
         const exprWatcher = this[TREE].getExprWatcher();
         exprWatcher.setExprEqualFn(expr, handler);
     }
 
+    /**
+     * 设置表达式值克隆函数
+     *
+     * @public
+     * @param {string} expr    表达式
+     * @param {Function} handler 克隆函数
+     */
     setExprCloneFn(expr, handler) {
         const exprWatcher = this[TREE].getExprWatcher();
         exprWatcher.setExprCloneFn(expr, handler);
@@ -139,6 +177,14 @@ export default class VTpl {
         this[TREE].initRender(done);
     }
 
+    /**
+     * 设置数据
+     *
+     * @public
+     * @param {string} name    key
+     * @param {*} value   值
+     * @param {Object} options 附加参数
+     */
     setData(name, value, options) {
         const scope = this[TREE].rootScope;
         if (isClass(name, 'String')) {
@@ -151,6 +197,11 @@ export default class VTpl {
         }
     }
 
+    /**
+     * 销毁
+     *
+     * @public
+     */
     destroy() {
         const nodesManager = this[TREE].getTreeVar('nodesManager');
         const exprCalculater = this[TREE].getTreeVar('exprCalculater');
