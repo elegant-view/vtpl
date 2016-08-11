@@ -84,6 +84,7 @@ export default class VTpl {
      *
      * 在注册解析器类的时候，这个顺序就会定下来，并且子类拥有比父类更高的优先级。
      *
+     * @public
      * @param  {Class} parserClass 解析器类
      */
     registerParser(parserClass) {
@@ -91,21 +92,16 @@ export default class VTpl {
             throw new TypeError('wrong parser class');
         }
 
-        let parserClasses = this[TREE].getTreeVar('parserClasses');
-        let hasInserted = false;
-        /* eslint-disable guard-for-in */
-        for (let i in parserClasses) {
-        /* eslint-enable guard-for-in */
-            let klass = parserClasses[i];
-            if (isSubClassOf(parserClass, klass)) {
-                hasInserted = true;
-                parserClasses.splice(i, 0, parserClass);
+        const parserClasses = this[TREE].getTreeVar('parserClasses');
+
+        let i = 0;
+        let il;
+        for (i = 0, il = parserClasses.length; i < il; ++i) {
+            if (parserClasses[i].getPriority() < parserClass.getPriority()) {
                 break;
             }
         }
-        if (!hasInserted) {
-            parserClasses.push(parserClass);
-        }
+        parserClasses.splice(i, 0, parserClass);
     }
 
     /**

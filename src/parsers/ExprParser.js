@@ -27,6 +27,8 @@ const EVENT_PREFIX_REG = /^on-/;
 
 export default class ExprParser extends Parser {
 
+    static priority = 1;
+
     /**
      * 初始化
      *

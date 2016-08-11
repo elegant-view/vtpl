@@ -8,6 +8,8 @@ import {isPureObject} from '../utils';
 
 export default class HTMLExprParser extends ExprParser {
 
+    static priority = 2;
+
     /**
      * 设置文本节点的“nodeValue”，此处对html的情况也做了支持
      *

@@ -52,6 +52,8 @@ const IF_ELIF_EXPRESSION_REG = /\s*(?:el)?if:\s*((.|\n)*\S)\s*$/;
 
 export default class IfDirectiveParser extends DirectiveParser {
 
+    static priority = 2;
+
     constructor(options) {
         super(options);
 

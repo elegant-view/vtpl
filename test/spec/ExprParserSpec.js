@@ -118,14 +118,16 @@ describe('ExprParser', () => {
             const endNode = nodesManager.getNode(domNode);
             const exprParser = new ExprParser({tree, startNode, endNode});
 
+            expect(domNode.textContent).toBe('{name}');
             exprParser.collectExprs();
+            expect(domNode.textContent).toBe('');
             scopeModel.set('name', 'yibuyisheng', true);
             exprParser.initRender(() => {
                 expect(domNode.textContent).toBe('yibuyisheng');
                 done();
             });
             domUpdater.start();
-            expect(domNode.textContent).toBe('{name}');
+            expect(domNode.textContent).toBe('');
 
             setTimeout(() => destroyAssists(assists), 1000);
         });
@@ -141,7 +143,9 @@ describe('ExprParser', () => {
             const endNode = nodesManager.getNode(domNode);
             const exprParser = new ExprParser({tree, startNode, endNode});
 
+            expect(domNode.textContent).toBe('{name}');
             exprParser.collectExprs();
+            expect(domNode.textContent).toBe('');
             exprParser.initRender();
             domUpdater.start();
 
@@ -154,7 +158,7 @@ describe('ExprParser', () => {
                 expect(domNode.textContent).toBe('yibuyisheng');
                 done();
             });
-            expect(domNode.textContent).toBe('{name}');
+            expect(domNode.textContent).toBe('');
 
             setTimeout(() => destroyAssists(assists), 1000);
         });

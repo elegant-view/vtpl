@@ -18,6 +18,9 @@ const LEFT_VALUE_NAME = Symbol('leftValueName');
 const VAR_EXPRESSION_REG = /var:\s*([\w\$]+)\s*=/;
 
 export default class VarDirectiveParser extends DirectiveParser {
+
+    static priority = 2;
+
     constructor(options) {
         super(options);
 

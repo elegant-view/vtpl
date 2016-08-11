@@ -43,12 +43,12 @@ export default class Parser extends DarkEntity {
     constructor(options) {
         super(options);
 
-        if (!(options.tree instanceof Tree)) {
-            throw new Error('you should pass in a `Tree`');
-        }
-        if (!Node.isNode(options.startNode) || !Node.isNode(options.endNode)) {
-            throw new Error('you should pass in `startNode` and `endNode`');
-        }
+        // if (!(options.tree instanceof Tree)) {
+        //     throw new Error('you should pass in a `Tree`');
+        // }
+        // if (!Node.isNode(options.startNode) || !Node.isNode(options.endNode)) {
+        //     throw new Error('you should pass in `startNode` and `endNode`');
+        // }
 
         this[TREE] = options.tree;
         this[STATE] = parserState.INITIALIZING;
@@ -353,5 +353,18 @@ export default class Parser extends DarkEntity {
         this[STATE] = parserState.DESTROIED;
         this[START_NODE] = null;
         this[END_NODE] = null;
+    }
+
+    /**
+     * 获取解析器的优先级。
+     * 在遍历到一个DOM节点的时候，会依次从解析器注册列表中拿出解析器类，判断当前DOM节点是否应当由这个解析器处理，
+     * 解析器的优先级越高（数值越大），在注册列表中排的位置越靠前。
+     *
+     * @public
+     * @static
+     * @return {number}
+     */
+    static getPriority() {
+        return this.priority || 0;
     }
 }

@@ -37,6 +37,8 @@ const EXPRESSION_MATCHER_REG = /^\s*([$\w.\[\]]+)\s+as\s+([$\w]+)\s*$/;
 
 export default class ForDirectiveParser extends DirectiveParser {
 
+    static priority = 2;
+
     constructor(options) {
         super(options);
 

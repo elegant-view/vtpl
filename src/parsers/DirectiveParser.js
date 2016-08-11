@@ -8,6 +8,9 @@ import Node from '../nodes/Node';
 import {nextTick} from '../utils';
 
 export default class DirectiveParser extends Parser {
+
+    static priority = 1;
+
     initRender(done) {
         nextTick(done);
     }
