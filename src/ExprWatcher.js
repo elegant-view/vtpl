@@ -28,8 +28,21 @@ const CONVERT_EXPRESSION_RESULT = Symbol('convertExpressionResult');
 const DUMP = Symbol('dump');
 const EQUALS = Symbol('equals');
 
+/**
+ * ExprWatcher
+ *
+ * @class
+ * @extends {DoneEvent}
+ */
 export default class ExprWatcher extends DoneEvent {
 
+    /**
+     * constructor
+     *
+     * @public
+     * @param  {ScopeModel} scopeModel     model
+     * @param  {ExprCalculater} exprCalculater 表达式值计算器
+     */
     constructor(scopeModel, exprCalculater) {
         super();
 
@@ -86,10 +99,24 @@ export default class ExprWatcher extends DoneEvent {
         this[EXPRS][expr] = () => fn(this[SCOPE_MODEL]);
     }
 
+    /**
+     * 设置表达式相等判断函数
+     *
+     * @public
+     * @param {string} expr    表达式
+     * @param {Function} equalFn 相等判断函数
+     */
     setExprEqualsFn(expr, equalFn) {
         this[EXPR_EQUAL_FN][expr] = equalFn;
     }
 
+    /**
+     * 设置表达式值克隆函数
+     *
+     * @public
+     * @param {string} expr    表达式
+     * @param {Function} cloneFn 克隆函数
+     */
     setExprCloneFn(expr, cloneFn) {
         this[EXPR_CLONE_FN][expr] = cloneFn;
     }
@@ -115,21 +142,23 @@ export default class ExprWatcher extends DoneEvent {
         for (let i = 0, il = exprs.length; i < il; ++i) {
             const rawExpr = exprs[i].replace(/^{|}$/g, '');
             rawExprs.push(rawExpr);
-            const {paramNames} = this[EXPR_CALCULATER].createExprFn(rawExpr, false);
+            const paramNames = this[EXPR_CALCULATER].createExprFn(rawExpr, false).paramNames;
             paramNameDependency.push.apply(paramNameDependency, paramNames);
         }
 
+        const me = this;
+
         return {
             paramNameDependency,
-            fn: () => {
+            fn() {
                 if (rawExprs.length === 1 && expr.replace(/^{|}$/g, '') === rawExprs[0]) {
-                    let result = this[EXPR_CALCULATER].calculate(rawExprs[0], false, this[SCOPE_MODEL]);
-                    this[CONVERT_EXPRESSION_RESULT](result);
+                    let result = me[EXPR_CALCULATER].calculate(rawExprs[0], false, me[SCOPE_MODEL]);
+                    me[CONVERT_EXPRESSION_RESULT](result);
                     return result;
                 }
                 return expr.replace(/{(.+?)}/g, (...args) => {
-                    let result = this[EXPR_CALCULATER].calculate(args[1], false, this[SCOPE_MODEL]);
-                    this[CONVERT_EXPRESSION_RESULT](result);
+                    let result = me[EXPR_CALCULATER].calculate(args[1], false, me[SCOPE_MODEL]);
+                    me[CONVERT_EXPRESSION_RESULT](result);
                     return result;
                 });
             }
@@ -169,7 +198,9 @@ export default class ExprWatcher extends DoneEvent {
 
         // 强制刷新一下数据
         /* eslint-disable guard-for-in */
+        /* eslint-disable fecs-use-for-of */
         for (let expr in this[EXPRS]) {
+        /* eslint-enable fecs-use-for-of */
         /* eslint-enable guard-for-in */
 
             /* eslint-disable no-loop-func */
@@ -188,6 +219,7 @@ export default class ExprWatcher extends DoneEvent {
     /**
      * 将指定表达式暂时挂起，在check的时候不做处理。
      *
+     * @public
      * @param {string} expr 表达式
      */
     suspendExpr(expr) {
@@ -199,6 +231,7 @@ export default class ExprWatcher extends DoneEvent {
     /**
      * 将指定表达式恢复检测。
      *
+     * @public
      * @param {string} expr 表达式
      */
     resumeExpr(expr) {
@@ -242,6 +275,13 @@ export default class ExprWatcher extends DoneEvent {
         doneChecker.complete();
     }
 
+    /**
+     * 计算表达式的值
+     *
+     * @private
+     * @param {string} expr 表达式
+     * @param {Function} done 回调
+     */
     [COMPUTE](expr, done) {
         const exprValue = this[EXPRS][expr]();
         const oldValue = this[EXPR_OLD_VALUES][expr];
@@ -335,6 +375,11 @@ export default class ExprWatcher extends DoneEvent {
         return deepEqual(newValue, oldValue);
     }
 
+    /**
+     * 销毁
+     *
+     * @public
+     */
     destroy() {
         if (this[SCOPE_MODEL]) {
             this.stop();
