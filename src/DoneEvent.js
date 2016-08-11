@@ -7,6 +7,12 @@ import * as util from './utils';
 import DoneChecker from './DoneChecker';
 import Event from 'event/Event';
 
+/**
+ * DoneEvent
+ *
+ * @class
+ * @extends {Event}
+ */
 export default class DoneEvent extends Event {
 
     /**
@@ -14,7 +20,7 @@ export default class DoneEvent extends Event {
      *
      * @public
      * @param  {string} eventName 要触发的事件名字
-     * @param  {...Array} ...args   参数，最后一个可以是一个回调函数
+     * @param  {...*} args   参数，最后一个可以是一个回调函数
      */
     triggerWithDone(eventName, ...args) {
         const done = args[args.length - 1];
@@ -45,12 +51,25 @@ export default class DoneEvent extends Event {
         }
     }
 
+    /**
+     * 取消绑定
+     *
+     * @public
+     * @param  {...*} args 参数
+     */
     off(...args) {
         if (this.getEvent()) {
             super.off(...args);
         }
     }
 
+    /**
+     * 判断是否所有满足调教的事件回调都被清除了
+     *
+     * @public
+     * @param  {...*} args 参数
+     * @return {boolean}
+     */
     isAllRemoved(...args) {
         let eventName;
         let fn;
@@ -83,7 +102,12 @@ export default class DoneEvent extends Event {
         return true;
     }
 
-
+    /**
+     * 销毁
+     *
+     * @public
+     * @override
+     */
     destroy() {
         if (this.getEvent()) {
             super.destroy();
