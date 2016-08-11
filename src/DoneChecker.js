@@ -15,6 +15,11 @@ const STATE_READY = Symbol('stateReady');
 const STATE_DONE = Symbol('stateDone');
 const STATE_COMPLETE = Symbol('stateComplete');
 
+/**
+ * DoneChecker
+ *
+ * @class
+ */
 export default class DoneChecker {
 
     /**
