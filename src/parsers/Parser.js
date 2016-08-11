@@ -30,17 +30,25 @@ const END_NODE = Symbol('endNode');
  *	6、销毁。
  *
  * @class
+ * @extends {DarkEntity}
  */
 export default class Parser extends DarkEntity {
+
+    /**
+     * constructor
+     *
+     * @public
+     * @param  {Object} options 参数
+     */
     constructor(options) {
         super(options);
 
-        // if (!(options.tree instanceof Tree)) {
-        //     throw new Error('you should pass in a `Tree`');
-        // }
-        // if (!Node.isNode(options.startNode) || !Node.isNode(options.endNode)) {
-        //     throw new Error('you should pass in `startNode` and `endNode`');
-        // }
+        if (!(options.tree instanceof Tree)) {
+            throw new Error('you should pass in a `Tree`');
+        }
+        if (!Node.isNode(options.startNode) || !Node.isNode(options.endNode)) {
+            throw new Error('you should pass in `startNode` and `endNode`');
+        }
 
         this[TREE] = options.tree;
         this[STATE] = parserState.INITIALIZING;
@@ -48,30 +56,72 @@ export default class Parser extends DarkEntity {
         this[END_NODE] = options.endNode;
     }
 
+    /**
+     * 开始节点
+     *
+     * @public
+     * @return {WrapNode}
+     */
     get startNode() {
         return this[START_NODE];
     }
 
+    /**
+     * 设置开始节点
+     *
+     * @public
+     * @param  {WrapNode} startNode 开始节点
+     */
     set startNode(startNode) {
         this[START_NODE] = startNode;
     }
 
+    /**
+     * 获取结束节点
+     *
+     * @public
+     * @return {WrapNode} 结束节点
+     */
     get endNode() {
         return this[END_NODE];
     }
 
+    /**
+     * 设置结束节点
+     *
+     * @public
+     * @param  {WrapNode} endNode 结束节点
+     */
     set endNode(endNode) {
         this[END_NODE] = endNode;
     }
 
+    /**
+     * 获取树
+     *
+     * @public
+     * @return {Tree}
+     */
     get tree() {
         return this[TREE];
     }
 
+    /**
+     * 获取状态
+     *
+     * @public
+     * @return {Symbol}
+     */
     get state() {
         return this[STATE];
     }
 
+    /**
+     * 设置状态
+     *
+     * @public
+     * @param  {Symbol} state 状态
+     */
     set state(state) {
         let illegal = false;
         for (let key in parserState) {
@@ -199,6 +249,12 @@ export default class Parser extends DarkEntity {
         return exprWatcher;
     }
 
+    /**
+     * 获取表达式计算器
+     *
+     * @protected
+     * @return {ExpressionCalculater}
+     */
     getExpressionCalculater() {
         const exprCalculater = this[TREE].getTreeVar('exprCalculater');
         if (!(exprCalculater instanceof ExprCalculater)) {
@@ -207,6 +263,12 @@ export default class Parser extends DarkEntity {
         return exprCalculater;
     }
 
+    /**
+     * 获取节点管理器
+     *
+     * @protected
+     * @return {NodesManager}
+     */
     getNodesManager() {
         const nodeManager = this[TREE].getTreeVar('nodesManager');
         if (!(nodeManager instanceof NodesManager)) {
@@ -215,6 +277,12 @@ export default class Parser extends DarkEntity {
         return nodeManager;
     }
 
+    /**
+     * 获取scope model
+     *
+     * @protected
+     * @return {ScopeModel}
+     */
     getScope() {
         const rootScope = this[TREE].rootScope;
         return rootScope;
