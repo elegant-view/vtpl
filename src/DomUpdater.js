@@ -34,7 +34,19 @@ function getRequestAnimationFrameFn() {
     };
 }
 
+/**
+ * DomUpdater
+ *
+ * @class
+ * @extends {State}
+ */
 export default class DomUpdater extends State {
+
+    /**
+     * constructor
+     *
+     * @public
+     */
     constructor() {
         super();
 
@@ -154,6 +166,11 @@ export default class DomUpdater extends State {
         this[EXECUTE]();
     }
 
+    /**
+     * execute
+     *
+     * @private
+     */
     [EXECUTE]() {
         if (!this[IS_EXECUTING]) {
             return;
