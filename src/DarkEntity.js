@@ -6,8 +6,19 @@
 import Base from './Base';
 import DoneChecker from './DoneChecker';
 
+/**
+ * DarkEntity
+ *
+ * @class
+ * @extends {Base}
+ */
 export default class DarkEntity extends Base {
 
+    /**
+     * constructor
+     *
+     * @public
+     */
     constructor() {
         super();
     }
@@ -66,6 +77,12 @@ export default class DarkEntity extends Base {
         done();
     }
 
+    /**
+     * 当前是否处于隐藏状态
+     *
+     * @public
+     * @return {boolean}
+     */
     get isDark() {
         return this.hasState('dark');
     }
