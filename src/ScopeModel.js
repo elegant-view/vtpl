@@ -16,7 +16,19 @@ const CHANGE = Symbol('change');
 
 const BROADCAST = Symbol('broadcast');
 
+/**
+ * ScopeModel
+ *
+ * @class
+ * @extends {DoneEvent}
+ */
 export default class ScopeModel extends DoneEvent {
+
+    /**
+     * constructor
+     *
+     * @public
+     */
     constructor() {
         super();
 
@@ -37,11 +49,23 @@ export default class ScopeModel extends DoneEvent {
         return scopeModel;
     }
 
+    /**
+     * 添加子model
+     *
+     * @public
+     * @param {ScopeModel} childModel 子model
+     */
     addChild(childModel) {
         childModel[PARENT] = this;
         this[CHILDREN].push(childModel);
     }
 
+    /**
+     * 移除子model
+     *
+     * @public
+     * @param  {ScopeModel} childModel 子model
+     */
     removeChild(childModel) {
         childModel[PARENT] = null;
         const newChildren = [];
@@ -53,6 +77,15 @@ export default class ScopeModel extends DoneEvent {
         this[CHILDREN] = newChildren;
     }
 
+    /**
+     * set
+     *
+     * @public
+     * @param {string}   name     name
+     * @param {*}   value    value
+     * @param {boolean}  isSilent 是否静默
+     * @param {Function} done     done
+     */
     set(name, value, isSilent, done) {
         let changeObj;
 
@@ -64,6 +97,7 @@ export default class ScopeModel extends DoneEvent {
         }
         else if (typeof name === 'object') {
             const changes = [];
+            /* eslint-disable fecs-use-for-of */
             for (let key in name) {
                 if (!name.hasOwnProperty(key)) {
                     continue;
@@ -74,6 +108,7 @@ export default class ScopeModel extends DoneEvent {
                     changes.push(changeObj);
                 }
             }
+            /* eslint-enable fecs-use-for-of */
 
             done = isSilent;
             isSilent = value;
@@ -81,8 +116,15 @@ export default class ScopeModel extends DoneEvent {
         }
     }
 
+    /**
+     * get
+     *
+     * @public
+     * @param  {...*} args 参数
+     * @return {*}
+     */
     get(...args) {
-        let [name] = args;
+        let name = args[0];
         if (args.length > 1 || name === undefined) {
             return extend({}, this[STORE]);
         }
@@ -109,9 +151,11 @@ export default class ScopeModel extends DoneEvent {
         }
 
         /* eslint-disable guard-for-in */
+        /* eslint-disable fecs-use-for-of */
         for (let key in this[STORE]) {
             fn.call(context, this[STORE][key], key);
         }
+        /* eslint-enable fecs-use-for-of */
         /* eslint-enable guard-for-in */
     }
 
@@ -172,8 +216,9 @@ export default class ScopeModel extends DoneEvent {
     /**
      * 自己触发的change事件，就要负责到底，即通知所有的子孙scope。
      *
+     * @private
      * @param {Array.<Object>} changes 值改变记录
-     * @param {function()} done 完成DOM更新操作后的回调
+     * @param {Function} done 完成DOM更新操作后的回调
      */
     [CHANGE](changes, done) {
         const doneChecker = new DoneChecker(done);
@@ -182,6 +227,14 @@ export default class ScopeModel extends DoneEvent {
         doneChecker.complete();
     }
 
+    /**
+     * broadcast
+     *
+     * @private
+     * @param {ScopeModel} parentModel model
+     * @param {Object} event 事件参数
+     * @param {Function} done done
+     */
     [BROADCAST](parentModel, event, done) {
         const doneChecker = new DoneChecker(done);
         for (let i = 0, il = parentModel[CHILDREN].length; i < il; ++i) {

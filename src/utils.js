@@ -7,17 +7,19 @@
  * 超级简单的extend，因为本库对extend没那高的要求，
  * 等到有要求的时候再完善。
  *
- * @param  {object} target 目标对象
- * @param  {...<object>} srcs 源对象数组
- * @return {object}        最终合并后的对象
+ * @param  {Object} target 目标对象
+ * @param  {...Object} srcs 源对象数组
+ * @return {Object}        最终合并后的对象
  */
 export function extend(target, ...srcs) {
     for (let i = 0, il = srcs.length; i < il; i++) {
+        /* eslint-disable fecs-use-for-of */
         for (let key in srcs[i]) {
             if (srcs[i].hasOwnProperty(key)) {
                 target[key] = srcs[i][key];
             }
         }
+        /* eslint-enable fecs-use-for-of */
     }
     return target;
 }
@@ -116,6 +118,8 @@ export function distinctArr(arr, hashFn) {
     }
 
     let ret = [];
+    /* eslint-disable fecs-use-for-of */
+    /* eslint-disable fecs-valid-map-set */
     for (let key in obj) {
         if (!obj.hasOwnProperty(key)) {
             continue;
@@ -123,17 +127,13 @@ export function distinctArr(arr, hashFn) {
 
         ret.push(obj[key]);
     }
+    /* eslint-enable fecs-valid-map-set */
+    /* eslint-enable fecs-use-for-of */
 
     return ret;
 }
 
-export function regExpEncode(str) {
-    return '\\' + str.split('').join('\\');
-}
-
 export function empty() {}
-
-
 
 export function nextTick(fn) {
     setTimeout(fn);

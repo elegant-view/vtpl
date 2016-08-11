@@ -188,7 +188,9 @@ export default class VTpl {
     setData(name, value, options) {
         const scope = this[TREE].rootScope;
         if (isClass(name, 'String')) {
+            /* eslint-disable fecs-prefer-assign-pattern */
             options = options || {};
+            /* eslint-enable fecs-prefer-assign-pattern */
             scope.set(name, value, options.isSilent, options.done);
         }
         else {

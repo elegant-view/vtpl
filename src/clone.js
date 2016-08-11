@@ -17,11 +17,10 @@ import Data from './Data';
  */
 export default function (value, deep) {
     return clone(value, deep);
-};
+}
 
 
-function clone(value, deep, clonedArray) {
-    clonedArray = clonedArray || [];
+function clone(value, deep, clonedArray = []) {
 
     if (deep === undefined) {
         deep = Number.POSITIVE_INFINITY;
@@ -85,7 +84,9 @@ function clone(value, deep, clonedArray) {
     cloned = {};
     clonedArray.push({origin: value, cloned});
     /* eslint-disable guard-for-in */
+    /* eslint-disable fecs-use-for-of */
     for (let key in value) {
+    /* eslint-enable fecs-use-for-of */
     /* eslint-enable guard-for-in */
         cloned[key] = clone(value[key], deep - 1, clonedArray);
     }

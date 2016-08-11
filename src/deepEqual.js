@@ -32,8 +32,7 @@ function isBaseType(value) {
         || isClass(value, 'Date');
 }
 
-function deepEqual(value1, value2, comparedArray) {
-    comparedArray = comparedArray || [];
+function deepEqual(value1, value2, comparedArray = []) {
 
     // 基类型比较
     if (isBaseType(value1) || isBaseType(value2)) {
@@ -78,13 +77,17 @@ function deepEqual(value1, value2, comparedArray) {
 
     /* eslint-disable guard-for-in */
     const keys = {};
+    /* eslint-disable fecs-use-for-of */
     for (let key in value1) {
         keys[key] = true;
     }
     for (let key in value2) {
         keys[key] = true;
     }
+    /* eslint-enabel fecs-use-for-of */
 
+    /* eslint-disable fecs-use-for-of */
+    /* eslint-disable fecs-valid-map-set */
     for (let key in keys) {
         if (value1[key] !== value2[key]
             && !deepEqual(value1[key], value2[key], comparedArray)
@@ -92,6 +95,8 @@ function deepEqual(value1, value2, comparedArray) {
             return false;
         }
     }
+    /* eslint-enable fecs-valid-map-set */
+    /* eslint-enable fecs-use-for-of */
     return true;
     /* eslint-enable guard-for-in */
 }
