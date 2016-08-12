@@ -9,7 +9,6 @@ import DomUpdater from 'src/DomUpdater';
 import ExprWatcher from 'src/ExprWatcher';
 import ExprCalculater from 'src/ExprCalculater';
 import IfDirectiveParser from 'src/parsers/IfDirectiveParser';
-import Config from 'src/Config';
 import ExprParser from 'src/parsers/ExprParser';
 import DirectiveParser from 'src/parsers/DirectiveParser';
 
@@ -22,7 +21,6 @@ describe('IfDirectiveParser', () => {
         let exprWatcher;
         let scopeModel;
         let exprCalculater;
-        let config;
 
         nodesManager = new NodesManager();
 
@@ -30,15 +28,11 @@ describe('IfDirectiveParser', () => {
         domUpdater = new DomUpdater();
         exprCalculater = new ExprCalculater();
         exprWatcher = new ExprWatcher(scopeModel, exprCalculater);
-        config = new Config();
 
         tree = {
             getTreeVar(name) {
                 if (name === 'domUpdater') {
                     return domUpdater;
-                }
-                else if (name === 'config') {
-                    return config;
                 }
                 else if (name === 'parserClasses') {
                     return [ExprParser, DirectiveParser];
@@ -68,16 +62,16 @@ describe('IfDirectiveParser', () => {
             const {nodesManager} = assists;
 
             let domNode = nodesManager.getNode(document.createComment('if: a'));
-            expect(IfDirectiveParser.isProperNode(domNode, new Config())).toBe(true);
+            expect(IfDirectiveParser.isProperNode(domNode)).toBe(true);
 
             domNode = nodesManager.getNode(document.createComment('if'));
-            expect(IfDirectiveParser.isProperNode(domNode, new Config())).toBe(false);
+            expect(IfDirectiveParser.isProperNode(domNode)).toBe(false);
 
             domNode = nodesManager.getNode(document.createComment('\n if: a\n b '));
-            expect(IfDirectiveParser.isProperNode(domNode, new Config())).toBe(true);
+            expect(IfDirectiveParser.isProperNode(domNode)).toBe(true);
 
             domNode = nodesManager.getNode(document.createElement('div'));
-            expect(IfDirectiveParser.isProperNode(domNode, new Config())).toBe(false);
+            expect(IfDirectiveParser.isProperNode(domNode)).toBe(false);
 
             setTimeout(() => destroyAssists(assists), 1000);
         });
@@ -89,13 +83,13 @@ describe('IfDirectiveParser', () => {
             const {nodesManager} = assists;
 
             let domNode = nodesManager.getNode(document.createComment('/if'));
-            expect(IfDirectiveParser.isEndNode(domNode, new Config())).toBe(true);
+            expect(IfDirectiveParser.isEndNode(domNode)).toBe(true);
 
             domNode = nodesManager.getNode(document.createElement('div'));
-            expect(IfDirectiveParser.isEndNode(domNode, new Config())).toBe(false);
+            expect(IfDirectiveParser.isEndNode(domNode)).toBe(false);
 
             domNode = nodesManager.getNode(document.createComment('\n /if \n'));
-            expect(IfDirectiveParser.isEndNode(domNode, new Config())).toBe(true);
+            expect(IfDirectiveParser.isEndNode(domNode)).toBe(true);
 
             setTimeout(() => destroyAssists(assists), 1000);
         });
@@ -114,7 +108,7 @@ describe('IfDirectiveParser', () => {
             ].join('');
 
             expect(IfDirectiveParser.findEndNode(
-                nodesManager.getNode(rootNode.firstChild), new Config()
+                nodesManager.getNode(rootNode.firstChild)
             )).toBe(
                 nodesManager.getNode(rootNode.lastChild)
             );

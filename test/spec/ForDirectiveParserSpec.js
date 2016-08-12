@@ -9,7 +9,6 @@ import ExprCalculater from 'src/ExprCalculater';
 import ScopeModel from 'src/ScopeModel';
 import ExprWatcher from 'src/ExprWatcher';
 import ForDirectiveParser from 'src/parsers/ForDirectiveParser';
-import Config from 'src/Config';
 import ExprParser from 'src/parsers/ExprParser';
 import IfDirectiveParser from 'src/parsers/IfDirectiveParser';
 
@@ -67,22 +66,22 @@ describe('ForDirectiveParser', () => {
         it('should identfy the `for` start node', () => {
             const {nodesManager} = createAssists();
             let node = nodesManager.getNode(document.createComment('for: list as item'));
-            expect(ForDirectiveParser.isProperNode(node, new Config())).toBe(true);
+            expect(ForDirectiveParser.isProperNode(node)).toBe(true);
 
             node = nodesManager.getNode(document.createComment(' for:'));
-            expect(ForDirectiveParser.isProperNode(node, new Config())).toBe(true);
+            expect(ForDirectiveParser.isProperNode(node)).toBe(true);
 
             node = nodesManager.getNode(document.createComment('\n for:'));
-            expect(ForDirectiveParser.isProperNode(node, new Config())).toBe(true);
+            expect(ForDirectiveParser.isProperNode(node)).toBe(true);
 
             node = nodesManager.getNode(document.createComment('for list as'));
-            expect(ForDirectiveParser.isProperNode(node, new Config())).toBe(false);
+            expect(ForDirectiveParser.isProperNode(node)).toBe(false);
 
             node = nodesManager.getNode(document.createComment('for :'));
-            expect(ForDirectiveParser.isProperNode(node, new Config())).toBe(false);
+            expect(ForDirectiveParser.isProperNode(node)).toBe(false);
 
             node = nodesManager.getNode(document.createComment(': list as'));
-            expect(ForDirectiveParser.isProperNode(node, new Config())).toBe(false);
+            expect(ForDirectiveParser.isProperNode(node)).toBe(false);
         });
     });
 
@@ -90,19 +89,19 @@ describe('ForDirectiveParser', () => {
         it('should identify the `for` end node', () => {
             const {nodesManager} = createAssists();
             let node = nodesManager.getNode(document.createComment('/for'));
-            expect(ForDirectiveParser.isEndNode(node, new Config())).toBe(true);
+            expect(ForDirectiveParser.isEndNode(node)).toBe(true);
 
             node = nodesManager.getNode(document.createComment(' /for '));
-            expect(ForDirectiveParser.isEndNode(node, new Config())).toBe(true);
+            expect(ForDirectiveParser.isEndNode(node)).toBe(true);
 
             node = nodesManager.getNode(document.createComment('\n /for \n'));
-            expect(ForDirectiveParser.isEndNode(node, new Config())).toBe(true);
+            expect(ForDirectiveParser.isEndNode(node)).toBe(true);
 
             node = nodesManager.getNode(document.createComment('\n /for \n...'));
-            expect(ForDirectiveParser.isEndNode(node, new Config())).toBe(false);
+            expect(ForDirectiveParser.isEndNode(node)).toBe(false);
 
             node = nodesManager.getNode(document.createComment('for'));
-            expect(ForDirectiveParser.isEndNode(node, new Config())).toBe(false);
+            expect(ForDirectiveParser.isEndNode(node)).toBe(false);
         });
     });
 
@@ -119,7 +118,7 @@ describe('ForDirectiveParser', () => {
             ].join('');
 
             expect(ForDirectiveParser.findEndNode(
-                nodesManager.getNode(rootNode.firstChild), new Config()
+                nodesManager.getNode(rootNode.firstChild)
             )).toBe(
                 nodesManager.getNode(rootNode.lastChild)
             );
@@ -138,7 +137,7 @@ describe('ForDirectiveParser', () => {
             ].join('');
 
             expect(ForDirectiveParser.findEndNode(
-                nodesManager.getNode(rootNode.firstChild), new Config()
+                nodesManager.getNode(rootNode.firstChild)
             )).toBe(
                 undefined
             );

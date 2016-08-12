@@ -14,7 +14,6 @@ import Tree from './trees/Tree';
 import ExprCalculater from './ExprCalculater';
 import DomUpdater from './DomUpdater';
 import {extend, isSubClassOf, isClass} from './utils';
-import Config from './Config';
 import NodesManager from './nodes/NodesManager';
 import Parser from './parsers/Parser';
 
@@ -34,9 +33,7 @@ export default class VTpl {
      * @param  {Object} options 参数
      */
     constructor(options) {
-        options = extend({
-            config: new Config()
-        }, options);
+        options = extend({}, options);
 
         const nodesManager = new NodesManager();
         if (options.startNode) {
@@ -55,7 +52,6 @@ export default class VTpl {
         tree.setTreeVar('nodesManager', nodesManager);
 
         tree.setTreeVar('parserClasses', []);
-        tree.setTreeVar('config', options.config);
 
         this[TREE] = tree;
 

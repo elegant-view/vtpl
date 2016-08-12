@@ -367,8 +367,6 @@ export default class Tree extends DarkEntity {
         this[START_NODE] = null;
         this[END_NODE] = null;
 
-        this.config = null;
-
         this[TREE_VARS] = null;
         this[NODE_ID_PARSER_MAP] = null;
         this[PARENT] = null;
@@ -389,15 +387,14 @@ export default class Tree extends DarkEntity {
      * @return {Object}         返回值
      */
     [CREATE_PARSER](ParserClass, options) {
-        let startNode = options.startNode || options.node;
-        let config = this.getTreeVar('config');
-        if (!ParserClass.isProperNode(startNode, config)) {
+        const startNode = options.startNode || options.node;
+        if (!ParserClass.isProperNode(startNode)) {
             return;
         }
 
         let endNode = startNode;
         if (ParserClass.findEndNode) {
-            endNode = ParserClass.findEndNode(startNode, config);
+            endNode = ParserClass.findEndNode(startNode);
 
             if (!endNode) {
                 throw ParserClass.getNoEndNodeError();
