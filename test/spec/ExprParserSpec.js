@@ -120,12 +120,12 @@ describe('ExprParser', () => {
 
             expect(domNode.textContent).toBe('{name}');
             exprParser.collectExprs();
-            expect(domNode.textContent).toBe('');
             scopeModel.set('name', 'yibuyisheng', true);
             exprParser.initRender(() => {
                 expect(domNode.textContent).toBe('yibuyisheng');
                 done();
             });
+            expect(domNode.textContent).toBe('');
             domUpdater.start();
             expect(domNode.textContent).toBe('');
 
@@ -145,8 +145,8 @@ describe('ExprParser', () => {
 
             expect(domNode.textContent).toBe('{name}');
             exprParser.collectExprs();
-            expect(domNode.textContent).toBe('');
             exprParser.initRender();
+            expect(domNode.textContent).toBe('');
             domUpdater.start();
 
             exprWatcher.start();

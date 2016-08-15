@@ -47,6 +47,8 @@ export default class ForDirectiveParser extends DirectiveParser {
 
     static priority = 2;
 
+    expressions = [];
+
     /**
      * constructor
      *
@@ -61,12 +63,27 @@ export default class ForDirectiveParser extends DirectiveParser {
         this[TREES] = [];
         this[ITEM_VARIABLE_NAME] = null;
         this[LIST_EXPRESSION] = null;
-
-        this.expressions = [];
     }
 
     /**
-     * 搜集表达式，生成DOM更新函数
+     * 取出for指令之间的DOM模板，暂存起来，后面会根据这个样板生成具体的DOM结构。
+     *
+     * @private
+     */
+    extractTemplateSegment() {
+        const nodesManager = this.getNodesManager();
+        this[TEMPLATE_SEGMENT] = nodesManager.createDocumentFragment('div');
+        for (let curNode = this.startNode.getNextSibling();
+            curNode && !curNode.isAfter(this.endNode.getPreviousSibling());
+        ) {
+            const nextNode = curNode.getNextSibling();
+            this[TEMPLATE_SEGMENT].appendChild(curNode);
+            curNode = nextNode;
+        }
+    }
+
+    /**
+     * collectExprs
      *
      * @public
      * @override
@@ -77,17 +94,6 @@ export default class ForDirectiveParser extends DirectiveParser {
             return;
         }
 
-        // 将for指令之间的节点抽出来，放在tplSeg里面作为样板缓存，后面会根据这个样板生成具体的DOM结构。
-        const nodesManager = this.getNodesManager();
-        this[TEMPLATE_SEGMENT] = nodesManager.createDocumentFragment('div');
-        for (let curNode = this.startNode.getNextSibling();
-            curNode && !curNode.isAfter(this.endNode.getPreviousSibling());
-        ) {
-            const nextNode = curNode.getNextSibling();
-            this[TEMPLATE_SEGMENT].appendChild(curNode);
-            curNode = nextNode;
-        }
-
         const expr = utils.trim(this.startNode.getNodeValue().replace(FOR_START_PREFIX_REG, ''));
         try {
             [, this[LIST_EXPRESSION], this[ITEM_VARIABLE_NAME]] = expr.match(EXPRESSION_MATCHER_REG);
@@ -96,7 +102,7 @@ export default class ForDirectiveParser extends DirectiveParser {
             throw new Error(`wrong for expression: ${expr}`);
         }
 
-        let exprWatcher = this.getExpressionWatcher();
+        const exprWatcher = this.getExpressionWatcher();
         this[LIST_EXPRESSION] = this.wrapRawExpression(this[LIST_EXPRESSION]);
         exprWatcher.addExpr(this[LIST_EXPRESSION]);
         this.expressions.push(this[LIST_EXPRESSION]);
@@ -115,6 +121,8 @@ export default class ForDirectiveParser extends DirectiveParser {
      * @param  {Function} done 完成（做完DOM操作）初始化渲染的回调函数
      */
     initRender(done) {
+        this.extractTemplateSegment();
+
         const exprWatcher = this.getExpressionWatcher();
         this[UPDATE_FUNCTION](exprWatcher.calculate(this[LIST_EXPRESSION]), done);
     }

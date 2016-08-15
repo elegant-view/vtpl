@@ -38,6 +38,38 @@ export default class ExprParser extends Parser {
     static priority = 1;
 
     /**
+     * 当前解析器拥有的表达式
+     *
+     * @private
+     * @type {Array}
+     */
+    expressions = [];
+
+    /**
+     * 剩余属性更新函数，暂存作用
+     *
+     * @private
+     * @type {Map.<string, Function>}
+     */
+    restAttributeUpdateFns = {};
+
+    /**
+     * DOM事件处理函数
+     *
+     * @private
+     * @type {Object}
+     */
+    eventHandlers = {};
+
+    /**
+     * 原生属性更新函数数组。主要在collectExprs里面记录一下有哪些原生的属性设置，然后在initRender里面统一设置。
+     *
+     * @private
+     * @type {Array}
+     */
+    rawUpdateFns = [];
+
+    /**
      * 初始化
      *
      * @public
@@ -49,17 +81,6 @@ export default class ExprParser extends Parser {
         super(options);
 
         this[EXPRESION_UPDATE_FUNCTIONS] = {};
-        this.expressions = [];
-
-        /**
-         * 剩余属性更新函数，暂存作用
-         *
-         * @private
-         * @type {Map.<string, Function>}
-         */
-        this.restAttributeUpdateFns = {};
-
-        this.eventHandlers = {};
     }
 
     /**
@@ -85,13 +106,22 @@ export default class ExprParser extends Parser {
                 this[EXPRESION_UPDATE_FUNCTIONS][nodeValue] = updateFns;
 
                 // 设置一下nodeValue，避免用户看到表达式样子
-                this.setNodeValue('');
+                this.rawUpdateFns.push(done => {
+                    this.setNodeValue('');
+                    done();
+                });
             }
         }
         // 元素节点
         else if (nodeType === Node.ELEMENT_NODE) {
             const attributes = parserNode.getAttributes();
             const attrs = {};
+
+            const createRawUpdateFn = (attrName, attrValue) => {
+                const updateFn = this.createElementNodeUpdateFn(attrName);
+                return done => updateFn(attrValue, done);
+            };
+
             for (let i = 0, il = attributes.length; i < il; ++i) {
                 const attribute = attributes[i];
                 attrs[line2camel(attribute.name)] = true;
@@ -110,7 +140,7 @@ export default class ExprParser extends Parser {
                     this[EXPRESION_UPDATE_FUNCTIONS][attribute.value] = updateFns;
                 }
                 else {
-                    this.setAttr(attribute.name, attribute.value);
+                    this.rawUpdateFns.push(createRawUpdateFn(attribute.name, attribute.value));
                 }
             }
         }
@@ -259,6 +289,10 @@ export default class ExprParser extends Parser {
     initRender(done) {
         const doneChecker = new DoneChecker(done);
 
+        for (let i = 0, il = this.rawUpdateFns.length; i < il; ++i) {
+            doneChecker.add(this.rawUpdateFns[i]);
+        }
+
         const exprWatcher = this.getExpressionWatcher();
         /* eslint-disable guard-for-in */
         /* eslint-disable fecs-use-for-of */
@@ -317,6 +351,8 @@ export default class ExprParser extends Parser {
         }
         /* eslint-enable fecs-use-for-of */
         /* eslint-enable guard-for-in */
+
+        this.rawUpdateFns = null;
 
         super.release();
     }

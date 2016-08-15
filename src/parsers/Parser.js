@@ -163,7 +163,8 @@ export default class Parser extends DarkEntity {
     }
 
     /**
-     * 搜集表达式，生成表达式函数和 DOM 更新函数。具体子类实现
+     * 搜集表达式，生成表达式函数和 DOM 更新函数。具体子类实现。
+     * 原则上此方法中不要操作DOM，对于DOM只做“读”操作。
      *
      * @abstract
      * @public
