@@ -55,6 +55,10 @@ export default class NodesManager extends Base {
         if (!domNode) {
             return null;
         }
+        
+        if (domNode instanceof Node) {
+            domNode = domNode.getDOMNode();
+        }
 
         let nodeId = domNode[this[DOM_NODE_ID_KEY]];
 
