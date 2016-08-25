@@ -25,7 +25,7 @@ export default class DirectiveParser extends Parser {
      * @param  {Function} done done
      */
     initRender(done) {
-        nextTick(done);
+        typeof done === 'function' && done();
     }
 
     /**
