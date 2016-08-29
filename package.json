@@ -1,51 +1,68 @@
 {
-  "name": "vtpl",
-  "version": "1.1.0",
-  "description": "This is a template library. Unlike those traditional templates (such as [Jade](http://jade-lang.com/)), It is based on DOM.",
-  "main": "./src/main.js",
-  "directories": {
-    "test": "test"
-  },
-  "scripts": {
-    "test": "karma start",
-    "build": "babel src -d lib",
-    "dev": "node dev.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/elegant-view/vtpl.git"
-  },
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/elegant-view/vtpl/issues"
-  },
-  "homepage": "https://github.com/elegant-view/vtpl#readme",
-  "devDependencies": {
-    "babel-cli": "^6.6.5",
-    "babel-core": "^6.7.4",
-    "babel-plugin-transform-class-properties": "^6.11.5",
-    "babel-plugin-transform-decorators-legacy": "^1.3.4",
-    "babel-plugin-transform-es2015-modules-amd": "^6.6.5",
-    "babel-preset-es2015": "^6.6.0",
-    "babel-preset-stage-0": "^6.5.0",
-    "dev-server": "github:elegant-view/dev-server",
-    "jasmine-core": "^2.4.1",
-    "karma": "^1.1.0",
-    "karma-babel-preprocessor": "^6.0.1",
-    "karma-chrome-launcher": "^1.0.1",
-    "karma-coverage": "^1.0.0",
-    "karma-firefox-launcher": "^1.0.0",
-    "karma-ie-launcher": "^1.0.0",
-    "karma-jasmine": "^1.0.2",
-    "karma-jasmine-html-reporter": "github:elegant-view/karma-jasmine-html-reporter",
-    "karma-requirejs": "^1.0.0",
-    "karma-safari-launcher": "^1.0.0",
-    "requirejs": "^2.2.0"
-  },
-  "dependencies": {
-    "event": "github:elegant-view/event",
-    "protectobject": "github:elegant-view/protectobject",
-    "state": "github:elegant-view/state"
-  }
+    "name": "vtpl",
+    "version": "1.1.0",
+    "description": "This is a template library. Unlike those traditional templates (such as [Jade](http://jade-lang.com/)), It is based on DOM.",
+    "main": "./src/main.js",
+    "directories": {
+        "test": "test"
+    },
+    "scripts": {
+        "test": "karma start",
+        "build": "babel src -d lib",
+        "dev": "node dev.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/elegant-view/vtpl.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/elegant-view/vtpl/issues"
+    },
+    "homepage": "https://github.com/elegant-view/vtpl#readme",
+    "devDependencies": {
+        "babel-cli": "^6.6.5",
+        "babel-core": "^6.7.4",
+        "babel-plugin-transform-class-properties": "^6.11.5",
+        "babel-plugin-transform-decorators-legacy": "^1.3.4",
+        "babel-plugin-transform-es2015-modules-amd": "^6.6.5",
+        "babel-preset-es2015": "^6.6.0",
+        "babel-preset-stage-0": "^6.5.0",
+        "dev-server": "github:elegant-view/dev-server",
+        "jasmine-core": "^2.4.1",
+        "karma": "^1.1.0",
+        "karma-babel-preprocessor": "^6.0.1",
+        "karma-chrome-launcher": "^1.0.1",
+        "karma-coverage": "^1.0.0",
+        "karma-firefox-launcher": "^1.0.0",
+        "karma-ie-launcher": "^1.0.0",
+        "karma-jasmine": "^1.0.2",
+        "karma-jasmine-html-reporter": "github:elegant-view/karma-jasmine-html-reporter",
+        "karma-requirejs": "^1.0.0",
+        "karma-safari-launcher": "^1.0.0",
+        "requirejs": "^2.2.0"
+    },
+    "dependencies": {
+        "event": "github:elegant-view/event",
+        "protectobject": "github:elegant-view/protectobject",
+        "state": "github:elegant-view/state"
+    },
+    "edp": {
+        "wwwroot": "/",
+        "depDir": "dep",
+        "srcDir": "src",
+        "loaderAutoConfig": "js,htm,html,tpl,vm,phtml",
+        "dependencies": {
+            "underscore": "1.5.x",
+            "moment": "2.x",
+            "etpl": ">=2.0.8",
+            "est": "~1.3.0",
+            "esf": "~1.0.0",
+            "eicons": "~1.0.0",
+            "eoo": "0.1.x",
+            "jquery": "1.x",
+            "mini-event": "1.x"
+        }
+    }
 }

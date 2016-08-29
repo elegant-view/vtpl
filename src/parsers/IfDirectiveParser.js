@@ -93,7 +93,7 @@ export default class IfDirectiveParser extends DirectiveParser {
         // 否则是嵌套的if指令
         let nestCounter = 0;
         Node.iterate(this.startNode, this.endNode, node => {
-            let ifNodeType = getIfNodeType(node);
+            const ifNodeType = getIfNodeType(node);
             // if
             if (ifNodeType === IfDirectiveParser.IF_START) {
                 // 已经有了一个if分支，再来一个if分支，说明很可能是if嵌套
@@ -154,10 +154,10 @@ export default class IfDirectiveParser extends DirectiveParser {
         });
 
         for (let i = 0, il = branchNodeStack.length - 1; i < il; ++i) {
-            let curNode = branchNodeStack[i];
-            let nextNode = branchNodeStack[i + 1];
+            const curNode = branchNodeStack[i];
+            const nextNode = branchNodeStack[i + 1];
 
-            let curNodeNextSibling = curNode.node.getNextSibling();
+            const curNodeNextSibling = curNode.node.getNextSibling();
             // curNode 和 nextNode 之间没有节点
             if (curNodeNextSibling.equal(nextNode.node)) {
                 this[BRANCH_TREES].push(null);

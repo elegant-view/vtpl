@@ -55,7 +55,7 @@ export default class NodesManager extends Base {
         if (!domNode) {
             return null;
         }
-        
+
         if (domNode instanceof Node) {
             domNode = domNode.getDOMNode();
         }
