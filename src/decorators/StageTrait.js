@@ -71,14 +71,22 @@ export default {
     },
 
     /**
-     * 必须要在某个stage，不然就抛出异常
+     * 必须要在指定stage，不然就抛出异常
      *
      * @public
-     * @param {string|Symbol} stage stage
+     * @param {Array.<string|Symbol>} stages stages
      */
-    mustInStage(stage) {
-        if (!this.isInStage(stage)) {
-            throw new Error('in wrong stage');
+    mustInStages(stages) {
+        if (!isArray(stages)) {
+            throw new TypeError('wrong parameter');
         }
+
+        for (let i = 0, il = stages.length; i < il; ++i) {
+            if (this.isInStage(stages[i])) {
+                return;
+            }
+        }
+
+        throw new Error('in wrong stage');
     }
 };

@@ -5,7 +5,6 @@
 
 import Parser from './Parser';
 import Node from '../nodes/Node';
-import {nextTick} from '../utils';
 
 /**
  * DirectiveParser

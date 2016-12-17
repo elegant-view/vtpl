@@ -6,7 +6,7 @@
  */
 
 import DarkEntity from '../DarkEntity';
-import parserState from './parserState';
+import parserStage from './parserStage';
 import Tree from '../trees/Tree';
 import Node from '../nodes/Node';
 import DomUpdater from '../DomUpdater';
@@ -53,17 +53,17 @@ export default class Parser extends DarkEntity {
         // }
 
         this.restrictStageEnum([
-            parserState.INITIALIZING,
-            parserState.BEGIN_COMPILING,
-            parserState.END_COMPILING,
-            parserState.BEGIN_LINK,
-            parserState.END_LINK,
-            parserState.BEGIN_INIT_RENDER,
-            parserState.END_INIT_RENDER,
-            parserState.READY,
-            parserState.DESTROIED
+            parserStage.INITIALIZING,
+            parserStage.BEGIN_COMPILING,
+            parserStage.END_COMPILING,
+            parserStage.BEGIN_LINK,
+            parserStage.END_LINK,
+            parserStage.BEGIN_INIT_RENDER,
+            parserStage.END_INIT_RENDER,
+            parserStage.READY,
+            parserStage.DESTROIED
         ]);
-        this.setStage(parserState.INITIALIZING);
+        this.setStage(parserStage.INITIALIZING);
 
         this[TREE] = options.tree;
         this[START_NODE] = options.startNode;
@@ -340,13 +340,15 @@ export default class Parser extends DarkEntity {
      * @protected
      */
     release() {
-        // parser是附着在tree上面的，所以在销毁parser的时候，
-        // 不要调用tree.destroy()，否则会引起无限递归
-        this[TREE] = null;
+        if (!this.isInStage(parserStage.DESTROIED)) {
+            // parser是附着在tree上面的，所以在销毁parser的时候，
+            // 不要调用tree.destroy()，否则会引起无限递归
+            this[TREE] = null;
 
-        this[STATE] = parserState.DESTROIED;
-        this[START_NODE] = null;
-        this[END_NODE] = null;
+            this.setStage(parserStage.DESTROIED);
+            this[START_NODE] = null;
+            this[END_NODE] = null;
+        }
     }
 
     /**

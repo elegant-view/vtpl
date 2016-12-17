@@ -7,7 +7,7 @@ import {extend} from '../utils';
 import ScopeModel from '../ScopeModel';
 import Node from '../nodes/Node';
 import ExprWatcher from '../ExprWatcher';
-import parserState from '../parsers/parserState';
+import parserStage from '../parsers/parserStage';
 import DoneChecker from '../DoneChecker';
 import DarkEntity from '../DarkEntity';
 
@@ -203,9 +203,9 @@ export default class Tree extends DarkEntity {
             delayFns.push(handle);
 
             function handle() {
-                parser.setStage(parserState.BEGIN_COMPILING);
+                parser.setStage(parserStage.BEGIN_COMPILING);
                 parser.collectExprs();
-                parser.setStage(parserState.END_COMPILING);
+                parser.setStage(parserStage.END_COMPILING);
             }
 
             const parserObj = {
@@ -253,9 +253,9 @@ export default class Tree extends DarkEntity {
     link() {
         this.iterateParsers(parser => {
             // 将解析器对象和对应树的scope绑定起来
-            parser.setStage(parserState.BEGIN_LINK);
+            parser.setStage(parserStage.BEGIN_LINK);
             parser.linkScope();
-            parser.setStage(parserState.END_LINK);
+            parser.setStage(parserStage.END_LINK);
 
             // 建立expression到parser的映射
             const parserExpressions = parser.getOwnExpressions();
@@ -295,9 +295,9 @@ export default class Tree extends DarkEntity {
         const doneChecker = new DoneChecker(done);
         this.iterateParsers(parser => {
             // 将解析器对象和对应树的scope绑定起来
-            parser.setStage(parserState.BEGIN_INIT_RENDER);
+            parser.setStage(parserStage.BEGIN_INIT_RENDER);
             doneChecker.add(innerDone => parser.initRender(innerDone));
-            parser.setStage(parserState.READY);
+            parser.setStage(parserStage.READY);
         }, this[PARSERS]);
 
         this[EXPRESSION_WATCHER].start();
@@ -360,7 +360,7 @@ export default class Tree extends DarkEntity {
     release() {
         this.iterateParsers(parser => {
             parser.destroy();
-            parser.setStage(parserState.DESTROIED);
+            parser.setStage(parserStage.DESTROIED);
         }, this[PARSERS]);
         this[PARSERS] = null;
 
