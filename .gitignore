@@ -5,3 +5,4 @@ npm-debug.log
 dom-data-bind
 coverage
 .idea
+.DS_Store
