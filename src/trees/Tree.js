@@ -203,9 +203,9 @@ export default class Tree extends DarkEntity {
             delayFns.push(handle);
 
             function handle() {
-                parser.state = parserState.BEGIN_COMPILING;
+                parser.setStage(parserState.BEGIN_COMPILING);
                 parser.collectExprs();
-                parser.state = parserState.END_COMPILING;
+                parser.setStage(parserState.END_COMPILING);
             }
 
             const parserObj = {
@@ -253,9 +253,9 @@ export default class Tree extends DarkEntity {
     link() {
         this.iterateParsers(parser => {
             // 将解析器对象和对应树的scope绑定起来
-            parser.state = parserState.BEGIN_LINK;
+            parser.setStage(parserState.BEGIN_LINK);
             parser.linkScope();
-            parser.state = parserState.END_LINK;
+            parser.setStage(parserState.END_LINK);
 
             // 建立expression到parser的映射
             const parserExpressions = parser.getOwnExpressions();
@@ -295,9 +295,9 @@ export default class Tree extends DarkEntity {
         const doneChecker = new DoneChecker(done);
         this.iterateParsers(parser => {
             // 将解析器对象和对应树的scope绑定起来
-            parser.state = parserState.BEGIN_INIT_RENDER;
+            parser.setStage(parserState.BEGIN_INIT_RENDER);
             doneChecker.add(innerDone => parser.initRender(innerDone));
-            parser.state = parserState.READY;
+            parser.setStage(parserState.READY);
         }, this[PARSERS]);
 
         this[EXPRESSION_WATCHER].start();
@@ -360,7 +360,7 @@ export default class Tree extends DarkEntity {
     release() {
         this.iterateParsers(parser => {
             parser.destroy();
-            parser.state = parserState.DESTROIED;
+            parser.setStage(parserState.DESTROIED);
         }, this[PARSERS]);
         this[PARSERS] = null;
 

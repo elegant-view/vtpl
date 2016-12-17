@@ -13,8 +13,9 @@ import DomUpdater from '../DomUpdater';
 import ExprWatcher from '../ExprWatcher';
 import ExprCalculater from '../ExprCalculater';
 import NodesManager from '../nodes/NodesManager';
+import mixin from '../decorators/mixin';
+import StageTrait from '../decorators/StageTrait';
 
-const STATE = Symbol('state');
 const TREE = Symbol('tree');
 
 const START_NODE = Symbol('startNode');
@@ -32,6 +33,7 @@ const END_NODE = Symbol('endNode');
  * @class
  * @extends {DarkEntity}
  */
+@mixin(StageTrait)
 export default class Parser extends DarkEntity {
 
     /**
@@ -50,8 +52,20 @@ export default class Parser extends DarkEntity {
         //     throw new Error('you should pass in `startNode` and `endNode`');
         // }
 
+        this.restrictStageEnum([
+            parserState.INITIALIZING,
+            parserState.BEGIN_COMPILING,
+            parserState.END_COMPILING,
+            parserState.BEGIN_LINK,
+            parserState.END_LINK,
+            parserState.BEGIN_INIT_RENDER,
+            parserState.END_INIT_RENDER,
+            parserState.READY,
+            parserState.DESTROIED
+        ]);
+        this.setStage(parserState.INITIALIZING);
+
         this[TREE] = options.tree;
-        this[STATE] = parserState.INITIALIZING;
         this[START_NODE] = options.startNode;
         this[END_NODE] = options.endNode;
     }
@@ -107,36 +121,13 @@ export default class Parser extends DarkEntity {
     }
 
     /**
-     * 获取状态
-     *
-     * @public
-     * @return {Symbol}
-     */
-    get state() {
-        return this[STATE];
-    }
-
-    /**
      * 设置状态
      *
      * @public
      * @param  {Symbol} state 状态
      */
     set state(state) {
-        let illegal = false;
-        /* eslint-disable fecs-use-for-of */
-        for (let key in parserState) {
-            if (parserState[key] === state) {
-                illegal = true;
-                break;
-            }
-        }
-        /* eslint-enable fecs-use-for-of */
-        if (!illegal) {
-            throw new TypeError('wrong state value');
-        }
-
-        this[STATE] = state;
+        throw new Error('todo');
     }
 
     /**
