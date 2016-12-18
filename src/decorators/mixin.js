@@ -5,8 +5,8 @@
 
 import {extend} from '../utils';
 
-export default function mixin(obj) {
+export default function mixin(...args) {
     return function (Class) {
-        extend(Class.prototype, obj);
+        extend(Class.prototype, ...args);
     };
 }

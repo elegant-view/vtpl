@@ -4,12 +4,13 @@
  */
 
 import OrderedProtectObject from 'protectobject/OrderedProtectObject';
-import State from 'state/State';
+import mixin from './decorators/mixin';
+import StageTrait from './decorators/StageTrait';
+import StateTrait from './decorators/StateTrait';
 
 const TASKS = Symbol('tasks');
 const COUNTER = Symbol('counter');
 const NODE_ATTR_NAME_TASK_ID_MAP = Symbol('nodeAttrNameTaskIdMap');
-const IS_EXECUTING = Symbol('isExecuting');
 const EXECUTE = Symbol('execute');
 
 const requestAnimationFrame = getRequestAnimationFrameFn().bind(window);
@@ -30,17 +31,12 @@ function getRequestAnimationFrameFn() {
     }
 
     return function (fn) {
-        setTimeout(fn, 17);
+        setTimeout(fn, 16);
     };
 }
 
-/**
- * DomUpdater
- *
- * @class
- * @extends {State}
- */
-export default class DomUpdater extends State {
+@mixin(StageTrait, StateTrait)
+export default class DomUpdater {
 
     /**
      * constructor
@@ -48,8 +44,6 @@ export default class DomUpdater extends State {
      * @public
      */
     constructor() {
-        super();
-
         // 为啥这里要用ProtectObject呢？
         // 因为在taskFn或者notifyFn里面有可能间接修改tasks，这就容易引起错误了，思考如下场景：
         // 假设现在有taskId为2的任务添加进来了，然后在任务执行过程中，又添加taskId为2的任务，此时如果直接操作tasks，
@@ -60,9 +54,6 @@ export default class DomUpdater extends State {
         this[TASKS] = new OrderedProtectObject();
         this[COUNTER] = 0;
         this[NODE_ATTR_NAME_TASK_ID_MAP] = {};
-
-        // 标识当前添加的任务是否会自动执行掉
-        this[IS_EXECUTING] = false;
     }
 
     /**
@@ -149,7 +140,7 @@ export default class DomUpdater extends State {
      * @public
      */
     stop() {
-        this[IS_EXECUTING] = false;
+        this.removeState('executing');
     }
 
     /**
@@ -158,11 +149,11 @@ export default class DomUpdater extends State {
      * @public
      */
     start() {
-        if (this[IS_EXECUTING]) {
+        if (this.hasState('executing')) {
             return;
         }
 
-        this[IS_EXECUTING] = true;
+        this.addState('executing');
         this[EXECUTE]();
     }
 
@@ -172,14 +163,14 @@ export default class DomUpdater extends State {
      * @private
      */
     [EXECUTE]() {
-        if (!this[IS_EXECUTING]) {
+        if (!this.hasState('executing')) {
             return;
         }
 
         requestAnimationFrame(() => {
 
             // 避免在调用 [EXECUTE]() 之后，马上调用 stop() 所造成的错误
-            if (!this[IS_EXECUTING]) {
+            if (!this.hasState('executing')) {
                 return;
             }
 
@@ -204,7 +195,7 @@ export default class DomUpdater extends State {
                 }
 
                 // 太尴尬了，有可能在 task.fn 里面 stop 了
-                if (!this[IS_EXECUTING]) {
+                if (!this.hasState('executing')) {
                     return true;
                 }
             });
