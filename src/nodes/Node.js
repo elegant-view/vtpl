@@ -11,7 +11,8 @@ import {
     extend
 } from '../utils';
 import DoneEvent from '../DoneEvent';
-import State from 'state/State';
+import mixin from '../decorators/mixin';
+import StateTrait from '../decorators/StateTrait';
 
 const NODE = Symbol('node');
 const MANAGER = Symbol('manager');
@@ -28,7 +29,8 @@ const IN_DARK_ERROR = Symbol('inDarkError');
  * @class WrapNode
  * @extends {State}
  */
-export default class WrapNode extends State {
+@mixin(StateTrait)
+export default class WrapNode {
 
     /**
      * constructor
@@ -38,8 +40,6 @@ export default class WrapNode extends State {
      * @param {NodesManager} manager manager
      */
     constructor(node, manager) {
-        super();
-
         this[NODE] = node;
         this[MANAGER] = manager;
 

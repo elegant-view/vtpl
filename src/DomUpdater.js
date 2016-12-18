@@ -5,7 +5,7 @@
 
 import OrderedProtectObject from 'protectobject/OrderedProtectObject';
 import mixin from './decorators/mixin';
-import StageTrait from './decorators/StageTrait';
+// import StageTrait from './decorators/StageTrait';
 import StateTrait from './decorators/StateTrait';
 
 const TASKS = Symbol('tasks');
@@ -35,7 +35,7 @@ function getRequestAnimationFrameFn() {
     };
 }
 
-@mixin(StageTrait, StateTrait)
+@mixin(/*StageTrait, */StateTrait)
 export default class DomUpdater {
 
     /**
