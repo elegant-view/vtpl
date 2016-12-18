@@ -334,6 +334,27 @@ export default class Parser extends DarkEntity {
     }
 
     /**
+     * 添加DOMUpdater任务函数
+     *
+     * @protected
+     * @param {number} taskId 任务ID
+     * @param {function()} taskFn 任务函数
+     * @param {function(Error, *)=} notifyFn 执行结果的回调函数
+     */
+    addTaskFn(taskId, taskFn, notifyFn) {
+        const domUpdater = this.getDOMUpdater();
+        domUpdater.addTaskFn(
+            taskId,
+            () => {
+                if (!this.isInStage(parserStage.DESTROIED)) {
+                    taskFn();
+                }
+            },
+            notifyFn
+        );
+    }
+
+    /**
      * 销毁解析器，将界面恢复成原样
      *
      * @override
