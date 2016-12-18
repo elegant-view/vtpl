@@ -192,7 +192,6 @@ export default class ExprParser extends Parser {
      * @return {Function}
      */
     createRestAttributesUpdateFn(restAttributes) {
-        const domUpdater = this.getDOMUpdater();
         const restAttributeUpdateFns = this.restAttributeUpdateFns;
         return (expressionValue, done) => {
             const doneChecker = new DoneChecker(done);
@@ -210,7 +209,7 @@ export default class ExprParser extends Parser {
                         }
 
                         doneChecker.add(innerDone => {
-                            domUpdater.addTaskFn(this.getTaskId(key), restAttributeUpdateFns[key], innerDone);
+                            this.addTaskFn(this.getTaskId(key), restAttributeUpdateFns[key], innerDone);
                         });
                         /* eslint-enable no-loop-func */
                     }
@@ -231,10 +230,9 @@ export default class ExprParser extends Parser {
      * @return {Function}
      */
     createElementNodeUpdateFn(attributeName) {
-        const domUpdater = this.getDOMUpdater();
         const taskId = this.getTaskId(attributeName);
         return (expressionValue, done) => {
-            domUpdater.addTaskFn(
+            this.addTaskFn(
                 taskId,
                 () => this.setAttr(attributeName, expressionValue),
                 done
@@ -249,9 +247,8 @@ export default class ExprParser extends Parser {
      * @return {Function}
      */
     createTextNodeUpdateFn() {
-        const domUpdater = this.getDOMUpdater();
         return (exprValue, done) => {
-            domUpdater.addTaskFn(
+            this.addTaskFn(
                 this.getTaskId('nodeValue'),
                 () => this.setNodeValue(exprValue),
                 done
@@ -368,9 +365,8 @@ export default class ExprParser extends Parser {
         // hide前面故意保留一个空格，因为DOM中不可能出现节点的属性key第一个字符为空格的，
         // 避免了冲突。
         const taskId = this.getTaskId(' hide');
-        const domUpdater = this.getDOMUpdater();
         doneChecker.add(innerDone => {
-            domUpdater.addTaskFn(taskId, ::this.startNode.hide, innerDone);
+            this.addTaskFn(taskId, ::this.startNode.hide, innerDone);
         });
         doneChecker.complete();
     }
@@ -385,8 +381,7 @@ export default class ExprParser extends Parser {
     show(done) {
         const doneChecker = new DoneChecker(done);
         const taskId = this.getTaskId(' hide');
-        const domUpdater = this.getDOMUpdater();
-        doneChecker.add(innerDone => domUpdater.addTaskFn(taskId, ::this.startNode.show, innerDone));
+        doneChecker.add(innerDone => this.addTaskFn(taskId, ::this.startNode.show, innerDone));
         doneChecker.complete();
     }
 
