@@ -4,22 +4,24 @@
  */
 
 import {isFunction, empty} from './utils';
+import mixin from './decorators/mixin';
+import StageTrait from './decorators/StageTrait';
 
 const ASYN_FUNCTIONS = Symbol('asynFunctions');
 const TOTAL = Symbol('total');
 const COUNTER = Symbol('counter');
 const ON_DONE = Symbol('onDone');
 
-const STATE = Symbol('state');
-const STATE_READY = Symbol('stateReady');
-const STATE_DONE = Symbol('stateDone');
-const STATE_COMPLETE = Symbol('stateComplete');
+const STAGE_READY = Symbol('stateReady');
+const STAGE_DONE = Symbol('stateDone');
+const STAGE_COMPLETE = Symbol('stateComplete');
 
 /**
  * DoneChecker
  *
  * @class
  */
+@mixin(StageTrait)
 export default class DoneChecker {
 
     /**
@@ -33,8 +35,14 @@ export default class DoneChecker {
         this[ASYN_FUNCTIONS] = [];
         this[TOTAL] = 0;
         this[COUNTER] = 0;
-        this[STATE] = STATE_READY;
         this[ON_DONE] = isFunction(onDone) ? onDone : empty;
+
+        this.restrictStageEnum([
+            STAGE_READY,
+            STAGE_DONE,
+            STAGE_COMPLETE
+        ]);
+        this.setStage(STAGE_READY);
     }
 
     /**
@@ -44,7 +52,7 @@ export default class DoneChecker {
      * @param {Function} asynFn 异步执行函数
      */
     add(asynFn) {
-        if (this[STATE] !== STATE_READY) {
+        if (!this.isInStage(STAGE_READY)) {
             throw new Error('wrong state');
         }
 
@@ -56,18 +64,18 @@ export default class DoneChecker {
         asynFn(() => {
             ++this[COUNTER];
 
-            if (this[STATE] === STATE_DONE) {
+            if (this.isInStage(STAGE_DONE)) {
                 throw new Error('wrong state');
             }
 
             // 如果还没调用complete方法，那么就不要检查了。
             // 只有回调是同步的情况，才会进入到这个分支
-            if (this[STATE] === STATE_READY) {
+            if (this.isInStage(STAGE_READY)) {
                 return;
             }
 
             if (this[COUNTER] === this[TOTAL]) {
-                this[STATE] = STATE_DONE;
+                this.setStage(STAGE_DONE);
                 this[ON_DONE]();
             }
         });
@@ -79,13 +87,13 @@ export default class DoneChecker {
      * @public
      */
     complete() {
-        if (this[STATE] !== STATE_READY) {
+        if (!this.isInStage(STAGE_READY)) {
             throw new Error('wrong state');
         }
 
-        this[STATE] = STATE_COMPLETE;
+        this.setStage(STAGE_COMPLETE);
         if (this[TOTAL] === 0 || this[TOTAL] === this[COUNTER]) {
-            this[STATE] = STATE_DONE;
+            this.setStage(STAGE_DONE);
             this[ON_DONE]();
         }
     }

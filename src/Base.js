@@ -3,7 +3,8 @@
  * @author yibuyisheng(yibuyisheng@163.com)
  */
 
-import State, {ensureStates, not} from 'state/State';
+import mixin from './decorators/mixin';
+import StateTrait from './decorators/StateTrait';
 
 /**
  * Base
@@ -11,16 +12,15 @@ import State, {ensureStates, not} from 'state/State';
  * @class
  * @extends {State}
  */
-export default class Base extends State {
+@mixin(StateTrait)
+export default class Base {
 
     /**
      * constructor
      *
      * @public
      */
-    constructor() {
-        super();
-    }
+    constructor() {}
 
     /* eslint-disable fecs-valid-class-jsdoc */
     /**
@@ -28,7 +28,6 @@ export default class Base extends State {
      *
      * @public
      */
-    @ensureStates([not('destroied')])
     destroy() {
         this.release();
         this.addState('destroied');
