@@ -5,7 +5,6 @@
 
 import OrderedProtectObject from 'protectobject/OrderedProtectObject';
 import mixin from './decorators/mixin';
-// import StageTrait from './decorators/StageTrait';
 import StateTrait from './decorators/StateTrait';
 
 const TASKS = Symbol('tasks');
@@ -35,7 +34,7 @@ function getRequestAnimationFrameFn() {
     };
 }
 
-@mixin(/*StageTrait, */StateTrait)
+@mixin(StateTrait)
 export default class DomUpdater {
 
     /**
@@ -122,10 +121,11 @@ export default class DomUpdater {
      * @public
      */
     destroy() {
-        // TASKS 为假值是当前对象已被销毁的标志
-        if (!this[TASKS]) {
+        if (this.hasState('destroied')) {
             return;
         }
+
+        this.addState('destroied');
 
         this.stop();
         this[TASKS].destroy();
@@ -174,10 +174,7 @@ export default class DomUpdater {
                 return;
             }
 
-            // console.time('requestAnimationFrame');
-            // let counter = 0;
             this[TASKS].safeIterate((task, taskId) => {
-                // counter++;
                 if (!task) {
                     return;
                 }
@@ -199,10 +196,6 @@ export default class DomUpdater {
                     return true;
                 }
             });
-            // if (counter) {
-            //     console.log(counter);
-            //     console.timeEnd('requestAnimationFrame');
-            // }
 
             this[EXECUTE]();
         });

@@ -25,19 +25,11 @@ module.exports = function(config) {
                 included: false
             },
             {
-                pattern: 'test/**/*Spec.js',
-                included: false
-            },
-            {
                 pattern: 'node_modules/protectobject/src/**/*.js',
                 included: false
             },
             {
                 pattern: 'node_modules/event/src/**/*.js',
-                included: false
-            },
-            {
-                pattern: 'node_modules/state/src/**/*.js',
                 included: false
             }
         ],
@@ -50,23 +42,19 @@ module.exports = function(config) {
         // preprocess matching files before serving them to the browser
         // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
         preprocessors: {
-            'src/**/*.js': ['babel'/*, 'coverage'*/],
+            'src/**/*.js': ['babel', 'coverage'],
             'test/**/!(main).js': ['babel'],
             'node_modules/protectobject/src/**/*.js': ['babel'],
-            'node_modules/event/src/**/*.js': ['babel'],
-            'node_modules/state/src/**/*.js': ['babel']
+            'node_modules/event/src/**/*.js': ['babel']
         },
 
         babelPreprocessor: {
-            options: {
-                presets: ['es2015', 'stage-0'],
-                plugins: ['transform-decorators-legacy', 'transform-es2015-modules-amd']
-            }
+            options: {}
         },
 
         coverageReporter: {
             type: 'html',
-            dir: 'coverage'
+            dir: 'test/coverage'
         },
 
 

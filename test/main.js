@@ -18,10 +18,6 @@ require.config({
         {
             "name": "event",
             "location": "node_modules/event/src"
-        },
-        {
-            "name": "state",
-            "location": "node_modules/state/src"
         }
     ],
 

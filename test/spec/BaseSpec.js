@@ -13,4 +13,8 @@ describe('Base', () => {
         base.destroy();
         expect(base.hasState('destroied')).toBe(true);
     });
+
+    it('should not call Base in method way', () => {
+        expect(Base).toThrowError();
+    });
 });

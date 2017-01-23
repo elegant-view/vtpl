@@ -59,4 +59,28 @@ describe('DomUpdater', () => {
         });
     });
 
+    describe('generateTaskId()', () => {
+        it('should generate unique task id', () => {
+            let domUpdater = new DomUpdater();
+            expect(domUpdater.generateTaskId()).not.toBe(domUpdater.generateTaskId());
+        });
+    });
+
+    describe('generateNodeAttrUpdateId()', () => {
+        it('should generate id by node and it\'s attribute', () => {
+            let node = {getNodeId() { return '1'; }};
+            let domUpdater = new DomUpdater();
+            expect(
+                domUpdater.generateNodeAttrUpdateId(node, 'attr')
+            ).toBe(
+                domUpdater.generateNodeAttrUpdateId(node, 'attr')
+            );
+            expect(
+                domUpdater.generateNodeAttrUpdateId(node, 'attr')
+            ).not.toBe(
+                domUpdater.generateNodeAttrUpdateId(node, 'attr1')
+            );
+        });
+    });
+
 });

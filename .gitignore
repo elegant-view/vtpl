@@ -3,6 +3,7 @@ node_modules
 tmp/*
 npm-debug.log
 dom-data-bind
-coverage
+test/coverage
 .idea
 .DS_Store
+lib
